@@ -24,35 +24,35 @@ function start() {
       //coeffs[i - 1] = 1/i;
       //multiples[i - 1] = i*Math.pow(stretch, Math.log(i)/Math.log(2));
     //}
-    tone.setGenerator(new o.InharmonicShepardGenerator(5/4));
+    tone.setGenerator(new o.InharmonicShepardGenerator(2));
     //tone.generator.setPhasor(new o.RandomModPhasor(0.2));
     //tone.setEnvelope(new o.LinearEnvelope(1, 0));
     //tone.addFilter(new o.DelayFilter(0.6, 0.8));
     tone.play();
   }
-  let sequence = new o.Sequence([
+  let sequence = new o.Sequence(60, [
     {
-      time: 0,
+      beat: 0,
       action: function () {
         makeTone(440, 0.07);
-        makeTone(550, 0.03);
-        makeTone(660, 0.05);
+        //makeTone(550, 0.03);
+        //makeTone(660, 0.05);
       }
     },
     {
-      time: 1000,
+      beat: 1,
       action: function () {
         makeTone(440, 0.07);
-        makeTone(440*Math.pow(2, 1/3), 0.03);
-        makeTone(440*Math.pow(2, 7/12), 0.05);
+        //makeTone(440*Math.pow(2, 1/3), 0.03);
+        //makeTone(440*Math.pow(2, 7/12), 0.05);
       }
     },
     {
-      time: 2000,
+      beat: 2,
       action: function () {
         makeTone(440, 0.07);
-        makeTone(556.875, 0.03);
-        makeTone(660, 0.05);
+        //makeTone(556.875, 0.03);
+        //makeTone(660, 0.05);
       }
     }
   ]);
