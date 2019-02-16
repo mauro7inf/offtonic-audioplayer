@@ -36,12 +36,7 @@ function start() {
           a0: 0.4,
           b1: 0.8
         }
-      ],
-      envelope: {
-        className: 'LinearEnvelope',
-        startValue: 0,
-        endValue: 1
-      }
+      ]
     });
     tone.play();
   }
