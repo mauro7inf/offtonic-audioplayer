@@ -22,20 +22,26 @@ function start() {
       duration: 900,
       amplitude: amplitude,
       generator: {
-        className: 'SawtoothGenerator',
+        className: 'FourierGenerator',
+        fourierCoeffs: [0.125, 0.25, 0.5, 1, 0.5, 0.25, 0.125]
       },
       filters: [
         {
           className: 'CutoffFilter',
-          low: -0.1,
-          high: 0.2
+          low: -0.7,
+          high: 0.9
         },
         {
           className: 'DelayFilter',
           a0: 0.4,
           b1: 0.8
         }
-      ]
+      ],
+      envelope: {
+        className: 'LinearEnvelope',
+        startValue: 0,
+        endValue: 1
+      }
     });
     tone.play();
   }
