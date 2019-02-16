@@ -1,11 +1,12 @@
 import o from './offtonic-audioplayer.js';
 let player;
 
-document.addEventListener("DOMContentLoaded", function (e) {
+window.addEventListener("load", function (e) {
   load();
 });
 
 function load() {
+  console.log('Loaded!');
   document.getElementById('start').addEventListener("click", function (e) {
     start();
   });
@@ -16,18 +17,26 @@ function start() {
   console.log('Start!');
   player.on();
   let makeTone = function (freq, amplitude) {
-    let tone = new o.Tone(freq, 900, amplitude);
-    //let coeffs = [];
-    //let multiples = [];
-    //let stretch = 1.005;
-    //for (let i = 1; i <= 10; i++) {
-      //coeffs[i - 1] = 1/i;
-      //multiples[i - 1] = i*Math.pow(stretch, Math.log(i)/Math.log(2));
-    //}
-    tone.setGenerator(new o.InharmonicShepardGenerator(2));
-    //tone.generator.setPhasor(new o.RandomModPhasor(0.2));
-    //tone.setEnvelope(new o.LinearEnvelope(1, 0));
-    //tone.addFilter(new o.DelayFilter(0.6, 0.8));
+    let tone = new o.Tone({
+      frequency: freq/2,
+      duration: 900,
+      amplitude: amplitude,
+      generator: {
+        className: 'SawtoothGenerator',
+      },
+      filters: [
+        {
+          className: 'CutoffFilter',
+          low: -0.1,
+          high: 0.2
+        },
+        {
+          className: 'DelayFilter',
+          a0: 0.4,
+          b1: 0.8
+        }
+      ]
+    });
     tone.play();
   }
   let sequence = new o.Sequence(60, [
@@ -35,30 +44,30 @@ function start() {
       beat: 0,
       action: function () {
         makeTone(440, 0.07);
-        //makeTone(550, 0.03);
-        //makeTone(660, 0.05);
+        makeTone(550, 0.03);
+        makeTone(660, 0.05);
       }
     },
     {
       beat: 1,
       action: function () {
         makeTone(440, 0.07);
-        //makeTone(440*Math.pow(2, 1/3), 0.03);
-        //makeTone(440*Math.pow(2, 7/12), 0.05);
+        makeTone(440*Math.pow(2, 1/3), 0.03);
+        makeTone(440*Math.pow(2, 7/12), 0.05);
       }
     },
     {
       beat: 2,
       action: function () {
         makeTone(440, 0.07);
-        //makeTone(556.875, 0.03);
-        //makeTone(660, 0.05);
+        makeTone(556.875, 0.03);
+        makeTone(660, 0.05);
       }
     }
   ]);
   sequence.play();
   /*let sweep = new o.Playable();
-  let tone = new o.Tone(110, 4000, 0.1);
+  let tone = new o.Tone({frequency: 110, duration: 4000, amplitude: 0.1});
   tone.setGenerator(new o.InharmonicShepardGenerator(9/4));
   tone.setEnvelope(new o.ADSREnvelope(10, 10, 100, 2));
   sweep.sweeper = new o.LinearEnvelope(0, 4, 4000);
