@@ -18,26 +18,21 @@ function start() {
   player.on();
   let makeTone = function (freq, amplitude) {
     let tone = new o.Tone({
-      frequency: freq/2,
-      duration: 900,
+      frequency: freq*0.75,
+      duration: 9009,
       amplitude: amplitude,
       generator: {
-        className: 'FourierGenerator',
-        fourierCoeffs: [0.125, 0.25, 0.5, 1, 0.5, 0.25, 0.125]
-      },
-      filters: [
-        {
-          className: 'CutoffFilter',
-          low: -0.7,
-          high: 0.9
-        },
-        {
-          className: 'DelayFilter',
-          a0: 0.4,
-          b1: 0.8
+        className: 'SawtoothGenerator',
+        phasor: {
+          className: 'GeneratorModPhasor',
+          generator: {
+            className: 'RedNoiseGenerator',
+            timeConstant: 1000
+          }
         }
-      ]
+      }
     });
+    //console.log(tone);
     tone.play();
   }
   let sequence = new o.Sequence(60, [
@@ -45,24 +40,24 @@ function start() {
       beat: 0,
       action: function () {
         makeTone(440, 0.07);
-        makeTone(550, 0.03);
-        makeTone(660, 0.05);
+        //makeTone(550, 0.03);
+        //makeTone(660, 0.05);
       }
     },
     {
       beat: 1,
       action: function () {
-        makeTone(440, 0.07);
-        makeTone(440*Math.pow(2, 1/3), 0.03);
-        makeTone(440*Math.pow(2, 7/12), 0.05);
+        //makeTone(440, 0.07);
+        //makeTone(440*Math.pow(2, 1/3), 0.03);
+        //makeTone(440*Math.pow(2, 7/12), 0.05);
       }
     },
     {
       beat: 2,
       action: function () {
-        makeTone(440, 0.07);
-        makeTone(556.875, 0.03);
-        makeTone(660, 0.05);
+        //makeTone(440, 0.07);
+        //makeTone(556.875, 0.03);
+        //makeTone(660, 0.05);
       }
     }
   ]);

@@ -18,6 +18,7 @@ import SawtoothGenerator from './lib/generators/SawtoothGenerator.js';
 import SquareGenerator from './lib/generators/SquareGenerator.js';
 import PulseGenerator from './lib/generators/PulseGenerator.js';
 import WhiteNoiseGenerator from './lib/generators/WhiteNoiseGenerator.js';
+import RedNoiseGenerator from './lib/generators/RedNoiseGenerator.js';
 import InharmonicGenerator from './lib/generators/InharmonicGenerator.js';
 import FourierGenerator from './lib/generators/FourierGenerator.js';
 import Sawtooth5Generator from './lib/generators/Sawtooth5Generator.js';
@@ -29,6 +30,7 @@ import InharmonicShepardGenerator from './lib/generators/InharmonicShepardGenera
 import Phasor from './lib/Phasor.js';
 import LinearPhasor from './lib/phasors/LinearPhasor.js';
 import RandomModPhasor from './lib/phasors/RandomModPhasor.js';
+import GeneratorModPhasor from './lib/phasors/GeneratorModPhasor.js';
 
 import Envelope from './lib/Envelope.js';
 import FlatEnvelope from './lib/envelopes/FlatEnvelope.js';
@@ -89,6 +91,8 @@ class Global {
     utils.registerClass('PulseGenerator', PulseGenerator);
     this.WhiteNoiseGenerator = WhiteNoiseGenerator;
     utils.registerClass('WhiteNoiseGenerator', WhiteNoiseGenerator);
+    this.RedNoiseGenerator = RedNoiseGenerator;
+    utils.registerClass('RedNoiseGenerator', RedNoiseGenerator);
     this.InharmonicGenerator = InharmonicGenerator;
     utils.registerClass('InharmonicGenerator', InharmonicGenerator);
     this.FourierGenerator = FourierGenerator;
@@ -112,6 +116,8 @@ class Global {
     utils.registerClass('LinearPhasor', LinearPhasor);
     this.RandomModPhasor = RandomModPhasor;
     utils.registerClass('RandomModPhasor', RandomModPhasor);
+    this.GeneratorModPhasor = GeneratorModPhasor;
+    utils.registerClass('GeneratorModPhasor', GeneratorModPhasor);
 
     // import envelope classes
     this.Envelope = Envelope;
