@@ -10,6 +10,9 @@ import Sequence from './lib/Sequence.js';
 
 import Tone from './lib/Tone.js';
 
+import Timer from './lib/Timer.js';
+import Metronome from './lib/timers/Metronome.js';
+
 import Generator from './lib/Generator.js';
 import Oscillator from './lib/Oscillator.js';
 import SineGenerator from './lib/generators/SineGenerator.js';
@@ -66,12 +69,19 @@ class Global {
 
     // sequence class setup
     this.Sequence = Sequence;
-    this.Sequence.mspa = this.mspa;
     utils.registerClass('Sequence', Sequence);
 
     // tone class setup
     this.Tone = Tone;
     utils.registerClass('Tone', Tone);
+
+    // timer classes
+    this.Timer = Timer;
+    this.Timer.globalContext = this;
+    this.Timer.mspa = this.mspa;
+    utils.registerClass('Timer', Timer);
+    this.Metronome = Metronome;
+    utils.registerClass('Metronome', Metronome);
 
     // import generator classes
     this.Generator = Generator;
