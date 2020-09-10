@@ -16,7 +16,170 @@ function load() {
 function start() {
   console.log('Start!');
   player.on();
-  let makeTone = function (freq, amplitude) {
+  let sequence = player.create({
+    className: "Sequence",
+    removeExecutedActions: true,
+    actions: [
+      {
+        className: "PlayableAction",
+        time: 0,
+        playable: {
+          className: "Tone",
+          generator: {
+            className: "ShepardOctaveGenerator",
+            ratio: Math.pow(2, 0.5),
+            octaveParameter: {
+              className: "LinearEnvelope",
+              startValue: 7,
+              endValue: 3,
+              duration: 1500
+            }
+          },
+          envelope: {
+            /*className: "SineOscillator",
+            frequency: 2/3,
+            phase: 3*Math.PI/2,
+            coeff: 0.5,
+            offset: 0.5*/
+            className: "ADSREnvelope",
+            attack: 20,
+            attackGain: 2,
+            decay: 100,
+            release: 20,
+            name: 'adsr'
+          },
+          frequency: {
+            className: "ExponentialEnvelope",
+            startValue: 128,
+            endValue: 256,
+            duration: 1500
+          },
+          //frequency: 432,
+          duration: 1500,
+          filter: {
+            className: 'LinearFilter',
+            feedforwardCoeffs: [0.8, 0.6, 0.4],
+            feedbackCoeffs: [1, 0.5, -0.5]
+          }
+        }
+      },
+      {
+        className: "PlayableAction",
+        time: 1300,
+        playable: {
+          className: "Tone",
+          generator: {
+            className: "SineOscillator"
+          },
+          envelope: {
+            className: "ADSREnvelope",
+            attack: 20,
+            attackGain: 2,
+            decay: 20,
+            release: 20
+          },
+          frequency: 1024,
+          duration: 200,
+          gain: 0.5
+        }
+      },
+      {
+        className: "FunctionAction",
+        time: 2000,
+        executeFunction: ((a, b) => {
+          player.off();
+          console.log('Stop!');
+          console.log(a);
+          console.log(b);
+        }),
+        executeArguments: ['hello', 'goodbye']
+      }
+    ]
+  });
+  sequence.play();
+  // let playable = player.create({
+  //   className: "Tone",
+  //   generator: {
+  //     className: "ShepardOctaveGenerator",
+  //     ratio: Math.pow(2, 0.5),
+  //     octaveParameter: {
+  //       className: "LinearEnvelope",
+  //       startValue: 7,
+  //       endValue: 3,
+  //       duration: 1500
+  //     }
+  //   },
+  //   envelope: {
+  //     /*className: "SineOscillator",
+  //     frequency: 2/3,
+  //     phase: 3*Math.PI/2,
+  //     coeff: 0.5,
+  //     offset: 0.5*/
+  //     className: "ADSREnvelope",
+  //     attack: 20,
+  //     attackGain: 2,
+  //     decay: 100,
+  //     release: 20,
+  //     name: 'adsr'
+  //   },
+  //   frequency: {
+  //     className: "ExponentialEnvelope",
+  //     startValue: 128,
+  //     endValue: 256,
+  //     duration: 1500
+  //   },
+  //   //frequency: 432,
+  //   duration: 1500,
+  //   filter: {
+  //     className: 'LinearFilter',
+  //     feedforwardCoeffs: [0.8, 0.6, 0.4],
+  //     feedbackCoeffs: [1, 0.5, -0.5]
+  //   }
+  // });
+  // let playable2 = player.create({
+  //   className: "Tone",
+  //   generator: {
+  //     className: "PitchSpaceSineOscillator",
+  //     bottomFrequency: 100,
+  //     topFrequency: 101,
+  //     isNormalized: true,
+  //     /*phaseMod: {
+  //       ref: 'RNGsus'
+  //     },
+  //     isFrequencyMod: true*/
+  //   },
+  //   envelope: {
+  //     className: "ADSREnvelope",
+  //     attack: 20,
+  //     attackGain: 6,
+  //     decay: 100,
+  //     release: 20
+  //   },
+  //   frequency: {
+  //     className: "PitchSpaceSineOscillator",
+  //     frequency: 2/3,
+  //     phase: Math.PI/2,
+  //     bottomFrequency: 250,
+  //     topFrequency: 750
+  //   },
+  //   duration: 1500
+  // });
+  // playable.setProperties({
+  //   name: "named component"
+  // });
+  //playable.play();
+  //playable2.play();
+  // setTimeout(() => {
+  //   player.off();
+  //   console.log('Stop!');
+  // }, 2000);
+
+
+
+
+
+
+  /*let makeTone = function (freq, amplitude) {
     let tone = new o.Tone({
       frequency: freq*0.75,
       timerName: 'sequenceTimer',
@@ -39,7 +202,7 @@ function start() {
     tone.play();
   }
   let sequence = new o.Sequence({
-    tempo: 240,
+    tempo: 40,
     timer: {
       className: 'Metronome',
       name: 'sequenceTimer'

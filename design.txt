@@ -1,0 +1,57 @@
+Idea: have a system for playing notes and possibly whole scores in the browser by passing in JSON data
+
+Behaviors:
+Changing a parameter in a component (like ramping the frequency in a tone) should be computationally simple
+Durations should be specifiable in terms of a timer rather than absolute duration
+.generate() or .update() functions should not change the state of the component until the next audio frame
+
+Key components:
+
+Player: resposnsible for playing notes
+Built around a script processor node (or possibly a different technology when that becomes more available)
+Contains a list; calls .generate() or .update() on each item in the list, depending on whether it's playable, when filling the audio buffer (44100 times per second)
+Removes items from the list when the item is done
+Should contain a method to add items as opposed to allowing other classes access to the array directly
+Should allow itself to be non-global while playing
+
+Registry: allows reference from one component to another
+
+Component: general class for all objects usable through the JSON-style API
+Should support component creation (and deletion?) and storing a reference in the registry
+
+Tone: a sound
+Has a frequency, an amplitude, and a duration; has an envelope, a tone generator, and a filter (which can be some combination of many filters)
+Frequency, amplitude, and duration can be numbers or generators
+Should have support for multiple amplitude modifiers -- maybe an array of amplifiers
+Should have switch for whether amplitude is allowed to vary once note starts (for example, a piano note can't get louder)
+Should allow pitch to be specified as a note name against some table of note names and frequencies
+
+Sequence: a list of timed actions
+Could be timed absolutely or with a timer
+
+Action: some command to the audio system
+Could be creating a component, calling a function on a component (like tone.play() or tone.stop()), modifying a parameter of a component, etc.
+Should not be necessary outside of sequences, but might be useful
+Components are named by reference in the registry
+
+Timer: counts at some specified tempo, which can change
+Simply adds a number to the total at every audio frame so that the number goes up by 1 N times per minute, where N is the tempo
+Other components use it for timing information, like duration
+
+Envelope: provides a shape for tones as a multiplier for the amplitude
+Has whatever parameters it needs (like attack, attack gain, decay, release)
+Tells the tone when it's done, since a tone.stop() can trigger the envelope's release phase, and the tone doesn't actually stop until this phase is done
+Not a simple signal generator because of this added behavior, but this might be able to be handled in the Generator superclass
+
+Generator: provides a number every audioframe on demand, suitable for providing an oscillator signal of some sort
+Could be a static number, in which case it should not be a generator but an actual JS number; all numbers should be able to be generators instead
+
+Oscillator: type of generator that (generally) creates a periodic signal at a given frequency
+Has a frequency; must keep track of phase parameter, which is set to 0 when it goes above 2π (well, it gets reduced to between 0 and 2π)
+Phase parameter could be in a separate class, a phasor, but that seems clunky, especially for the API
+Should figure out some way to have custom phasor behavior without needing a separate phasor class for the vast majority of cases
+
+Filter: takes a number, spits out a number
+Has whatever parameters it needs
+One example can be a series filter, where the parameters are an array of filters and the number goes through each of them in sequence
+Another example can be a parallel filter, where the parameters are an array of filters and the number goes through each of them then they get added up (or multiplied, I suppose)

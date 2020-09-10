@@ -1,50 +1,51 @@
-import utils from './lib/utils.js';
+import classRegistry from './lib/ClassRegistry.js';
+import Registry from './lib/Registry.js';
+import Orchestra from './lib/Orchestra.js';
 
 import Player from './lib/Player.js';
 
 import Component from './lib/Component.js';
-
+import AudioComponent from './lib/AudioComponent.js';
 import Playable from './lib/Playable.js';
+import TimedComponent from './lib/TimedComponent.js';
 
-import Sequence from './lib/Sequence.js';
+import Timer from './lib/Timer.js';
 
 import Tone from './lib/Tone.js';
 
-import Timer from './lib/Timer.js';
-import Metronome from './lib/timers/Metronome.js';
-
-import Generator from './lib/Generator.js';
-import Oscillator from './lib/Oscillator.js';
-import SineGenerator from './lib/generators/SineGenerator.js';
-import TriangleGenerator from './lib/generators/TriangleGenerator.js';
-import SawtoothGenerator from './lib/generators/SawtoothGenerator.js';
-import SquareGenerator from './lib/generators/SquareGenerator.js';
-import PulseGenerator from './lib/generators/PulseGenerator.js';
+import Generator from './lib/generators/Generator.js';
+import Oscillator from './lib/generators/Oscillator.js';
+import SineOscillator from './lib/generators/SineOscillator.js';
+import TriangleOscillator from './lib/generators/TriangleOscillator.js';
+import SquareOscillator from './lib/generators/SquareOscillator.js';
+import PitchSpaceSineOscillator from './lib/generators/PitchSpaceSineOscillator.js';
 import WhiteNoiseGenerator from './lib/generators/WhiteNoiseGenerator.js';
 import RedNoiseGenerator from './lib/generators/RedNoiseGenerator.js';
 import InharmonicGenerator from './lib/generators/InharmonicGenerator.js';
 import FourierGenerator from './lib/generators/FourierGenerator.js';
-import Sawtooth5Generator from './lib/generators/Sawtooth5Generator.js';
-import OddSawtooth5Generator from './lib/generators/OddSawtooth5Generator.js';
+import FourierSawtoothGenerator from './lib/generators/FourierSawtoothGenerator.js';
 import ShepardGenerator from './lib/generators/ShepardGenerator.js';
 import ShepardOctaveGenerator from './lib/generators/ShepardOctaveGenerator.js';
-import InharmonicShepardGenerator from './lib/generators/InharmonicShepardGenerator.js';
 
-import Phasor from './lib/Phasor.js';
-import LinearPhasor from './lib/phasors/LinearPhasor.js';
-import RandomModPhasor from './lib/phasors/RandomModPhasor.js';
-import GeneratorModPhasor from './lib/phasors/GeneratorModPhasor.js';
-
-import Envelope from './lib/Envelope.js';
-import FlatEnvelope from './lib/envelopes/FlatEnvelope.js';
 import ADSREnvelope from './lib/envelopes/ADSREnvelope.js';
+import ExponentialEnvelope from './lib/envelopes/ExponentialEnvelope.js';
 import LinearEnvelope from './lib/envelopes/LinearEnvelope.js';
 
-import Filter from './lib/Filter.js';
+import Filter from './lib/filters/Filter.js';
 import CutoffFilter from './lib/filters/CutoffFilter.js';
-import DelayFilter from './lib/filters/DelayFilter.js';
+import LinearFilter from './lib/filters/LinearFilter.js';
 
-import Amplifier from './lib/Amplifier.js';
+import Score from './lib/Score.js';
+
+import Sequence from './lib/Sequence.js';
+
+import Action from './lib/actions/Action.js';
+import CreateAction from './lib/actions/CreateAction.js';
+import PlayableAction from './lib/actions/PlayableAction.js';
+import FunctionAction from './lib/actions/FunctionAction.js';
+import ReferenceAction from './lib/actions/ReferenceAction.js';
+import MethodAction from './lib/actions/MethodAction.js';
+import PropertyAction from './lib/actions/PropertyAction.js';
 
 class Global {
   constructor() {
@@ -52,108 +53,102 @@ class Global {
     this.audioCtx = window.AudioContext ? new AudioContext() : new webkitAudioContext();
     this.mspa = 1000.0/this.audioCtx.sampleRate;
     this.player = null;
+    this.classRegistry = classRegistry;
 
-    // player class setup
+    // player class setup -- no need to register in class registry
     this.Player = Player;
     this.Player.globalContext = this;
-    utils.registerClass('Player', Player);
+
+    // registry-type class setup -- no need to register in class registry
+    this.Registry = Registry;
+    this.Orchestra = Orchestra;
 
     // component class setup (needed for subclassing by users)
     this.Component = Component;
-    utils.registerClass('Component', Component);
-
-    // playable interface setup
+    this.Component.globalContext = this;
+    this.classRegistry.register('Component', Component); // this is probably pointless since Component is an abstract class
+    this.AudioComponent = AudioComponent;
+    this.classRegistry.register('AudioComponent', AudioComponent); // also pointless
     this.Playable = Playable;
-    this.Playable.globalContext = this;
-    utils.registerClass('Playable', Playable);
+    this.classRegistry.register('Playable', Playable); // also pointless
+    this.TimedComponent = TimedComponent;
+    this.classRegistry.register('TimedComponent', TimedComponent);
 
-    // sequence class setup
-    this.Sequence = Sequence;
-    utils.registerClass('Sequence', Sequence);
+    // timer class setup
+    this.Timer = Timer;
+    this.classRegistry.register('Timer', Timer);
 
     // tone class setup
     this.Tone = Tone;
-    utils.registerClass('Tone', Tone);
+    this.classRegistry.register('Tone', Tone);
 
-    // timer classes
-    this.Timer = Timer;
-    this.Timer.globalContext = this;
-    this.Timer.mspa = this.mspa;
-    utils.registerClass('Timer', Timer);
-    this.Metronome = Metronome;
-    utils.registerClass('Metronome', Metronome);
-
-    // import generator classes
+    // generator class setup
     this.Generator = Generator;
-    this.Generator.mspa = this.mspa;
-    utils.registerClass('Generator', Generator);
+    this.classRegistry.register('Generator', Generator);
     this.Oscillator = Oscillator;
-    utils.registerClass('Oscillator', Oscillator);
-    this.SineGenerator = SineGenerator;
-    utils.registerClass('SineGenerator', SineGenerator);
-    this.TriangleGenerator = TriangleGenerator;
-    utils.registerClass('TriangleGenerator', TriangleGenerator);
-    this.SawtoothGenerator = SawtoothGenerator;
-    utils.registerClass('SawtoothGenerator', SawtoothGenerator);
-    this.SquareGenerator = SquareGenerator;
-    utils.registerClass('SquareGenerator', SquareGenerator);
-    this.PulseGenerator = PulseGenerator;
-    utils.registerClass('PulseGenerator', PulseGenerator);
+    this.classRegistry.register('Oscillator', Oscillator);
+    this.SineOscillator = SineOscillator;
+    this.classRegistry.register('SineOscillator', SineOscillator);
+    this.TriangleOscillator = TriangleOscillator;
+    this.classRegistry.register('TriangleOscillator', TriangleOscillator);
+    this.SquareOscillator = SquareOscillator;
+    this.classRegistry.register('SquareOscillator', SquareOscillator);
+    this.PitchSpaceSineOscillator = PitchSpaceSineOscillator;
+    this.classRegistry.register('PitchSpaceSineOscillator', PitchSpaceSineOscillator);
     this.WhiteNoiseGenerator = WhiteNoiseGenerator;
-    utils.registerClass('WhiteNoiseGenerator', WhiteNoiseGenerator);
+    this.classRegistry.register('WhiteNoiseGenerator', WhiteNoiseGenerator);
     this.RedNoiseGenerator = RedNoiseGenerator;
-    utils.registerClass('RedNoiseGenerator', RedNoiseGenerator);
+    this.classRegistry.register('RedNoiseGenerator', RedNoiseGenerator);
     this.InharmonicGenerator = InharmonicGenerator;
-    utils.registerClass('InharmonicGenerator', InharmonicGenerator);
+    this.classRegistry.register('InharmonicGenerator', InharmonicGenerator);
     this.FourierGenerator = FourierGenerator;
-    utils.registerClass('FourierGenerator', FourierGenerator);
-    this.Sawtooth5Generator = Sawtooth5Generator;
-    utils.registerClass('Sawtooth5Generator', Sawtooth5Generator);
-    this.OddSawtooth5Generator = OddSawtooth5Generator;
-    utils.registerClass('OddSawtooth5Generator', OddSawtooth5Generator);
+    this.classRegistry.register('FourierGenerator', FourierGenerator);
+    this.FourierSawtoothGenerator = FourierSawtoothGenerator;
+    this.classRegistry.register('FourierSawtoothGenerator', FourierSawtoothGenerator);
     this.ShepardGenerator = ShepardGenerator;
-    utils.registerClass('ShepardGenerator', ShepardGenerator);
+    this.classRegistry.register('ShepardGenerator', ShepardGenerator);
     this.ShepardOctaveGenerator = ShepardOctaveGenerator;
-    utils.registerClass('ShepardOctaveGenerator', ShepardOctaveGenerator);
-    this.InharmonicShepardGenerator = InharmonicShepardGenerator;
-    utils.registerClass('InharmonicShepardGenerator', InharmonicShepardGenerator);
+    this.classRegistry.register('ShepardOctaveGenerator', ShepardOctaveGenerator);
 
-    // import phasor classes
-    this.Phasor = Phasor;
-    this.Phasor.mspa = this.mspa;
-    utils.registerClass('Phasor', Phasor);
-    this.LinearPhasor = LinearPhasor;
-    utils.registerClass('LinearPhasor', LinearPhasor);
-    this.RandomModPhasor = RandomModPhasor;
-    utils.registerClass('RandomModPhasor', RandomModPhasor);
-    this.GeneratorModPhasor = GeneratorModPhasor;
-    utils.registerClass('GeneratorModPhasor', GeneratorModPhasor);
-
-    // import envelope classes
-    this.Envelope = Envelope;
-    this.Envelope.mspa = this.mspa;
-    utils.registerClass('Envelope', Envelope);
-    this.FlatEnvelope = FlatEnvelope;
-    utils.registerClass('FlatEnvelope', FlatEnvelope);
+    // envelope class setup
     this.ADSREnvelope = ADSREnvelope;
-    utils.registerClass('ADSREnvelope', ADSREnvelope);
+    this.classRegistry.register('ADSREnvelope', ADSREnvelope);
+    this.ExponentialEnvelope = ExponentialEnvelope;
+    this.classRegistry.register('ExponentialEnvelope', ExponentialEnvelope);
     this.LinearEnvelope = LinearEnvelope;
-    utils.registerClass('LinearEnvelope', LinearEnvelope);
+    this.classRegistry.register('LinearEnvelope', LinearEnvelope);
 
-    // import filter classes
+    // filter class setup
     this.Filter = Filter;
-    utils.registerClass('Filter', Filter);
+    this.classRegistry.register('Filter', Filter);
     this.CutoffFilter = CutoffFilter;
-    utils.registerClass('CutoffFilter', CutoffFilter);
-    this.DelayFilter = DelayFilter;
-    utils.registerClass('DelayFilter', DelayFilter);
+    this.classRegistry.register('CutoffFilter', CutoffFilter);
+    this.LinearFilter = LinearFilter;
+    this.classRegistry.register('LinearFilter', LinearFilter);
 
-    // import amplifier classes
-    this.Amplifier = Amplifier;
-    utils.registerClass('Amplifier', Amplifier);
+    // score class setup
+    this.Score = Score;
+    this.classRegistry.register('Score', Score);
 
-    // utils
-    this.utils = utils;
+    // sequence class setup
+    this.Sequence = Sequence;
+    this.classRegistry.register('Sequence', Sequence);
+
+    // action class setup
+    this.Action = Action;
+    this.classRegistry.register('Action', Action);
+    this.CreateAction = CreateAction;
+    this.classRegistry.register('CreateAction', CreateAction);
+    this.PlayableAction = PlayableAction;
+    this.classRegistry.register('PlayableAction', PlayableAction);
+    this.FunctionAction = FunctionAction;
+    this.classRegistry.register('FunctionAction', FunctionAction);
+    this.ReferenceAction = ReferenceAction;
+    this.classRegistry.register('ReferenceAction', ReferenceAction);
+    this.MethodAction = MethodAction;
+    this.classRegistry.register('MethodAction', MethodAction);
+    this.PropertyAction = PropertyAction;
+    this.classRegistry.register('PropertyAction', PropertyAction);
   }
 }
 
