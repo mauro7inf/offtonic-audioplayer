@@ -30,6 +30,9 @@ import ShepardOctaveGenerator from './lib/generators/ShepardOctaveGenerator.js';
 import ADSREnvelope from './lib/envelopes/ADSREnvelope.js';
 import ExponentialEnvelope from './lib/envelopes/ExponentialEnvelope.js';
 import LinearEnvelope from './lib/envelopes/LinearEnvelope.js';
+import CubicEnvelope from './lib/envelopes/CubicEnvelope.js';
+import GeneratorEnvelope from './lib/envelopes/GeneratorEnvelope.js';
+import PiecewiseEnvelope from './lib/envelopes/PiecewiseEnvelope.js';
 
 import Filter from './lib/filters/Filter.js';
 import CutoffFilter from './lib/filters/CutoffFilter.js';
@@ -117,6 +120,12 @@ class Global {
     this.classRegistry.register('ExponentialEnvelope', ExponentialEnvelope);
     this.LinearEnvelope = LinearEnvelope;
     this.classRegistry.register('LinearEnvelope', LinearEnvelope);
+    this.CubicEnvelope = CubicEnvelope;
+    this.classRegistry.register('CubicEnvelope', CubicEnvelope);
+    this.GeneratorEnvelope = GeneratorEnvelope;
+    this.classRegistry.register('GeneratorEnvelope', GeneratorEnvelope);
+    this.PiecewiseEnvelope = PiecewiseEnvelope;
+    this.classRegistry.register('PiecewiseEnvelope', PiecewiseEnvelope);
 
     // filter class setup
     this.Filter = Filter;

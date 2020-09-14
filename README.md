@@ -160,7 +160,7 @@ A count of how many audio frames have elapsed since the player started.  This is
 #### `registry` — *`Registry`*
 A registry that keeps track of all registered `Component`s.  Registering a component simply means giving it a name so that it can be accessed by other components not directly related to it.  The registry instance is attached to the player instance so that separate widgets sharing the same `Global` instance don't run into namespace issues with each other.
 
-$$$$ `orchestra` — *`Orchestra`*
+#### `orchestra` — *`Orchestra`*
 An orchestra (a registry) that keeps track of all registered instruments.  This works the same way as the `registry` field.  See above for what instruments are and how to use them.
 
 #### `id` — *number*
@@ -794,7 +794,7 @@ Sets the `stopTime` but does not call `off()`.  `update()` is responsible for do
 
 ## ExponentialEnvelope < TimedComponent < Playable < AudioComponent < Component
 
-Creates an exponential curve from `startValue` to `endValue`.  It requires some sort of duration, whether that's the `duration` property or `endTime`, both in `TimedComponent`; this duration will default to `1000` if it's `null`, which is very likely not what you actually want (especially if your `timer` is not the `Global Timer`).  The value of the exponential curve can be given by Cr^(t/T), where C is `startValue`, r is `startValue`/`endValue`, t is the current time since starting, and T is the duration.  This is useful to, for example, move linearly in pitch space; if you move by two octaves, the first octave will take as much time as the second, in contrast with moving linearly, where the second octave takes twice as long as the first.
+Creates an exponential curve from `startValue` to `endValue`.  It requires some sort of duration, whether that's the `duration` property or `endTime`, both in `TimedComponent`; this duration will default to `1000` if it's `null`, which is very likely not what you actually want (especially if your `timer` is not the `Global Timer`).  The value of the exponential curve can be given by Z + Cr^(t/T), where Z is `zeroValue`, C is `startValue` – `zeroValue`, r is (`startValue` – `zeroValue`)/(`endValue` – `zeroValue`), t is the current time since starting, and T is the duration.  This is useful to, for example, move linearly in pitch space; if you move by two octaves, the first octave will take as much time as the second, in contrast with moving linearly, where the second octave takes twice as long as the first.
 
 ### Properties
 
@@ -803,7 +803,10 @@ See the property description in `Playable`.  Note that the default value here is
 
 #### `startValue` — *number (or `AudioComponent`) — default: `1`
 #### `endValue` — *number (or `AudioComponent`) — default: `2`
-The start and end values.  If we think of them as parameters to the Cr^(t/T) function, we can understand what it means for them to change, but they probably shouldn't.
+The start and end values.  If we think of them as parameters to the Z + Cr^(t/T) function, we can understand what it means for them to change, but they probably shouldn't.
+
+#### `zeroValue` — *number (or `AudioComponent`) — default: `0`
+The zero point for the exponential curve — essentially a constant term, so that an exponential can look like e^(kt) or 1 – e^(kt) or similar.  If the zero point is less than the start and end values, the curve will be a positive exponential; if it's greater, it will be negative.  If the zero point is between the two values, inclusive, you will just nonsense results (like `NaN`), since a real exponential never crosses 0 and complex exponentials are not implemented here.
 
 
 
@@ -821,6 +824,57 @@ See the property description in `Playable`.  Note that the default value here is
 #### `endValue` — *number (or `AudioComponent`) — default: `2`
 The start and end values.
 
+
+
+
+## CubicEnvelope < TimedComponent < Playable < AudioComponent < Component
+
+Creates a curve from `startValue` to `endValue` that matches the specified slopes at those two points, `startSlope` and `endSlope`, allowing you to make transitions smoother.  The curve that does this with the least polynomial degree happens to be cubic.  It requires some sort of duration, whether that's the `duration` property or `endTime`, both in `TimedComponent`; this duration will default to `1000` if it's `null`, which is very likely not what you actually want (especially if your `timer` is not the `Global Timer`).  To understand this, let x be the time since `startTime`, let k be the duration, and assume that `startValue` and `endValue` are both 0, with `startSlope` and `endSlope` being m0 and m1, respectively.  Then, f(x) = x·(x – k)·(x·(m0 + m1)/(k^2) – m0/k) will have the properties we want: it's 0 at x = 0 and x = k, f'(0) = m0, and f'(k) = m1.  If we want `startValue` and `endValue` to be nonzero, say, y0 and y1, respectively, we just add that component back in: let m = (y1 - y0)/k be the slope of the line between them.  Then, m0 as used above is actually `startSlope` – m, and m1 is `endSlope` – m.  The full equation is f(x) = x·(x – k)·(x·(m0 + m1)/(k^2) – m0/k) + y0 + mx.
+
+### Properties
+
+#### `isIndependent` — *boolean* — default: `false`
+See the property description in `Playable`.  Note that the default value here is different.
+
+#### `startValue` — *number (or `AudioComponent`) — default: `1`
+#### `endValue` — *number (or `AudioComponent`) — default: `2`
+#### `startSlope` — *number (or `AudioComponent`) — default: `0`
+#### `endSlope` — *number (or `AudioComponent`) — default: `0`
+The start and end values and slopes.
+
+
+
+
+## GeneratorEnvelope < TimedComponent < Playable < AudioComponent < Component
+
+An envelope that wraps a `Generator` (or really any `AudioComponent`).  The `GeneratorEnvelope` instance simply spits out whatever the `generator` property provides until the `endTime` or `duration` specified.  Note that you don't need to use this to provide an envelope to `Tone`, but it can be useful when you want an `AudioComponent` that will stop at a specified time.
+
+### Properties
+
+#### `isIndependent` — *boolean* — default: `false`
+See the property description in `Playable`.  Note that the default value here is different.
+
+#### `generator` — *`AudioComponent` (or number)* — default: `{className: 'Oscillator'}`
+The `AudioComponent` whose value is returned by `generate()` on the `GeneratorEnvelope`.
+
+
+
+
+## PiecewiseEnvelope < TimedComponent < Playable < AudioComponent < Component
+
+An envelope that combines other envelopes in sequence, especially `LinearEnvelope`, `ExponentialEnvelope`, and `CubicEnvelope`, but of course it could be any `TimedComponent` (so that the sub-envelope actually stops at some point, though you don't actually need that).  The envelope holds its value between envelope events, so if one piece ends with value 5, the value stays at 5 until the next envelope starts.  If that envelope's `startValue` property is `null`, it gets set to the current value.  This way you can create complex sequences of value changes that you can use as a dynamics control or really anything else you might want.  When an envelope starts, it is removed from the list; you can't play a `PiecewiseEnvelope` twice.  However, you *can* queue events dynamically, since they are stored in list properties; `setProperties` will add without removing.
+
+### Properties
+
+#### `isIndependent` — *boolean* — default: `false`
+See the property description in `Playable`.  Note that the default value here is different.
+
+#### `currentEnvelope` — *`TimedComponent` (or number)* — setter: `null`
+You shouldn't set this property directly.  This is the current envelope that is playing right now.  If there is no envelope, it's just a number.
+
+#### `envelopeEvents` — *`Array` of `{time: <time>, envelope: <envelope>}`, where `<envelope>` is a `TimedComponent` (or number)* — adder: `_addEnvelopeEvent` — remover: `_removeEnvelopeEvent` — removerName: `removeEnvelopeEvents` — list: `true` — componentProperty: `false`
+#### `envelopeStopEvents` — *`Array` of `{time: <time>, envelope: <envelope>}`, where `<envelope>` is a `TimedComponent` (or number)* — adder: `_addEnvelopeStopEvent` — remover: `_removeEnvelopeStopEvent` — removerName: `removeEnvelopeStopEvents` — list: `true` — componentProperty: `false`
+The lists of envelopes that get played.  Each of these properties is an `Array` of which each element represents an event, with a `time` field indicating when in the life of the `PiecewiseEnvelope` the envelope should start and an `envelope` field, which is the definition of an envelope `Component` that gets created at the time indicated.  The `envelopeEvents` property is the main sequence of envelopes; the `envelopeStopEvents` are the envelopes that begin to run when `stop()` is called on the `PiecewiseEnvelope` instance (or when its `duration` or `endTime` is reached).
 
 
 

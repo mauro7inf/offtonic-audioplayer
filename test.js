@@ -29,10 +29,39 @@ function start() {
             className: "ShepardOctaveGenerator",
             ratio: Math.pow(2, 0.5),
             octaveParameter: {
-              className: "LinearEnvelope",
-              startValue: 7,
-              endValue: 3,
-              duration: 1500
+              className: "PiecewiseEnvelope",
+              duration: 1500,
+              envelopeEvents: [
+                {
+                  time: 0,
+                  envelope: {
+                    className: "LinearEnvelope",
+                    startValue: 1,
+                    endValue: 9,
+                    duration: 250
+                  }
+                },
+                {
+                  time: 1000,
+                  envelope: {
+                    className: "CubicEnvelope",
+                    startValue: null,
+                    endValue: 4,
+                    duration: 250
+                  }
+                }
+              ],
+              envelopeStopEvents: [
+                {
+                  time: 0,
+                  envelope: {
+                    className: "LinearEnvelope",
+                    startValue: 9,
+                    endValue: 1,
+                    duration: 250
+                  }
+                }
+              ]
             }
           },
           envelope: {
@@ -45,7 +74,7 @@ function start() {
             attack: 20,
             attackGain: 2,
             decay: 100,
-            release: 20,
+            release: 250,
             name: 'adsr'
           },
           frequency: {
