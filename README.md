@@ -1052,4 +1052,5 @@ A `ReferenceAction` that sets properties on the referenced `Component`.
 ### Properties
 
 #### `properties` — *property object* — default: `{}` — componentProperty: `false`
-The properties to set on the referenced `Component`.  In the property object, the keys are the property names and the values are the property values.  The properties don't actually get instantiated until `execute()` is called.
+#### `path` — *`Array` of property names and indices — default: `undefined`
+The properties to set on the referenced `Component`.  In the property object, the keys are the property names and the values are the property values.  The properties don't actually get instantiated until `execute()` is called.  If you want to set a property of a property, specify the list of properties in the `path`; for example, if you want to set some property in the `generator` of the `Tone`, then you reference the `Tone` using `refName` and provide a path of `['generator']`.
