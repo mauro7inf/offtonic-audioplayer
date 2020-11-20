@@ -34,14 +34,14 @@ Properties are set at component instantiation by calling `(new <ComponentType>()
 
 Each property is set via a setter method named in the property definition.  These setter methods get called in the order the properties were defined, starting with the highest superclass, `Component`.
 
-To define a property, stick an object in the `<ComponentClass>.newProperties` array of the component class you're creating with the fields below.  You can override a property in a subclass by redefining it in the subclass's `newProperties` array, which could be useful if you want to change a default.
+To define a property, stick an object in the `<ComponentClass>.newProperties` object of the component class you're creating with the fields below.  You can override a property in a subclass by redefining it in the subclass's `newProperties` array, which could be useful if you want to change a default.
 
-If a property value is an array, it will be assumed to be an array of `Component` instances, so any `Component` definitions in the array will be resolved into actual `Component` instances in the object on which you're setting the property.
+If a property value is an array, it will be assumed to be an array of `Component` instances (unless `componentProperty` is `false`), so any `Component` definitions in the array will be resolved into actual `Component` instances in the object on which you're setting the property.
 
 ### Definition Fields
 
-#### `name` — *string* (required)
-Property name.  When creating a new `Component` or setting its properties, you pass in a property object; the property name is the key you should use to provide a value for this property.  You can get a property from a component with `getProperty(<propName>)`, or `getProperty(<propName>, <index>)` for list properties.
+#### `name` — *string* (required) — key in `newProperties` object
+Property name, which is also the key in the `newProperties` object (the value is an object containing any other fields of the definition).  When creating a new `Component` or setting its properties, you pass in a property object; the property name is the key you should use to provide a value for this property.  You can get a property from a component with `getProperty(<propName>)`, or `getProperty(<propName>, <index>)` for list properties.  In the `properties` static field of any `Component` class, you can also access this definition field under the key `name`.
 
 #### `setter` — *string (method name)* (optional if `list` is `false`)
 This is the method that will be called when setting the property, which you will also need to define and implement as an instance method in the component class.  Subclasses may override this method to change how setting the property works.  If a setter is not provided, a generic setter will be called (see `_genericSetter(<propName>,<propValue>)` in `Component`).  A `null` value for `setter` does not allow the property to be set at all, which is useful when overwriting a settable property with a computed property.
@@ -232,7 +232,7 @@ Removes the key-value pair with the key `<name>`.  You probably won't need to do
 
 ## Component
 
-A `Component` is pretty much any chunk of the Offtonic Audioplayer that conforms to the pattern of the API.  All `Tone`s, `Generator`s, etc. should be subclasses of `Component`, and if you create a new type of widget that you want to incorporate into the Offtonic Audioplayer, you should probably subclass `Component` yourself.  `Component` secretly inherits from `BaseComponent`, a private superclass that is not available for other classes to use; this is because `Component` needs a superclass to do some of its magic.
+A `Component` is pretty much any chunk of the Offtonic Audioplayer that conforms to the pattern of the API.  All `Tone`s, `Generator`s, etc. should be subclasses of `Component`, and if you create a new type of widget that you want to incorporate into the Offtonic Audioplayer, you should probably subclass `Component` yourself.
 
 `Component`s have properties, which are set by the user.  Examples of properties would include the frequency of an `Oscillator` and the `Oscillator` of a `Tone`; these properties can be set on `Component` instantiation or changed later through Offtonic Audioplayer's unified API.  See below for how to define new properties.  If the conventions are followed, a `Component`'s available properties are defined statically, which means that they're stored in the class object at loading time and can be retrieved through one function call, `properties()`, that doesn't need to keep calling things up the prototype chain.
 
@@ -244,13 +244,10 @@ The name of this component as passed to the registry.  Naming a component will a
 ### Class Fields
 
 #### `newProperties` — *`Array`*
-All subclasses must redefine this (`<Subclass>.newProperties = [...];`), or else the immediate superclass's new properties will be repeated in the properties list.  All properties possessed by the subclass but not by its superclass should be in this array; if there aren't any, the array should be empty.
+All subclasses should redefine this (`<Subclass>.newProperties = {...};`) if they have any new properties to add relative to their superclass.  If a property is defined here that has already been defined in a superclass, the previous definition will be overwritten by the new one, which can be useful when setting new default values, adding a setter or getter, etc.
 
-#### `properties` — *`Array`*
-The list of properties, including all of the superclasses' properties.  Subclasses that add new ones should include the line `<Subclass>.properties = <Subclass>._getProperties();` in order to populate this array; if not, the properties list will be the same as that of the immediate superclass (which might be what you want).
-
-#### `getters` — *object {string: string}*
-The property getters.  The keys are the names of the properties and the values are the names of the getters.
+#### `properties` — *object `{<name>: object {<definitionField>: <definitionValue>}}`*
+The object of properties definitions, including all of the superclasses' property definitions.  Subclasses that add new ones should include the line `<Subclass>.setupProperties();` in order to populate this array; if not, the properties list will be the same as that of the immediate superclass (which might be what you want).
 
 #### `globalContext` — *`Global`*
 A reference to the global object, from which instances can get the active player and therefore the registry.  You probably shouldn't override it in subclasses.
@@ -272,13 +269,10 @@ Whether the component has been added to the registry.  Its `name` property needs
 #### `mspa` — *number* — constant
 This number is taken from `Global` at instantiation as a convenience so that you can write `this.mspa` instead of `this.constructor.globalContext.mspa` every time you need it.
 
-#### `getters` — *object {string: string}*
-The names of any property getters are stored here during object creation.  To use the getter for property "property", call `this[this.getters["property"]]()`.
-
 ### Class Methods
 
-#### `_getProperties()` — *`Array`*
-This method builds the properties list; you shouldn't need to call it yourself outside of the line mentioned above.  The way it works is that it gets the prototype of the current class, which is the superclass, and concatenates that prototype's `_getProperties()` with this class's `newProperties`.  It needs a superclass to work, hence `BaseComponent`, but all subclasses inherit this and can thus build their properties list pretty much automagically.  For obvious reasons, if you override this method, the magic will be gone.  Don't make the magic disappear.
+#### `_getProperties()` — *object `{<name>: object {<definitionField>: <definitionValue>}}`*
+This method helps build the properties list; you shouldn't need to call it yourself.  The way it works is that it gets the prototype of the current class, which is the superclass, and overwrites that prototype's `_getProperties()` with this class's `newProperties`.  For obvious reasons, if you override this method, the magic will be gone.  Don't make the magic disappear.
 
 #### `create(<component>, <player>)` — *anything*
 Returns a value or instantiates a component that is passed in, setting its `player` to the given `<player>`.  Used in setting properties.  You should generally use the `player.create(<component>)` method to create components, which calls this one, unless you're doing something funky with multiple `Player` instances at the same time.  Obviously, overriding this method is bad news.
