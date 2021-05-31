@@ -1,5 +1,9 @@
 import o from '../offtonic-audioplayer.js';
 
+import PrototypeNote from './PrototypeNote.js';
+PrototypeNote.o = o;
+o.addModule('test/PrototypeProcessor.js');
+
 window.addEventListener("load", function (e) {
   load();
 });
@@ -16,7 +20,7 @@ function load() {
 
 function start() {
   console.log('Start!');
-  const prototypeNote = new o.PrototypeNote();
+  const prototypeNote = new PrototypeNote();
   prototypeNote.play();
 }
 
