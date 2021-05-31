@@ -4,6 +4,8 @@ import PrototypeNote from './PrototypeNote.js';
 PrototypeNote.o = o;
 o.addModule('test/PrototypeProcessor.js');
 
+let timeouts = [];
+
 window.addEventListener("load", function (e) {
   load();
 });
@@ -22,9 +24,15 @@ function start() {
   console.log('Start!');
   const prototypeNote = new PrototypeNote();
   prototypeNote.play();
+  timeouts.push(setTimeout(() => {
+    prototypeNote.stop();
+  }, 500));
 }
 
 function stop() {
   console.log('Stop!');
   o.player.stop();
+  timeouts.forEach(timeout => {
+    clearTimeout(timeout);
+  });
 }

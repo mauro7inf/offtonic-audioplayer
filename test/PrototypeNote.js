@@ -9,14 +9,13 @@ class PrototypeNote {
 
   play() {
     if (this.node === null) {
-      this.node = new AudioWorkletNode(this.ctx, 'prototype-processor');
+      this.node = new AudioWorkletNode(this.ctx, 'PrototypeProcessor');
       if (this.player) {
         this.player.add(this);
       }
     }
   }
 
-  // untested
   stop() {
     if (this.node !== null) {
       if (this.player) {
