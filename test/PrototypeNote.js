@@ -8,19 +8,21 @@ class PrototypeNote {
   }
 
   play() {
-    if (this.node === null) {
-      this.node = new AudioWorkletNode(this.ctx, 'PrototypeProcessor');
-      if (this.player) {
-        this.player.add(this);
-      }
-    }
+    this.player.play(this);
   }
 
   stop() {
+    this.player.stop(this);
+  }
+
+  on() {
+    if (this.node === null) {
+      this.node = new AudioWorkletNode(this.ctx, 'PrototypeProcessor');
+    }
+  }
+
+  off() {
     if (this.node !== null) {
-      if (this.player) {
-        this.player.remove(this);
-      }
       this.node = null;
     }
   }
