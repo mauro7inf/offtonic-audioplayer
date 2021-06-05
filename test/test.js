@@ -26,17 +26,32 @@ function start() {
   console.log('Start!');
 
   const sineOscillatorTestTime = 0;
-  const sineOscillator1 = o.SineOscillator.create({frequency: 440/Math.pow(2, 3/4)});
-  const sineOscillator2 = o.SineOscillator.create({frequency: 550/Math.pow(2, 3/4)});
+  const sineOscillator1 = o.createComponent({
+    className: 'SineOscillator',
+    frequency: {
+      className: 'ConstantGenerator',
+      value: 450/Math.pow(2, 7/4)
+    }
+  });
+  const sineOscillator2 = o.createComponent({
+    className: 'SineOscillator',
+    frequency: 550/Math.pow(2, 7/4)
+  });
+  const sineOscillator3 = o.createComponent({
+    className: 'SineOscillator',
+    frequency: 675/Math.pow(2, 7/4)
+  });
   schedule(() => {
     console.log('sineOscillatorTest start');
     o.player.play(sineOscillator1);
     o.player.play(sineOscillator2);
+    o.player.play(sineOscillator3);
   }, sineOscillatorTestTime);
   schedule(() => {
     console.log('sineOscillatorTest end');
     o.player.stop(sineOscillator1);
     o.player.stop(sineOscillator2);
+    o.player.stop(sineOscillator3);
   }, sineOscillatorTestTime + 500);
 
   const prototypeTestTime = sineOscillatorTestTime + 1000;
