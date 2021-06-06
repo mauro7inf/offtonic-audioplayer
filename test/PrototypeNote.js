@@ -26,6 +26,14 @@ class PrototypeNote {
       this.node = null;
     }
   }
+
+  connectTo(destination) {
+    this.node.connect(destination);
+  }
+
+  disconnectFrom(destination) {
+    this.node.disconnect(destination);
+  }
 }
 
 export default PrototypeNote;

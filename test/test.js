@@ -25,7 +25,19 @@ function load() {
 function start() {
   console.log('Start!');
 
-  const sineOscillatorTestTime = 0;
+  const toneTestTime = 0;
+  const tone1 = o.createComponent({
+    className: 'Tone',
+    gain: 1
+  });
+  schedule(() => {
+    o.player.play(tone1);
+  }, toneTestTime);
+  schedule(() => {
+    o.player.stop(tone1);
+  }, toneTestTime + 500);
+
+  const sineOscillatorTestTime = 1000;
   const sineOscillator1 = o.createComponent({
     className: 'SineOscillator',
     frequency: {

@@ -21,8 +21,6 @@ class Global {
     let href = url.href;
     this.baseHref = href.substring(0, href.indexOf('offtonic-audioplayer.js'));
 
-    this.addModule('lib/MultiplierProcessor.js');
-
     this.Player = Player;
     this.Player.o = this;
     this.player = new this.Player(); // common instance, used by default
@@ -37,10 +35,11 @@ class Global {
     this.ConstantGenerator = ConstantGenerator;
     this.classRegistry.register('ConstantGenerator', ConstantGenerator);
     this.SineOscillator = SineOscillator;
-    this.addModule('lib/generators/processors/SineOscillatorProcessor.js');
+    this.addModule('lib/processors/SineOscillatorProcessor.js');
     this.classRegistry.register('SineOscillator', SineOscillator);
 
     this.Tone = Tone;
+    this.addModule('lib/processors/ToneProcessor.js');
     this.classRegistry.register('Tone', Tone);
   }
 
