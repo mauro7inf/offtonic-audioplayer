@@ -29,10 +29,16 @@ function start() {
   const tone1 = o.createComponent({
     className: 'Tone',
     gain: 1,
-    frequency: 256
+    frequency: 256,
+    envelope: {
+      className: 'ADSREnvelope',
+      attackGain: 3,
+      release: 250
+    }
   });
   schedule(() => {
-    o.player.play(tone1);
+    console.log('toneTest start');
+    tone1.play();
   }, toneTestTime);
   schedule(() => {
     tone1.setProperties({
@@ -40,7 +46,8 @@ function start() {
     });
   }, toneTestTime + 500);
   schedule(() => {
-    o.player.stop(tone1);
+    console.log('toneTest end');
+    tone1.release();
   }, toneTestTime + 1000);
 
   const sineOscillatorTestTime = 1500;
