@@ -28,16 +28,22 @@ function start() {
   const toneTestTime = 0;
   const tone1 = o.createComponent({
     className: 'Tone',
-    gain: 1
+    gain: 1,
+    frequency: 256
   });
   schedule(() => {
     o.player.play(tone1);
   }, toneTestTime);
   schedule(() => {
-    o.player.stop(tone1);
+    tone1.setProperties({
+      frequency: 512
+    });
   }, toneTestTime + 500);
+  schedule(() => {
+    o.player.stop(tone1);
+  }, toneTestTime + 1000);
 
-  const sineOscillatorTestTime = 1000;
+  const sineOscillatorTestTime = 1500;
   const sineOscillator1 = o.createComponent({
     className: 'SineOscillator',
     frequency: {
