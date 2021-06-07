@@ -2,6 +2,9 @@ import o from '../offtonic-audioplayer.js';
 
 window.o = o; // for console debugging
 
+let gainAdjustedPlayer = new o.Player();
+gainAdjustedPlayer.setGain(0.1);
+
 import PrototypeNote from './PrototypeNote.js';
 PrototypeNote.o = o;
 o.addModule('test/PrototypeProcessor.js');
@@ -28,7 +31,7 @@ function start() {
   const toneTestTime = 0;
   const tone1 = o.createComponent({
     className: 'Tone',
-    gain: 1,
+    gain: 0.2,
     frequency: 256,
     envelope: {
       className: 'ADSREnvelope',
@@ -68,15 +71,15 @@ function start() {
   });
   schedule(() => {
     console.log('sineOscillatorTest start');
-    o.player.play(sineOscillator1);
-    o.player.play(sineOscillator2);
-    o.player.play(sineOscillator3);
+    gainAdjustedPlayer.play(sineOscillator1);
+    gainAdjustedPlayer.play(sineOscillator2);
+    gainAdjustedPlayer.play(sineOscillator3);
   }, sineOscillatorTestTime);
   schedule(() => {
     console.log('sineOscillatorTest end');
-    o.player.stop(sineOscillator1);
-    o.player.stop(sineOscillator2);
-    o.player.stop(sineOscillator3);
+    gainAdjustedPlayer.stop(sineOscillator1);
+    gainAdjustedPlayer.stop(sineOscillator2);
+    gainAdjustedPlayer.stop(sineOscillator3);
   }, sineOscillatorTestTime + 500);
 
   const prototypeTestTime = sineOscillatorTestTime + 1000;
@@ -94,6 +97,7 @@ function start() {
 function stop() {
   console.log('Stop!');
   o.player.stopAll();
+  gainAdjustedPlayer.stopAll();
   timeouts.forEach(timeout => {
     clearTimeout(timeout);
   });

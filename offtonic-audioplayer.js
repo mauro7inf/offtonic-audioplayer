@@ -30,28 +30,36 @@ class Global {
 
     this.Component = Component;
     this.Component.o = this;
-    this.classRegistry.register('Component', Component);
+    this.registerClass('Component', Component);
     this.AudioComponent = AudioComponent;
-    this.classRegistry.register('AudioComponent', AudioComponent);
+    this.registerClass('AudioComponent', AudioComponent);
     this.Playable = Playable;
-    this.classRegistry.register('Playable', Playable);
+    this.registerClass('Playable', Playable);
 
     this.ConstantGenerator = ConstantGenerator;
-    this.classRegistry.register('ConstantGenerator', ConstantGenerator);
+    this.registerClass('ConstantGenerator', ConstantGenerator);
     this.SineOscillator = SineOscillator;
     this.addModule('lib/processors/SineOscillatorProcessor.js');
-    this.classRegistry.register('SineOscillator', SineOscillator);
+    this.registerClass('SineOscillator', SineOscillator);
 
     this.Envelope = Envelope;
     this.addModule('lib/processors/EnvelopeProcessor.js');
-    this.classRegistry.register('Envelope', Envelope);
+    this.registerClass('Envelope', Envelope);
     this.ADSREnvelope = ADSREnvelope;
     this.addModule('lib/processors/ADSREnvelopeProcessor.js');
-    this.classRegistry.register('ADSREnvelope', ADSREnvelope);
+    this.registerClass('ADSREnvelope', ADSREnvelope);
 
     this.Tone = Tone;
     this.addModule('lib/processors/ToneProcessor.js');
-    this.classRegistry.register('Tone', Tone);
+    this.registerClass('Tone', Tone);
+  }
+
+  registerClass(className, classInstance) {
+    this.classRegistry.register(className, classInstance);
+  }
+
+  getClass(className) {
+    return this.classRegistry.get(className);
   }
 
   // modulePath should be relative to this file's location
