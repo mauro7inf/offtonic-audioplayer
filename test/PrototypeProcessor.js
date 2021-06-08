@@ -3,7 +3,7 @@ class PrototypeProcessor extends AudioWorkletProcessor {
     const output = outputs[0];
     output.forEach(channel => {
       for (let i = 0; i < channel.length; i++) {
-        channel[i] = 0.05*(Math.random()*2 - 1);
+        channel[i] = 0.1*(Math.random()*2 - 1);
       }
     });
     return true;

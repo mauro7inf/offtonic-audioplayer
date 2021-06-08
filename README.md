@@ -57,12 +57,16 @@ The values are method names that get called when `getProperty()` and `setPropert
 #### `connector` and `disconnector` — *string* (optional)
 The values are method names that get called when `connectProperty` and `disconnectProperty()` are called.  `AudioComponent` assumes that properties that need it (those that have `isAudioParam` set to `true`, for example, or `inputIndex` set to a non-negative number) possess a `connectTo()` method that connects the property's `node` field to the primary component's `node` field, as well as a `disconnectFrom()` method to undo this.  These `node` fields are `AudioNode` instances, whether native nodes or `AudioWorkletNode`s, and they work as prescribed in the Web Audio API docs.  If you need any special behavior, perhaps because you're connecting to a node other than the component's `node` field, you should provide `connector` and/or `disconnector` methods for the property.
 
+#### `cleaner` — *string* (optional)
+The value is a method name that gets called when `cleanupProperty()` is called, with the goal of freeing resources associated with this property.  `Component` provides `genericCleaner()` that does the basics, but if you need more functionality, or if your property works differently from the default way of handling them, you can provide a cleaner.
+
 #### `isAudioParam` — *boolean* (optional) — default `false`
 #### `paramName` — *string* (optional) — default value is the value of the `name` property
 Indicates that a property represents an `AudioParam`, a parameter of an `AudioNode` named `paramName` (see the Web Audio API docs).  This means that the value must either be a number or an `AudioComponent` with a `connectTo()` method that connects some `AudioNode` (which provides numbers at the audio rate) to the `AudioParam`.  In addition, if the `node` is an `AudioWorkletNode` and the value of this property is a number, that number will be added to the `options.parameterData` object when creating the node as its initial value.
 
 #### `isProcessorOption` — *boolean* (optional) — default `false`
-Indicates that a property value should be passed to the constructor of the `AudioComponent`'s `AudioWorkletNode` node; it will be added to `options.processorOptions`.  The value can typically be anything, but objects get copied using the structured clone algorithm, which does not allow functions, so it's actually fairly limited.
+#### `processorOptionName` — *string* (optional) — default value is the value of the `name` property
+Indicates that a property value should be passed to the constructor of the `AudioComponent`'s `AudioWorkletNode` node; it will be added to `options.processorOptions` under a key specified by `processorOptionName` if that is present or just the `name` property if not.  The value can typically be anything, but objects get copied using the structured clone algorithm, which does not allow functions, so it's actually fairly limited.
 
 #### `inputIndex` — *number* (optional)
 Indicates which input on the audio component's `node` field this property should connect to.  The property must be an audio component, since `AudioNode` inputs must be other `AudioNode`s.  If `inputIndex` is not provided, it's assumed that the property is not connecting to an input on the `node` field.
@@ -138,7 +142,7 @@ Create a `Player` with `new o.Player()` if you want to use a `Player` other than
 
 ### Class Fields
 
-#### `o` — *`Global`* — default value
+#### `o` — *`Global`*
 Easily available `Global` singleton instance.
 
 ### Instance Fields
@@ -183,3 +187,256 @@ Stops the sound in `<playable>`.  First it attempts to find the `<playable>` in 
 
 #### `stopAll()`
 Stops all playable notes by calling `disconnectFrom()` and `off()` on them, then empties the `playing` array.
+
+
+
+
+## Component
+
+A `Component` is a piece of the sound-producing apparatus of Offtonic Audioplayer that can be instantiated by means of a properties object.  `Component` should probably never be directly instantiated, since a `Component` doesn't actually *do* anything on its own; the `Component` superclass simply provides the necessary methods to parse the properties for its subclasses to inherit.
+
+### Class Fields
+
+#### `o` — *`Global`*
+Easily available `Global` singleton instance.
+
+#### `newPropertyDescriptors` — *array of property descriptors* (see Property Descriptor Fields above) — value `[]`
+Any subclass that wants to define properties should stick them in its own `newPropertyDescriptors` field as an array.
+
+#### `propertyDescriptors` — *object of property descriptors, where the keys are the property names and the values are the descriptors* (see Property Descriptor Fields above) — value `{}` (read-only)
+Any subclass inheriting from `Component` has this field automatically populated by `Component`'s static getter for this field, so you should not ever need to set it, just read from it.  Reading this field for the first time calls `generatePropertyDescriptors()`, which stores the value in the `generatedPropertyDescriptors` class field (which you should probably not touch); reading this field subsequently just retrieves the latter.
+
+### Class Methods
+
+#### `generatePropertyDescriptors()`
+Copies the superclass's `propertyDescriptors` into a new object, adds this class's `newPropertyDescriptors` to the object (if present), then saves it in this class's `generatedPropertyDescriptors` for future retrieval through `propertyDescriptors`.  You shouldn't ever have to touch this method.
+
+#### `create(<properties>, <player>)` — `Component` subclass instance
+`o.createComponent()` just calls this method, so you should probably call that instead since it's easier.  Creates a new object with `<properties>` as its properties and `<player>` as its player by calling the constructor specified in `<properties>.className` if present (if not, calls the current class's constructor), then `.withPlayer(<player>).withProperties(<properties>)` on the constructed object.
+
+### Instance Fields
+
+#### `ctx` — *`AudioContext`*
+Default `AudioContext` from `o`, for convenience.
+
+#### `isComponent` — *boolean* — `true`
+So you can easily check if a given object is a `Component` and therefore responds to `Component`'s methods.
+
+#### `player` — *Player*
+The `Player` instance passed to `create()` when creating this `Component`.  It's only really applicable for `Playable` instances, but since `Component` property definitions can be chained, all `Component`s created with a particular `create()` call are given the `Player`.
+
+### Instance Methods
+
+#### `withPlayer(<player>)` — *`this`*
+Sets `player` to `<player>` (by calling `setPlayer(<player>)`) and returns the object itself.
+
+#### `setPlayer(<player>)`
+Sets `player` to `<player>`.  Override if you want more interesting behavior, but remember that this gets called at object creation *before* the properties are set.
+
+#### `withProperties(<properties>)` — *`this`*
+Sets the properties to the values in `<properties>` (by calling `setProperties(<properties>, true)`) and returns the object itself.
+
+#### `setProperties(<properties>, <useDefault>)`
+Sets the properties to the values in `<properties>`.  If `<useDefault>` is `true`, a property name is not present in `<properties>`, and that property's descriptor has a `defaultValue`, then the property is set to that `defaultValue`.  The properties are set with `setProperty()`.  After the properties are set, `finishSetup()` is called in case there's anything left to do.  You can call `setProperties()` on a `Component` at any time, not just at instantiation, to change the properties of the `Component` while it's playing or doing whatever it does.
+
+#### `finishSetup()`
+Does nothing in `Component`, but you can override it if you need.  Gets called at the end of `setProperties()` to initialize the `Component` and perform any tasks that need multiple properties to be around at the same time, like calculations.
+
+#### `getProperty(<propName>)` — *anything*
+Returns the value of the property with the specified `<propName>`, which may be a number, a `Component`, or really anything else.  If the property descriptor specifies a `getter`, that function will be called to retrieve the value; otherwise, `genericGetter()` is called.
+
+#### `genericGetter(<propName>)` — *anything*
+Returns the value of `this.<propName>`, which is the default way to store property values.  When implementing a custom getter, you may want to consider calling `genericGetter()` during the process.
+
+#### `setProperty(<propName>, <propDefinition>)`
+Instantiates `<propDefinition>` if necessary (meaning that `<propDefinition>.className` is present), then sets it as a value for the property named `<propName>` (if it exists).  If `<propDefinition>` is a number and the descriptor has `isAudioComponent` set to `true`, a `ConstantGenerator` is instantiated and becomes the value instead of the number.  If a `setter` is provided in the descriptor, that value gets passed to that setter; if not, the previous value is cleaned up (with `cleanupProperty()`) and `genericSetter()` is called.  If you are implementing a custom setter, you should make sure to handle cleaning up the previous value of the property if applicable.
+
+#### `genericSetter(<propName>, <propValue>)`
+Simply sets `this.<propName>` to `<propValue>`, which is the default way to store property values.  When implementing a custom setter, you may want to consider calling `genericSetter()` during the process.
+
+#### `cleanup()`
+Performs any cleanup tasks necessary, like dismantling `AudioNode`s that should no longer run and otherwise freeing resources.  If you override `cleanup()`, you should probably call `super.cleanup()` to make sure you don't miss something important.  In `Component`, `cleanup()` goes through every property and calls `cleanupProperty()` for the property.
+
+#### `cleanupProperty(<propName>)`
+If the property named by `<propName>` has a `cleaner` in its descriptor, this method calls that cleaner to clean up the property; if it does not, it calls `genericCleaner(<propName>)`.
+
+#### `genericCleaner(<propName>)`
+If the property named by `<propName>` is itself a `Component`, calls `cleanup()` on the property, then sets `this.<propName>` to `null`.  If you need more specialized behavior and override this method, you should probably still call it from your override.
+
+
+
+
+## AudioComponent < Component
+
+An `AudioComponent` is a `Component` that produces a-rate data through an `AudioNode`.  It doesn't have to produce data intended to produce a *sound*, and in fact, most `AudioComponent`s don't.  An `Envelope`, for example, is an `AudioComponent` that produces gains in time which are multiplied by a signal to create a tone that has articulation, and a `ConstantGenerator` is an `AudioComponent` that produces a specified constant number every audio frame.  `AudioComponent`s can connect to `AudioNode`s or `AudioParam`s depending on the specific use case.
+
+You never instantiate an `AudioComponent` itself, since an `AudioComponent` doesn't actually *do* anything.  Rather, you use its subclasses.  `AudioComponent` contains default methods for dealing with `AudioWorkletNode`s, instantiating them, passing them properties, and so on, and many can be overridden for custom behavior in subclasses.
+
+### Class Fields
+
+#### `processorName` — *string* — default `null`
+The name of the `AudioWorkletProcessor` subclass (the name registered into the `AudioWorkletGlobalScope`) that this `AudioComponent` class uses.  If a subclass uses a native `AudioNode` (hard-coded into the Web Audio API), you can leave this `null` — or not, since it won't get used.
+
+#### `numberOfInputs` — *number* — default `0`
+Number of inputs for the `AudioWorkletProcessor` subclass (see the `options` for the `AudioWorkletProcessor` constructor in the Web Audio API docs).
+
+#### `numberOfOutputs` — *number* — default `1`
+Number of outputs for the `AudioWorkletProcessor` subclass (see the `options` for the `AudioWorkletProcessor` constructor in the Web Audio API docs).
+
+#### `outputChannelCount` — *array of numbers* — default `null`
+Array with the number of channels for each output (see the `options` for the `AudioWorkletProcessor` constructor in the Web Audio API docs).  Left unspecified by default, which allows the `AudioWorkletProcessor` to use the default values.
+
+#### `isNativeNode` — *boolean* — default `false`
+If the `node` is a native Web Audio API `AudioNode`, set this to `true`.  It changes the way `AudioParam`s are connected.
+
+### Class Methods
+
+#### `getParamName(<propName>)` — *string* — default value `<propName>`
+Returns the name of the `AudioParam` that the property named by `<propName>`, which is `<propName>` itself by default but can be overridden by providing a `paramName` in the descriptor for the property.
+
+#### `getProcessorOptionName(<propName>)` — *string* — default value `<propName>`
+Returns the name of the processor option that the property named by `<propName>`, which is `<propName>` itself by default but can be overridden by providing a `processorOptionName` in the descriptor for the property.
+
+#### `getParamFromNode(<node>, <paramName>, <isNativeNode>)` — `AudioParam`
+Utility method that returns the `AudioParam` object with the given `<paramName>` from the given `<node>`.  Params are accessed differently depending on whether the node is a native node or an `AudioWorkletNode`, so that switch is necessary.  You can use this `AudioParam` to connect `AudioNodes` to it.
+
+### Instance Fields
+
+#### `isAudioComponent` — *boolean* — `true`
+Allows for quick checking that a given object is an `AudioComponent`.  Note that `isAudioComponent` is also a key in a property descriptor object, but you shouldn't end up getting them confused.
+
+#### `node` — *AudioNode* — default `null`
+The node that does all of this `AudioComponent`'s business.  By default, `AudioComponent` assumes that `node` is an `AudioWorkletNode`, but it doesn't have to be.  This is the `AudioNode` to which you connect your properties, and this is the `AudioNode` that you connect to somewhere else like a `Player` or an `AudioParam` or what have you.  The node is generally created when the `AudioComponent` is turned on and destroyed when it's turned off, so when it's not playing, `node` is `null`.  Therefore, always check for `null` when doing something with the node.
+
+### Instance Methods
+
+#### `on()`
+If the `node` field is `null`, creates a node (using `createNode()`) and called `connectProperties()` to set up the node.
+
+#### `off()`
+Calls `disconnectProperties()` and `cleanupNode()` to tear everything down.
+
+#### `createNode()`
+Creates a custom `AudioWorkletNode` with this class's `processorName` as its processor name and sticks it in the `node` field.  It also opens up the node's `port` for messaging.  If you're using a native `AudioNode` instead of a custom `AudioWorkletNode`, or you have multiple different node objects in your class, you need to override `createNode()` to do the thing you need it to do.  This gets called during `on()`.
+
+#### `cleanupNode()`
+Simply sets the `node` field to `null`.  Override if you need to do something more complicated.  Gets called during `off()`.
+
+#### `receiveMessage(<messageEvent>)`
+This function gets called whenever `node.port` receives a message from the processor (see the Web Audio API docs).  The message contents are in `<messageEvent>.data`.  It doesn't do anything in `AudioComponent`, but you should override it to handle whatever messages you want to send back and forth.  A similar method is defined in `AudioComponentProcessor` to handle messages sent to the processor.  To send a message, call `node.port.postMessage()` (see the `MessagePort` API docs for details).  Note that messages are copied using structured clone, so functions can't be sent (or received, obviously).
+
+#### `connectTo(<destination>, <inputIndex>)`
+#### `disconnectFrom(<destination>, <inputIndex>)`
+Calls `connect()` or `disconnect()` on `node` to connect or disconnect its output at index `0` to or from the given `<destination>`; if `<inputIndex>` is a non-negative number, it will (dis)connect it to/from that input index.  The default input index is `0` for a `<destination>` that is an `AudioNode`, but if the `<destination>` is an `AudioParam`, including an input index at all (even `undefined`) will cause an error.  If you need to (dis)connect a different output or have some other behavior, override these methods.
+
+#### `cleanup()`
+Overrides `Component`'s `cleanup()` method; calls `off()` and `super.cleanup()`.  If you override this method, you should probably call `super.cleanup()` at the end as well.
+
+#### `genericSetter(<propName, propValue>)`
+Overrides `Component`'s `genericSetter()` method to call `connectProperty(<propName>)` after setting the value.  Before you turn the `AudioComponent` on, this has no effect since there's nothing to connect it to, but if you set a property while the `AudioComponent` is running, this setter will connect the new property to the correct spot.  If you're providing a `setter` for a property or overriding this method, don't forget to perform the necessary connections.
+
+#### `connectProperties()`
+#### `disconnectProperties()`
+Calls `connectProperty()` or `disconnectProperty()` on all of this `AudioComponent`'s properties.
+
+#### `connectProperty(<propName>)`
+#### `disconnectProperty(<propName>)`
+If a `connector` or `disconnector` is provided for this property, that method is called.  If not, if the property descriptor has `isAudioParam` set to `true`, `connectAudioParam()` or `disconnectAudioParam()` is called; if the property descriptor has a non-negative `inputIndex`, then `connectInputIndex()` or `disconnectInputIndex()` are called.  These two methods have no default behavior, so if you want to create special handlers for other property types, just override these methods and call `super.connectProperty(<propName>)` or `super.disconnectProperty<propName>)` before adding new cases.
+
+#### `connectAudioParam(<propName>)`
+#### `disconnectAudioParam(<propName>)`
+Called by `connectProperty()` and `disconnectProperty()` to handle properties with `isAudioParam` set to `true`.  If the value of the property named by `<propName>` is an `AudioComponent`, `value.on()` and `value.connectTo()` are called to connect it to the `AudioParam` object it needs to be connected to, and `value.disconnectFrom()` and `value.off()` are called to disconnect.  If the value is not an `AudioComponent`, it's simply assigned into the `AudioParam`'s `value` field on connection; there is no need to disconnect it afterward.
+
+#### `connectInputIndex(<propName>)`
+#### `disconnectInputIndex(<propName>)`
+Called by `connectProperty()` and `disconnectProperty()` to handle properties with `inputIndex` set to a non-negative number.  The value is assumed to be an `AudioComponent`, and `value.on()` and `value.connectTo()` are called on connection and `value.disconnectFrom()` and `value.off()` are called on disconnection.
+
+#### `getProcessorOptions()` — *object*
+Creates and returns the `options` object that the `AudioWorkletProcessor` is instantiated with.  The static fields `numberOfInputs`, `numberOfOutputs`, and `outputChannelCount` are added to this object if they're not `null`, as well as empty objects `parameterData` and `processorOptions`.  `parameterData` holds initial values for the `AudioParam`s of the node, and `processorOptions` holds extra options that are read only at the processor's instantiation.  See the WebAudio API docs for more details on this object.  After this basic object is set up, `addProcessorOption()` is called with each property descriptor.  If you want to set up some custom behavior in the `options` object, you should override this method, but you'll likely want to call `super.getProcessorOptions()` first to populate the object.
+
+#### `addProcessorOption(<options>, <descriptor>)` — *object*
+Adds the appropriate value to the `<options>` object and returns it, calling `addAudioParamOption()` if `isAudioParam` is `true` in the `<descriptor>`, and calling `addProcessorOptionOption()` if `isProcessorOption` is `true` in the `<descriptor>`.  These are not (necessarily) mutually exclusive, so if you have other kinds of options that need special treatment, you can override this method, call `super.addProcessorOption()` first, and handle your new kind of option.
+
+#### `addAudioParamOption(<options>, <propName>)` — *object*
+If the value of the property named by `<propName>` is a number, adds it to the `<options>` object under `parameterData`, with the key being the param name (`paramName` if provided in the descriptor, or just `<propName>` if not).  This sets the initial value of the `AudioParam` to the number given.  If the property value is an `AudioComponent`, it is not provided at the processor's instantiation, since its node will eventually get connected to the `AudioParam`.  Returns the `<options>` object.
+
+#### `addProcessorOptionOption(<options>, <propName>)` — *object*
+Adds the value of the `<propName>` property to the `<options>` object under `processorOptions`, with the key being the processor option name (`processorOptionName` if provided in the descriptor, or just `<propName>` if not).  This value can be anything, but since it gets passed via structured clone, it shouldn't contain functions.  The processor can read this value at construction time and handle it however is necessary.  Returns the `<options>` object.
+
+
+
+
+## Playable < AudioComponent < Component
+
+The `Playable` subclass of `AudioComponent` provides some basic mechanics for playing and stopping a sound.  A sound does not play itself; rather, a `Player` instance plays it.  The `Playable` class provides `play()` and `stop()` methods to the `Playable` itself that simply call their `player` so that instead of something like `player.play(playable)` you can call `playable.play()`.  You should never instantiate a `Playable`, though, since `Playable` is intended to be an abstract class that doesn't actually *do* anything.
+
+### Instance Methods
+
+#### `play()`
+#### `stop()`
+Calls `player.play()` or `player.stop()` on this object.
+
+#### `release()`
+Calls `stop()`.  Override this if you want custom behavior before actually stopping the sound, like a reverb effect or something, as `stop()` will stop the sound immediately.
+
+
+
+
+## Tone < Playable < AudioComponent < Component
+
+Produces an audible tone when played, hence the name.  You can customize it in a variety of ways, and this is the primary way in which you will likely be creating sound when using Offtonic Audioplayer.  A `Tone` has a `generator` that produces a signal (optionally at a `frequency`), moderated by an `envelope` that shapes the volume of the sound over its lifetime, and finally, multiplied by a `gain` that specifies an overall volume.  The primary `node` is a custom `AudioWorkletNode` with processor name `ToneProcessor`, whose inputs are the `generator` and the `envelope`, and that is connected to a `GainNode` that applies the `gain`; that `GainNode` is what's connected to the destination.
+
+### Properties
+
+#### `gain` — *number or `AudioComponent`* — `defaultValue`: `0.1` — `isAudioParam`: `true` — `connector`: `connectGain` — `disconnector`: `disconnectGain`
+Sets the volume of the tone.
+
+#### `generator` — *`AudioComponent`* — `defaultValue`: `{className: 'SineOscillator'}` — `isAudioComponent`: `true` — `inputIndex`: `0`
+The raw audio signal itself.  It should generally be between `-1` and `1`, but that's not strictly necessary, just convenient.
+
+#### `envelope` — *`AudioComponent` (ideally `Envelope`)* — `defaultValue`: `{className: 'ADSREnvelope'}` — `isAudioComponent`: `true` — `inputIndex`: `1` — `setter`: `setEnvelope`
+An `AudioComponent` that produces a time-varying gain, often ramping up from 0 at the point of articulation, staying at 1 for the duration of the tone, then ramping back down to 0 on release.  It can be any `AudioComponent` (a pure number will be changed into a `ConstantGenerator`), but if the value is an `Envelope`, post-`release()` functionality is available.
+
+#### `frequency` — *number or `AudioComponent` or `null`* — `defaultValue`: `null` — `getter`: `getFrequency` — `setter`: `setFrequency`
+This property allows for convenience when creating a `Tone`, since normally the `frequency` would be a property of the `generator`, not the `Tone`.  A `getter` and `setter` are needed to harmonize this property with the `frequency` of the `generator`.  A `null` value leaves the `generator`'s `frequency` alone.
+
+### Class Fields
+
+#### `processorName` — *string* — `ToneProcessor`
+#### `numberOfInputs` — *number* — `2`
+
+### Instance Fields
+
+#### `gainNode` — *`GainNode`*
+The `GainNode` that serves as the final output for the `Tone`.  The `node` is connected to it.
+
+### Instance Methods
+
+#### `finishSetup()`
+Also propagates the `frequency`, if it isn't `null` to the `generator`.
+
+#### `createNode()`
+Also sets up the `gainNode` and connects the `node` to it.
+
+#### `cleanupNode()`
+Also disconnects the `gainNode` and tears it down.
+
+#### `connectGain()`
+#### `disconnectGain()`
+Connects/disconnects the `gain` property to/from the `gainNode`'s `gain` `AudioParam`.  If `gain` is just a number, simply assigns that number to the `value` of the `AudioParam`.
+
+#### `connectTo(<destination>, <inputIndex>)`
+#### `disconnectFrom(<destination>, <inputIndex>)`
+Connects/disconnects the `gainNode` to the specified `<destination>` and `<inputIndex>`.
+
+#### `getFrequency()` — *number or `AudioComponent`*
+Gets the `frequency` property of the `generator` property.  If that is `null` or `undefined`, returns the value of the `frequency` field of the `Tone` itself.
+
+#### `setFrequency(<frequency>)`
+Sets the `frequency` field to `<frequency>` and, if `generator` is present, calls `generator.setPropery('frequency', <frequency>)`.
+
+#### `setEnvelope(<envelope>)`
+If `<envelope>` is an `Envelope`, also sets the `playable` field on the `<envelope>` to this `Tone` to enable two-way communication.
+
+#### `release()`
+If `envelope` is an `Envelope`, calls `startRelease()` on it; if not, calls `stop()`.  If `startRelease()` is called on the `envelope`, it should eventually call `stop()` on this `Tone`, which is why we set its `playable` field in `setEnvelope()`.
