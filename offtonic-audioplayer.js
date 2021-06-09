@@ -40,6 +40,7 @@ class Global {
     this.ConstantGenerator = ConstantGenerator;
     this.registerClass('ConstantGenerator', ConstantGenerator);
     this.Oscillator = Oscillator;
+    this.addModule('lib/processors/OscillatorProcessor.js');
     this.registerClass('Oscillator', Oscillator);
     this.SineOscillator = SineOscillator;
     this.addModule('lib/processors/SineOscillatorProcessor.js');

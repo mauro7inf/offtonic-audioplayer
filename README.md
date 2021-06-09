@@ -446,7 +446,7 @@ Sets the volume of the tone.
 #### `generator` — *`AudioComponent`* — `defaultValue`: `{className: 'SineOscillator'}` — `isAudioComponent`: `true` — `inputIndex`: `0`
 The raw audio signal itself.  It should generally be between `-1` and `1`, but that's not strictly necessary, just convenient.
 
-#### `envelope` — *`AudioComponent` (ideally `Envelope`)* — `defaultValue`: `{className: 'ADSREnvelope'}` — `isAudioComponent`: `true` — `inputIndex`: `1` — `setter`: `setEnvelope`
+#### `envelope` — *`AudioComponent` (ideally `Envelope`)* — `defaultValue`: `{className: 'ADSREnvelope'}` — `isAudioComponent`: `true` — `inputIndex`: `1`
 An `AudioComponent` that produces a time-varying gain, often ramping up from 0 at the point of articulation, staying at 1 for the duration of the tone, then ramping back down to 0 on release.  It can be any `AudioComponent` (a pure number will be changed into a `ConstantGenerator`), but if the value is an `Envelope`, post-`release()` functionality is available.
 
 #### `frequency` — *number or `AudioComponent` or `null`* — `defaultValue`: `null` — `getter`: `getFrequency` — `setter`: `setFrequency`
@@ -454,7 +454,7 @@ This property allows for convenience when creating a `Tone`, since normally the 
 
 ### Class Fields
 
-#### `processorName` — *string* — `MultiplierProcessor`
+#### `processorName` — *string* — `'MultiplierProcessor'`
 #### `numberOfInputs` — *number* — `2`
 
 ### Instance Fields
@@ -487,11 +487,8 @@ Gets the `frequency` property of the `generator` property.  If that is `null` or
 #### `setFrequency(<frequency>)`
 Sets the `frequency` field to `<frequency>` and, if `generator` is present, calls `generator.setPropery('frequency', <frequency>)`.
 
-#### `setEnvelope(<envelope>)`
-If `<envelope>` is an `Envelope`, also sets the `playable` field on the `<envelope>` to this `Tone` to enable two-way communication.
-
 #### `release()`
-If `envelope` is an `Envelope`, calls `startRelease()` on it; if not, calls `stop()`.  If `startRelease()` is called on the `envelope`, it should eventually call `stop()` on this `Tone`, which is why we set its `playable` field in `setEnvelope()`.
+If `envelope` is an `Envelope`, calls `startRelease(this)` on it; if not, calls `stop()`.  If `startRelease(this)` is called on the `envelope`, it should eventually call `stop()` on this `Tone`, which is why we pass `this` as an argument.
 
 
 
@@ -565,6 +562,10 @@ The frequency of the oscillator, in Hz.
 #### `initialPhase` — *number* — `defaultValue`: `null` — `isProcessorOption`: `true`
 The initial phase of the oscillator.  It probably doesn't matter very much for sound waves, but it does matter in some applications, especially if you want to sync up multiple waves.
 
+### Class Fields
+
+#### `processorName` — *string* — `'OscillatorProcessor'`
+
 
 
 
@@ -609,7 +610,7 @@ Generates a sine wave.
 
 ### Class Fields
 
-#### `processorName` — *string* — `SineOscillatorProcessor`
+#### `processorName` — *string* — `'SineOscillatorProcessor'`
 
 
 
@@ -622,3 +623,159 @@ Processor to generate a sine wave.
 
 #### `wave()` — *number*
 Sine of the phase.
+
+
+
+
+## Envelope < AudioComponent < Component
+
+An `Envelope` is actually just a gain that is varied over the lifetime of a `Tone`.  One typical envelope is the `ADSREnvelope`, which starts by ramping the gain up from 0 to some maximum over some period of time, then down to 1 (over some time) for the rest of the duration of the tone, and, when the tone is released, it ramps the gain back down to 0 over some time.  This ramping of the gain from and to 0 removes the very high-frequency components inherent in an instantaneous jump from 0 to 1, which cause an audible pop.  `Envelope`s also provide articulation at the front of the note and can provide vibrato or other effects as well.  This `Envelope` class is intended to be abstract; its processor doesn't actually do anything useful (it just outputs `1`).
+
+### Class Fields
+
+#### `processorName` — *string* — `'EnvelopeProcessor'`
+
+### Instance Fields
+
+#### `isEnvelope` — *boolean* — `true`
+Allows a check for whether an `AudioComponent` is an `Envelope`, meaning that it implements `startRelease()` and calls `playable.stop()` on its own.
+
+#### `playable` — *`Playable`* — default value: `null`
+The `Playable` object that the `Envelope` needs to call `stop()` on after `startRelease()` is called.  Gets set on `startRelease()`.
+
+#### `phase` — *string* — default value: `'main'`
+Unlike an `OscillatorProcessor`'s `phase`, this `phase` is the phase of the lifetime of the `Envelope`.  By default, an `Envelope` starts in the `'main'` phase; after `startRelease()` is called, it switches to the `'release'` phase, and when that's done, to the `'stop'` phase.  More phases (or different phases) could be added by subclasses, but keep in mind that a `port` message must be sent to change the phase in the processor, so this phase system has some inherent latency as the processor processes a whole buffer of frames at a time.
+
+#### `phaseHandlers` — *object where the keys are phases and the values are functions*
+Registry of functions to handle phase changes.  When the phase changes, if there's a handler for it, that handler gets called.  Subclasses should add their own functions to this object if appropriate.
+
+### Instance Methods
+
+#### `createNode()`
+Also sets the `phase` on the processor.
+
+#### `changePhase(<phase>)`
+Sets the `phase`, posts a message through `node.port` that is an object that looks like `{phase: <phase>}`, and calls `phaseHandlers.<phase>` if it exists.
+
+#### `receiveMessage(<messageEvent>)`
+If the message has a `phase`, sets the `phase` and calls the appropriate handler if it exists.
+
+#### `startRelease(<playable>)`
+Sets the `playable` field and changes the phase to `'release'`.
+
+#### `stop()`
+Calls `stop()` on `playable` if it isn't `null`.
+
+#### `phaseHandlers.stop()`
+Calls `stop()`.
+
+
+
+
+## EnvelopeProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Implements a basic processor that responds to changes in phase.  This is intended to be an abstract processor; it just outputs `1`.
+
+### Instance Fields
+
+#### `phase` — *string* — default value: `'main'`
+Unlike an `OscillatorProcessor`'s `phase`, this `phase` is the phase of the lifetime of the `EnvelopeProcessor`.  By default, an `EnvelopeProcessor` starts in the `'main'` phase; after `startRelease()` is called on the `Envelope`, it switches to the `'release'` phase, and when that's done, to the `'stop'` phase.  More phases (or different phases) could be added by subclasses, but keep in mind that a `port` message must be sent to change the phase in the `Envelope`, so this phase system has some inherent latency as the processor processes a whole buffer of frames at a time.
+
+#### `phaseHandlers` — *object where the keys are phases and the values are functions*
+Registry of functions to handle phase changes.  When the phase changes, if there's a handler for it, that handler gets called.  Subclasses should add their own functions to this object if appropriate.
+
+### Instance Methods
+
+#### `generate()`
+Returns `1`.  You should probably override this to do something more interesting.
+
+#### `changePhase(<phase>)`
+Sets the `phase`, posts a message through `port` that is an object that looks like `{phase: <phase>}`, and calls `phaseHandlers.<phase>` if it exists.
+
+#### `receiveMessage(<messageEvent>)`
+If the message has a `phase`, sets the `phase` and calls the appropriate handler if it exists.
+
+#### `startRelease()`
+Immediately changes phase to `'stop'`.  You should probably override this if you want to implement more interesting release behavior.
+
+#### `phaseHandlers.release()`
+Calls `startRelease()`.
+
+
+
+
+## ADSREnvelope < Envelope < AudioComponent < Component
+
+An `Envelope` with Attack, Decay, Sustain, and Release (ADSR) phases, standard in audio synthesis.  The `ADSREnvelope` class itself doesn't actually have any of its own behavior; the magic is all in the `ADSREnvelopeProcessor` that lives in the `ADSREnvelope`'s `node`.  The Attack, Decay, and Sustain phases are all just part of the `'main'` `phase`, with the Release phase being the `'release'` `phase`, so they don't correspond exactly.
+
+During the Attack phase, which lasts `attack` ms, the gain starts at `0` and ramps up linearly to `attackGain`.  Then the Decay phase starts, and the gain ramps down linearly from `attackGain` to `1` over `decay` ms.  Then the Sustain phase starts, and the gain stays at `1`.  When the Release phase begins (by calling `startRelease()` on this object), the gain ramps from `1` to `0` over `release` ms.  A small value for `attack` makes the sound appear struck by an object, with a hard start; a larger value makes the attack feel softer.  A long `release` makes the sound taper off slowly.  If any of the `attack`, `decay`, or `release` durations are too short, you may hear pops and such, so be careful.  Note that all of these parameters are immutable once the processor starts, since they're all processor options.
+
+### Properties
+
+#### `attack` — *number* — `defaultValue`: `20` — `isProcessorOption`: `true`
+Time in ms for the initial ramp-up from `0` to `attackGain`.
+
+#### `attackGain` — *number* — `defaultValue`: `2` — `isProcessorOption`: `true`
+How high to ramp up the attack.  It's generally greater than `1`, but it doesn't have to be; all that will change is that the `decay` phase will get louder rather than softer to get to `1`.
+
+#### `decay` — *number* — `defaultValue`: `20` — `isProcessorOption`: `true`
+Time in ms for the initial attack to decay from `attackGain` down to `1` (or to go up if `attackGain` is less than `1`).
+
+#### `release` — *number* — `defaultValue`: `50` — `isProcessorOption`: `true`
+Time in ms for the sustained `1` to finally release down to `0` when `startRelease()` is called.
+
+### Class Fields
+
+#### `processorName` — *string* — `ADSREnvelopeProcessor`
+
+
+
+
+## ADSREnvelopeProcessor < EnvelopeProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+The magic behind `ADSREnvelope` (see that description for details).  Implements all the ramps.
+
+### Processor Options
+
+#### `attack` — *number*
+How long the Attack phase lasts, in ms.
+
+#### `attackGain` — *number*
+How high the Attaack phase ramps up to.
+
+#### `decay` — *number*
+How long the Decay phase lasts, in ms.
+
+#### `release` — *number*
+How long the Release phase lasts, in ms.
+
+### Instance Fields
+
+#### `currentFrame` — *number* — default value: `0`
+The current audio frame relative to when the processor was first started.  It's incremented every frame and acts as a timer for the processor.
+
+#### `attackUntilFrame` — *number*
+Frame at which Attack switches to Decay, calculated at construction from the processor options.
+
+#### `decayUntilFrame` — *number*
+Frame at which Decay switches to Sustain, calculated at construction from the processor options.
+
+#### `releaseStartFrame` — *number* — default value: `null`
+Current frame when `startRelease()` is called.
+
+#### `releaseUntilFrame` — *number* — default value: `null`
+Frame at which Release ends; calculated when `startRelease()` is called.
+
+#### `releaseFromValue` — *number* — default value: `null`
+Current value when `startRelease()` is called, which gets ramped down to 0.  This will generally be `1`, but if `startRelease()` is called before the Attack and Decay phases are done, or if a subclass changes the Sustain behavior, this number could be different.
+
+#### `value` — *number* — default value: `0`
+Number that gets output each frame, saved here so that `releaseFromValue` can be computed.
+
+### Instance Methods
+
+#### `generate()` — *number*
+Produces a gain for the current frame.  If the `phase` is `'main'`, checks the current frame against `attackUntilFrame` and `decayUntilFrame` to calculate the value; if the `phase` is `'release'`, checks the current frame against `releaseUntilFrame` to calculate the value, and if the current frame is past `releaseUntilFrame`, returns `0` and calls `changePhase('stop')`; if the `phase` is `'stop'`, returns `0`.  After it calculates the value, it increments `currentFrame` before returning the value.
+
+#### `startRelease()`
+Calculates `releaseStartFrame`, `releaseUntilFrame`, and `releaseFromValue`.  Note that this gets called from `phaseHandlers.release()` when a message of `{phase: 'release'}` is received by the processor from the `Envelope`.
