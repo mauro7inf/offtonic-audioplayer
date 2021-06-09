@@ -50,7 +50,7 @@ class Global {
     this.registerClass('ADSREnvelope', ADSREnvelope);
 
     this.Tone = Tone;
-    this.addModule('lib/processors/ToneProcessor.js');
+    this.addModule('lib/processors/MultiplierProcessor.js');
     this.registerClass('Tone', Tone);
   }
 
