@@ -7,6 +7,7 @@ import AudioComponent from './lib/AudioComponent.js';
 import Playable from './lib/Playable.js';
 
 import ConstantGenerator from './lib/generators/ConstantGenerator.js';
+import Oscillator from './lib/generators/Oscillator.js';
 import SineOscillator from './lib/generators/SineOscillator.js';
 
 import Envelope from './lib/envelopes/Envelope.js';
@@ -38,6 +39,8 @@ class Global {
 
     this.ConstantGenerator = ConstantGenerator;
     this.registerClass('ConstantGenerator', ConstantGenerator);
+    this.Oscillator = Oscillator;
+    this.registerClass('Oscillator', Oscillator);
     this.SineOscillator = SineOscillator;
     this.addModule('lib/processors/SineOscillatorProcessor.js');
     this.registerClass('SineOscillator', SineOscillator);

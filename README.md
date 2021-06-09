@@ -533,9 +533,29 @@ Stops the `ConstantSourceNode` then calls the overridden method.
 
 
 
-## SineOscillator < AudioComponent < Component
+## GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
 
-Generates a sine wave at a given frequency.  Initial phase can also be specified.  This can be your basic sound wave, but it can also be a used in LFO (low-frequency oscillation), maybe to guide a vibrato, for example.
+Superclass for 0-input 1-output processors that generate a signal.  It generates a single value per audio frame and populates all channels of the output with that value at each frame.
+
+### Instance Fields
+
+#### `frame` — *number* — default value: `0`
+The current frame of the buffer, which is usually 128 frames long so this number typically goes from `0` to `127`.  This allows you to use `this.frame` whenever you need to get a parameter in the generator function.
+
+### Instance Methods
+
+#### `_process(<outputs>)` — *boolean* — `true`
+On each frame, sets the `frame` field, calls `generate()`, and puts that value into all of the channels of the output.  You should probably not override this method in subclasses.
+
+#### `generate()` — *number* — `0`
+Returns 0.  You should override this method in subclasses.
+
+
+
+
+## Oscillator < AudioComponent < Component
+
+Generates a wave at a given `frequency`.  Initial phase can also be specified.  This can be your basic sound wave, but it can also be a used in LFO (low-frequency oscillation), maybe to guide a vibrato, for example.  The wave shape here is unspecified; its subclasses provide the wave shape.  You should subclass this when you want a wave that is generated as a function of a single phase, like a sine wave.
 
 ### Properties
 
@@ -544,3 +564,61 @@ The frequency of the oscillator, in Hz.
 
 #### `initialPhase` — *number* — `defaultValue`: `null` — `isProcessorOption`: `true`
 The initial phase of the oscillator.  It probably doesn't matter very much for sound waves, but it does matter in some applications, especially if you want to sync up multiple waves.
+
+
+
+
+## OscillatorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Processor to generate a wave at a given frequency.  This class is intended to be abstract; the wave it produces is just silence.  However, subclassing `OscillatorProcessor` is extremely easy, since you just need to provide one single function, the `wave()` method.
+
+This works by keeping track of a `phase` and incrementing it every frame by the `frequency` times 2π/`sampleRate` (`sampleRate` is available globally in audio worklets; see the WebAudio API docs) and reducing it so that it's between 0 (inclusive) and 2π (not inclusive).  When `generate()` is called, `wave()` is evaluated at `phase`, then `updatePhase()` is called to increment/reduce it.
+
+### Audio Params
+
+#### `frequency`
+Number of wave cycles per second.
+
+### Processor Options
+
+#### `initialPhase` — *number* — default value: `null`
+If this option is not `null`, the `phase` field is set to it when the `OscillatorProcessor` is constructed.
+
+### Instance Fields
+
+#### `phase` — *number* — default value: random number from 0 (inclusive) to 2π (exclusive)
+Starts out at a random number from 0 (inclusive) to 2π (exclusive), or at the value of the `initialPhase` processor option.  The `phase` represents where in the wave cycle the processor currently is.  The `wave()` function is evaluated at the `phase` every frame, and `updatePhase()` is subsequently called to increment the phase by the value of the `frequency` `AudioParam` times 2π/`sampleRate` then reduced to be between 0 (inclusive) and 2π (exclusive).
+
+### Instance Methods
+
+#### `generate()` — *number*
+Calls `wave()` and stores the result, calls `updatePhase()`, and returns the result.  `wave()` is therefore always called with the old phase.  You probably shouldn't need to override this method, but if you do, you should probably call `super.generate()` in the overriding method.
+
+#### `updatePhase()`
+Increments `phase` by the value of the `frequency` `AudioParam` times 2π/`sampleRate` then reduces it to be between 0 (inclusive) and 2π (exclusive).
+
+#### `wave()` — *number* — default value: `0`
+Returns `0`.  This is not very interesting.  You should override this if you want something more useful.
+
+
+
+
+## SineOscillator < Oscillator < AudioComponent < Component
+
+Generates a sine wave.
+
+### Class Fields
+
+#### `processorName` — *string* — `SineOscillatorProcessor`
+
+
+
+
+## SineOscillatorProcessor < OscillatorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Processor to generate a sine wave.
+
+### Instance Methods
+
+#### `wave()` — *number*
+Sine of the phase.
