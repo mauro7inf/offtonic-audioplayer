@@ -9,6 +9,25 @@ import PrototypeNote from './PrototypeNote.js';
 PrototypeNote.o = o;
 o.addModule('test/PrototypeProcessor.js');
 
+o.orchestra.add({
+  name: 'test1',
+  className: 'Tone',
+  gain: 0.2,
+  envelope: {
+    instrument: ['test2', 'test3']
+  }
+});
+o.orchestra.add({
+  name: 'test2',
+  release: 250
+});
+o.orchestra.add({
+  name: 'test3',
+  className: 'ADSREnvelope',
+  attackGain: 3,
+  release: 20
+});
+
 let timeouts = [];
 
 window.addEventListener("load", function (e) {
@@ -30,14 +49,8 @@ function start() {
 
   const toneTestTime = 0;
   const tone1 = o.createComponent({
-    className: 'Tone',
-    gain: 0.2,
-    frequency: 256,
-    envelope: {
-      className: 'ADSREnvelope',
-      attackGain: 3,
-      release: 250
-    }
+    instrument: 'test1',
+    frequency: 256
   });
   schedule(() => {
     console.log('toneTest start');

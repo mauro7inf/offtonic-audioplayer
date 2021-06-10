@@ -1,4 +1,5 @@
 import classRegistry from './lib/ClassRegistry.js';
+import orchestra from './lib/Orchestra.js';
 
 import Player from './lib/Player.js';
 
@@ -20,6 +21,7 @@ class Global {
     // global context stuff
     this.ctx = window.AudioContext ? new AudioContext() : new webkitAudioContext();
     this.classRegistry = classRegistry;
+    this.orchestra = orchestra;
 
     let url = new URL(import.meta.url);
     let href = url.href;

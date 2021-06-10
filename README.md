@@ -27,7 +27,6 @@ I'm sure you'll want to define your own custom oscillators and filters and whatn
 
 
 
-
 ## Properties in the API
 
 The Offtonic Audioplayer API is based on setting properties on components.  A component (subclass of `Component`) is basically any bit of the Offtonic Audioplayer with its own behavior, and a property is some fundamental aspect of the component.  For example, a `Tone` is a component that produces an audio signal when played, and `frequency` is one of its properties, which can be a simple number or even another component that produces a number.  You can access the value by calling `tone.getProperty('frequency')` (assuming `tone` is an instance of `Tone`), and you can set the value at `Tone` creation by passing in an object to `o.createComponent` with a `frequency` field or later through `setProperties()`, again by passing it an object with a `frequency` field.  If the component holds an `AudioNode`, then it is also an `AudioComponent`.
@@ -41,6 +40,8 @@ Properties are set at component instantiation by calling either `(new <Component
 Each property is set via a setter method named in the property definition.  These setter methods get called in the order the properties were defined, starting with the highest superclass, `Component`.
 
 To define a property, stick an object in the `static newPropertyDescriptors` object of the component class you're creating with the fields below.  You can override a property in a subclass by redefining it in the subclass's `newPropertyDescriptors` array, which could be useful if you want to change a default.  When the class is first instantiated, the static field `propertyDescriptors` will hold all of the component's properties.
+
+
 
 
 ### Property Descriptor Fields
@@ -73,6 +74,88 @@ Indicates which input on the audio component's `node` field this property should
 
 #### `isAudioComponent` — *boolean* (optional) — default `false`
 Indicates that the property must be an `AudioComponent` instance rather than, say, a number.  If the value for the property is a number, it will be turned into a `ConstantGenerator` audio component that outputs the number.
+
+
+
+
+### Instruments
+
+Having to keep entering the same properties can be annoying.  But there's a solution: instruments.  An instrument is an object with a collection of properties that gets stored in the `orchestra` with a `name`.  When a `Component` definition has an `instrument` field, the instrument (or instruments) named in the field populate the properties with their own if the definition doesn't already contain them.  It's best to explain this with an example:
+
+	o.orchestra.add({
+		name: 'test1',
+		className: 'Tone',
+		gain: 0.2,
+		envelope: {
+			instrument: ['test2', 'test3']
+		}
+	});
+	o.orchestra.add({
+		name: 'test2',
+		release: 250
+	});
+	o.orchestra.add({
+		name: 'test3',
+		className: 'ADSREnvelope',
+		attackGain: 3,
+		release: 20
+	});
+
+	const tone1 = o.createComponent({
+		instrument: 'test1',
+		frequency: 256
+	});
+
+Here are three instruments added to the `orchestra` (which lives in the global object `o`).  The first one has a `name` of `test1`, and it contains several fields defining properties, including a `className`, and also including a property with its own `Component` definition inside, `envelope`, which has an `instrument` property of `[test2, test3]`.  Instruments are not resolved until `Component` creation, so it's OK that we haven't added `test2` and `test3` to our `orchestra` yet.  The second one has a `name` of `test2` and just one property, a `release` set to `250`, while the third one, with a `name` of `test3`, has a few properties, including a `release` of `20`.  To actually use an instrument in your definition, simply include the `instrument` key, where the value is either a string with the `name` of the instrument you want to use or an array of such `name`s.
+
+Finally, we have a definition of a `Component` passed to `o.createComponent()` that features an `instrument`.  Let's see how it gets applied.  First, all of the properties of `test1` get added to (a copy of) the property definition:
+
+	{
+		frequency: 256,
+		className: 'Tone',
+		gain: 0.2,
+		envelope: {
+			instrument: ['test2', 'test3']
+		}
+	}
+
+Actually, this isn't quite right, because the way the recursion works, `envelope` hasn't been added yet, but when it is added, it will contain the result of applying the instruments to its sub-object.  The instruments in the array get applied in the order they're given, so the first step of that envelope object would look like this:
+
+	{
+		instrument: 'test3',
+		release: 250
+	}
+
+Now we apply `test3`.  Notice that instruments don't overwrite existing properties, so the fact that `test3` has `release: 20` gets ignored and we get:
+
+	{
+		release: 250,
+		className: 'ADSREnvelope',
+		attackGain: 3
+	}
+
+The whole `Component` definition is therefore:
+
+	{
+		frequency: 256,
+		className: 'Tone',
+		gain: 0.2,
+		envelope: {
+			release: 250,
+			className: 'ADSREnvelope',
+			attackGain: 3
+		}
+	}
+
+If you want to play a whole sequence of `Tone`s that sound the same except for their frequency, you could define an instrument like `test1` and create components with a concise definition like above.  Note that instruments will be resolved inside other objects recursively only if those objects have either a `className` field or an `instrument` field, so something like the following will not be resolved because the object does not contain a `className` or `instrument` field, even though one of its sub-objects does:
+
+	{
+		foo: {
+			instrument: 'bar'
+		}
+	}
+
+Instruments are applied when `Component.create()` is called.
 
 
 
@@ -130,6 +213,32 @@ Adds the `<className>` key with the `<classInstance>` value to the `classes` fie
 
 #### `get(<className>)` — *`Component` subclass constructor*
 Retrieves the value registered under `<className>`.
+
+
+
+
+## Orchestra
+
+The `Orchestra` singleton works similar to the `ClassRegistry`, but it stores instruments instead: its `instruments` field is an object whose keys are instrument `name`s and whose values are the instrument definitions (see the above section on Instruments).  When a `Component` is about to be instantiated and its definition has an `instrument` field, it first has to resolve that instrument through the `Orchestra`.  The `Orchestra` singleton is available at `o.orchestra`.
+
+### Instance Fields
+
+#### `instruments` — *object*
+An object whose keys are instrument `name` strings and whose values are their corresponding instrument property definitions.
+
+### Instance Methods
+
+#### `applyInstruments(<properties>)` — *object*
+Copies the `<properties>` to a new object, recursively adding any properties from instruments named by `instrument` fields inside.  For an example, see the section on Instruments above.  This gets called at `Component` creation; you should never have to call it yourself.
+
+#### `add(<instrument>)` — *boolean*
+Adds the `<instrument>` to the `instruments` object under key `<instrument>.name` if it exists, returning `true`.  If that field does not exist or if the key already exists, an error is logged and `false` is returned instead.  You should call this to register any instruments that you create.
+
+#### `get(<name>)` — *object*
+Returns the instrument with `name` `<name>`, if it exists.  If it does not, logs an error and returns `{}`.
+
+#### `remove(<name>)`
+Removes the instrument named `<name>` from `instruments`, if it exists.  If it does not, logs an error.
 
 
 
@@ -212,7 +321,7 @@ Any subclass inheriting from `Component` has this field automatically populated 
 Copies the superclass's `propertyDescriptors` into a new object, adds this class's `newPropertyDescriptors` to the object (if present), then saves it in this class's `generatedPropertyDescriptors` for future retrieval through `propertyDescriptors`.  You shouldn't ever have to touch this method.
 
 #### `create(<properties>, <player>)` — `Component` subclass instance
-`o.createComponent()` just calls this method, so you should probably call that instead since it's easier.  Creates a new object with `<properties>` as its properties and `<player>` as its player by calling the constructor specified in `<properties>.className` if present (if not, calls the current class's constructor), then `.withPlayer(<player>).withProperties(<properties>)` on the constructed object.
+`o.createComponent()` just calls this method, so you should probably call that instead since it's easier.  Creates a new object with `<properties>` (after resolving all instruments named in it) as its properties and `<player>` as its player by calling the constructor specified in `<properties>.className` if present (if not, calls the current class's constructor), then `.withPlayer(<player>).withProperties(<properties>)` on the constructed object.
 
 ### Constructor
 
