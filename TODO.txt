@@ -1,5 +1,3 @@
-Instruments
-
 Timers
 
 References

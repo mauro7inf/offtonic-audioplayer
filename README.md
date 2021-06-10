@@ -767,7 +767,7 @@ Also sets the `phase` on the processor.
 Sets the `phase`, posts a message through `node.port` that is an object that looks like `{phase: <phase>}`, and calls `phaseHandlers.<phase>` if it exists.
 
 #### `receiveMessage(<messageEvent>)`
-If the message has a `phase`, sets the `phase` and calls the appropriate handler if it exists.
+First calls `super.receiveMessage(<messageEvent>)`.  If the message has a `phase`, sets the `phase` and calls the appropriate handler if it exists.
 
 #### `startRelease(<playable>)`
 Sets the `playable` field and changes the phase to `'release'`.
@@ -802,7 +802,7 @@ Returns `1`.  You should probably override this to do something more interesting
 Sets the `phase`, posts a message through `port` that is an object that looks like `{phase: <phase>}`, and calls `phaseHandlers.<phase>` if it exists.
 
 #### `receiveMessage(<messageEvent>)`
-If the message has a `phase`, sets the `phase` and calls the appropriate handler if it exists.
+First calls `super.receiveMessage(<messageEvent>)`.  If the message has a `phase`, sets the `phase` and calls the appropriate handler if it exists.
 
 #### `startRelease()`
 Immediately changes phase to `'stop'`.  You should probably override this if you want to implement more interesting release behavior.
