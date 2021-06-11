@@ -14,6 +14,8 @@ import SineOscillator from './lib/generators/SineOscillator.js';
 import Envelope from './lib/envelopes/Envelope.js';
 import ADSREnvelope from './lib/envelopes/ADSREnvelope.js';
 
+import Timer from './lib/Timer.js';
+
 import Tone from './lib/Tone.js';
 
 class Global {
@@ -54,6 +56,10 @@ class Global {
     this.ADSREnvelope = ADSREnvelope;
     this.addModule('lib/processors/ADSREnvelopeProcessor.js');
     this.registerClass('ADSREnvelope', ADSREnvelope);
+
+    this.Timer = Timer;
+    this.addModule('lib/processors/TimerProcessor.js');
+    this.registerClass('Timer', Timer);
 
     this.Tone = Tone;
     this.addModule('lib/processors/MultiplierProcessor.js');

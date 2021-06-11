@@ -50,7 +50,8 @@ function start() {
   const toneTestTime = 0;
   const tone1 = o.createComponent({
     instrument: 'test1',
-    frequency: 256
+    frequency: 256,
+    duration: 1000
   });
   schedule(() => {
     console.log('toneTest start');
@@ -63,7 +64,6 @@ function start() {
   }, toneTestTime + 500);
   schedule(() => {
     console.log('toneTest end');
-    tone1.release();
   }, toneTestTime + 1000);
 
   const sineOscillatorTestTime = 1500;

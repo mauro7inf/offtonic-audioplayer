@@ -385,6 +385,11 @@ An `AudioComponent` is a `Component` that produces a-rate data through an `Audio
 
 You never instantiate an `AudioComponent` itself, since an `AudioComponent` doesn't actually *do* anything.  Rather, you use its subclasses.  `AudioComponent` contains default methods for dealing with `AudioWorkletNode`s, instantiating them, passing them properties, and so on, and many can be overridden for custom behavior in subclasses.
 
+### Properties
+
+#### `timer` — *`Timer`* — default `null` — `isAudioParam`: `true`
+A timer that can be used for timing events.  You can register timed events with the processor; the processor checks the timer every frame and, if the timer has advanced sufficiently, the processor sends back a message to the `AudioComponent` via the `port`, which can be handled with `handleTriggeredEvent()`.
+
 ### Class Fields
 
 #### `processorName` — *string* — default `null`
@@ -433,10 +438,16 @@ Calls `disconnectProperties()` and `cleanupNode()` to tear everything down.
 Creates a custom `AudioWorkletNode` with this class's `processorName` as its processor name and sticks it in the `node` field.  It also opens up the node's `port` for messaging.  If you're using a native `AudioNode` instead of a custom `AudioWorkletNode`, or you have multiple different node objects in your class, you need to override `createNode()` to do the thing you need it to do.  This gets called during `on()`.
 
 #### `cleanupNode()`
-Simply sets the `node` field to `null`.  Override if you need to do something more complicated.  Gets called during `off()`.
+Sets the `node`'s `done` parameter to `1` (if `isNativeNode` is `false` for this class) then sets the `node` field to `null`.  Override this if you need to do something more complicated, but you'll probably still want to call `super.cleanupNode()` at the end if you're not using a native node.  Gets called during `off()`.
 
 #### `receiveMessage(<messageEvent>)`
-This function gets called whenever `node.port` receives a message from the processor (see the WebAudio API docs).  The message contents are in `<messageEvent>.data`.  It doesn't do anything in `AudioComponent`, but you should override it to handle whatever messages you want to send back and forth.  A similar method is defined in `AudioComponentProcessor` to handle messages sent to the processor.  To send a message, call `node.port.postMessage()` (see the `MessagePort` API docs for details).  Note that messages are copied using structured clone, so functions can't be sent (or received, obviously).
+This function gets called whenever `node.port` receives a message from the processor (see the WebAudio API docs).  The message contents are in `<messageEvent>.data`.  If those contents contain a `triggerEvent`, `handleTriggeredEvent()` gets called on it.  You should override it to handle whatever messages you want to send back and forth, but you should probably make sure to call `super.receiveMessage()` to make sure that `timerEvent`s are handled.  A similar method is defined in `AudioComponentProcessor` to handle messages sent to the processor.  To send a message, call `node.port.postMessage()` (see the `MessagePort` API docs for details).  Note that messages are copied using structured clone, so functions can't be sent (or received, obviously).
+
+#### `registerTimedEvent(<time>, <event>, <isAbsolute>)`
+Posts a message via `node.port` containing a `timedEvent` key with a value that is an object with a `time` or `duration` key, depending on whether `<isAbsolute>` is `true` (the value is `<time>`) and an `event` key (value `<event>`).  Once the `timer`, if there is one, reaches a time past `<time>`, it will send back a message containing a `triggerEvent` key with value `<event>`.  You can listen for this by overriding `handleTriggeredEvent()`.  `<event>` can be anything, but it's sent via structured clone, so it can't contain functions.  One possibility is for it to simply be a string.
+
+#### `handleTriggeredEvent(<event>)`
+Does nothing in `AudioComponent`.  You should override this to provide custom behavior.
 
 #### `connectTo(<destination>, <inputIndex>)`
 #### `disconnectFrom(<destination>, <inputIndex>)`
@@ -485,6 +496,14 @@ This is the base class for the custom processors that drive `AudioWorkletNode`s 
 
 Note that if you want to directly use a processor, any processor, you need to call `registerProcessor(<processorName>, <processorClass>)`, generally right after the class definition.  Also, these processors need to be in their own file since they live in a different global scope.  That global scope has `sampleRate` as an available constant, so the sample rate is always available (in frames per second, usually 44100).  Since the processors are registered with the global audio context's `AudioWorklet`, there's no need to add these processors to the `classRegistry`, especially since they aren't `Component`s.
 
+### AudioParams
+
+#### `done` — `0` or `1` — `defaultValue`: `0` — `automationRate`: `'k-rate'`
+Set this to `1` (or, really, anything other than `0`) if the processor should be dismantled.  The return value of `process()` is based on this value.
+
+#### `timer`
+A beat count at a specified tempo.  It can be used to register `timedEvent`s to trigger at specific times.
+
 ### Class Fields
 
 #### `newParameterDescriptors` — *array of `ParameterDescriptor`-like objects* — `[]`
@@ -510,26 +529,58 @@ The `process()` method is called automatically; when it runs, its `<inputs>` arg
 #### `parameters` — *object where the keys are parameter names and the values are arrays of numbers* — default value: `null`
 The `process()` method is called automatically; when it runs, its `<parameters>` argument is saved as this instance field for convenience.
 
+#### `bufferLength` — *number* — default value: `128`
+Size of the output buffer, which is generally 128 unless the browser changes how it handles things.  It's calculated every time `process()` is called.
+
+#### `timedEvents` — *array of event objects, which have a `time` key and an `event` key* — default value: `[]`
+We add to this array any event that we want the `timer` to trigger using `handleTimedEvent()`.  This array is always kept ordered in increasing order of the `time` key of each element, and when an event is triggered, it's removed from this array.
+
+#### `queuedDurationEvents` — *array of event objects, which have a `duration` key and an `event` key* — default value: `[]`
+When a `timedEvent` that has a `duration` is sent to the processor before it has had a chance to run `process()` for the first time, the `time` cannot be computed since the `parameters` field is still `null`.  Therefore, it goes into this queue to be handled when `process()` is called.
+
 ### Instance Methods
 
 #### `process(<inputs>, <outputs>, <parameters>)` — *boolean*
-See the WebAudio API docs.  This method is the method that actually does work in an `AudioWorkletProcessor`; you should never call it yourself.  Its return value is whether the node should be dismantled if there are no connections to the node; in this class it returns `true`.  Well, actually, what this method does is to save the `<inputs>` and `<parameters>` to their respective instance fields and return `_process(<outputs>)`, which returns `true`.  `<inputs>` and `<outputs>` are audio buffers: arrays where the number of elements is the number of inputs and outputs, respectively, for the node.  Each element is itself an array corresponding to each input or output, and the elements of those arrays are the individual channels of the input or output.  Each channel is itself an array containing a number of numbers (usually 128) representing the sample at each audio frame for that channel.  This method is intended to fill the `<outputs>` array with numbers that get sent to the destination (and if that destination is the speakers, they should be between `-1` and `1` or there will be distortion).  The `<outputs>` array is supposed to come pre-initialized with `0`'s everywhere, representing silence.  The `<parameters>` input is an object whose keys are the parameter names and whose values are arrays containing either 1 number or enough numbers to fill each frame (usually 128); you can read those with `getParameter()`.  You're generally supposed to override `process()` in `AudioWorkletProcessor` subclasses, but I'm using that override in `AudioComponentProcessor` to pass in the `<inputs>` and `<parameters>` to the instance fields, so don't override this one and override `_process()` instead.
+See the WebAudio API docs.  This method is the method that actually does work in an `AudioWorkletProcessor`; you should never call it yourself.  Its return value is whether the node should be kept alive even if there are no references to the node, which is `true` until the `value` of the `done` `AudioParam` is set to `1`.  Well, actually, what this method does is to save the `<inputs>` and `<parameters>` to their respective instance fields, set the `bufferLength`, check if the `timer` has triggered anything, and return `_process(<outputs>)`, which returns this value.  `<inputs>` and `<outputs>` are audio buffers: arrays where the number of elements is the number of inputs and outputs, respectively, for the node.  Each element is itself an array corresponding to each input or output, and the elements of those arrays are the individual channels of the input or output.  Each channel is itself an array containing a number of numbers (usually 128) representing the sample at each audio frame for that channel.  This method is intended to fill the `<outputs>` array with numbers that get sent to the destination (and if that destination is the speakers, they should be between `-1` and `1` or there will be distortion).  The `<outputs>` array is supposed to come pre-initialized with `0`'s everywhere, representing silence.  The `<parameters>` input is an object whose keys are the parameter names and whose values are arrays containing either 1 number or enough numbers to fill each frame (usually 128); you can read those with `getParameter()`.  You're generally supposed to override `process()` in `AudioWorkletProcessor` subclasses, but I'm using that override in `AudioComponentProcessor` to pass in the `<inputs>` and `<parameters>` to the instance fields, so don't override this one and override `_process()` instead.
 
-#### `_process<outputs>` — *boolean* — `true`
-Returns `true` and does nothing else.  You should override this if you want to, say, actually populate the `<outputs>` array (whose structure is described above in `process()`).
+#### `_process<outputs>` — *boolean*
+Returns the opposite of the `value` of the `done` `AudioParam` and does nothing else.  You should override this if you want to, say, actually populate the `<outputs>` array (whose structure is described above in `process()`), but you should probably always return `!this.isDone()`.
+
+#### `isDone()` — *boolean* — default `false`
+Returns the `done` parameter as a boolean.  You can change this by setting the `value` of the `done` `AudioParam`.  You might want to override this in subclasses.
 
 #### `getParameter(<paramName>, <frame>)` — *number*
-Assumes that the `parameters` field has been filled with the parameters for the current audio buffer.  It looks for the value stored under the key `<paramName>`, which should be an array containing either one number or one number for each audio frame (usually 128); if it's the former, return that number; if the latter, returns the number at frame `<frame>`.
+Assumes that the `parameters` field has been filled with the parameters for the current audio buffer (returns `null` if not, which is the situation before `process()` has ever been called).  It looks for the value stored under the key `<paramName>`, which should be an array containing either one number or one number for each audio frame (usually 128); if it's the former, return that number; if the latter, returns the number at frame `<frame>`.
 
 #### `receiveMessage(<messageEvent>)`
-Does nothing in this class.  Override if you want to respond to messages sent over the `port`; data is included in `<messageEvent>.data`.  To send a message yourself, call `this.port.postMessage()` with your message, but remember that object get copied via structured clone so functions can't be sent over.
+Receives messages; if `timedEvent` is a key in the message, it calls `handleTimedEvent` on its value.  Override if you want to respond to messages sent over the `port` (but don't forget to call `super.receiveMessage(<messageEvent>)` first); data is included in `<messageEvent>.data`.  To send a message yourself, call `this.port.postMessage()` with your message, but remember that object get copied via structured clone so functions can't be sent over.
+
+#### `handleTimedEvent(<timedEvent>)`
+Receives a `timedEvent` by sticking it in `timedEvents` in the proper place in the order (increasing by `time`).  If the `timedEvent` has a `duration`, computes the `time` by adding the `duration` to the `timer` value at the end of the current buffer.  If `duration` cannot be computed because `process()` hasn't been called yet to fill the `parameters` field, as is the case when a `timedEvent` with a `duration` arrives when the processor is first instantiated, the event goes into `queuedDurationEvents` instead for handling when `process()` is finally called for the first time.
+
+#### `triggerEvent(<event>)`
+Posts a message over the `port` with `{triggerEvent: <event>}`.  The `AudioComponent` can then respond to it.
+
+#### `checkTimer()`
+Called during `process()`.  First, it calls `handleQueuedDurationEvents()`.  It then looks at the *last* time in the `timer` `AudioParam` buffer, and if that time is later than the time at which the first event in the `timedEvents` array is supposed to be triggered, calls `triggerEvent()` on it and removes it from the array, looks at the next event, etc., up until it finds an event with a time that has not yet arrived or the end of the array.
+
+#### `handleQueuedDurationEvents()`
+Goes through the `queuedDurationEvents` array and calls `handleTimedEvent()` on each element in the array.
 
 
 
 
 ## Playable < AudioComponent < Component
 
-The `Playable` subclass of `AudioComponent` provides some basic mechanics for playing and stopping a sound.  A sound does not play itself; rather, a `Player` instance plays it.  The `Playable` class provides `play()` and `stop()` methods to the `Playable` itself that simply call their `player` so that instead of something like `player.play(playable)` you can call `playable.play()`.  You should never instantiate a `Playable`, though, since `Playable` is intended to be an abstract class that doesn't actually *do* anything.
+The `Playable` subclass of `AudioComponent` provides some basic mechanics for playing and stopping a sound.  A sound does not play itself; rather, a `Player` instance plays it.  The `Playable` class provides `play()` and `stop()` methods to the `Playable` itself that simply call their `player` so that instead of something like `player.play(playable)` you can call `playable.play()`.  You should never instantiate a `Playable`, though, since `Playable` is intended to be an abstract class that doesn't actually *do* anything.  The `Playable` interface also provides a `duration` property that you can use to have your `Playable` call `release()` after a certain amount of time has elapsed.
+
+### Properties
+
+#### `timer` — `Timer` — `defaultValue`: `{className: 'Timer'}` — `isAudioParam`: `true`
+Overwrites the `timer` property in `AudioComponent` in order to provide a default value.  This default value is the default `Timer`, which runs at 60000 BPM, so `duration` can be specified in ms by default.
+
+#### `duration` — *number* — `defaultValue`: `null`
+Specifies the duration of the `Playable`, in beats of the `timer` (ms by default).  If it's `null`, the `Playable` will only release when you call `release()`, but if it's a number, `release()` will get called after the value of `duration` has elapsed.
 
 ### Instance Methods
 
@@ -539,6 +590,12 @@ Calls `player.play()` or `player.stop()` on this object.
 
 #### `release()`
 Calls `stop()`.  Override this if you want custom behavior before actually stopping the sound, like a reverb effect or something, as `stop()` will stop the sound immediately.
+
+#### `createNode()`
+Also registers the `release` event with the processor to take place after `duration` has elapsed.
+
+#### `handleTriggeredEvent(<event>)`
+Also checks if `<event>` is `'release'`; if it is, calls `release()`.
 
 
 
@@ -608,7 +665,7 @@ Can be instantiated with any number of inputs.  Simply multiplies together all o
 
 ### Instance Methods
 
-#### `_process(<outputs>)` — *boolean* — `true`
+#### `_process(<outputs>)` — *boolean*
 For each channel and frame, multiplies together all of the inputs and sticks the result in `<outputs>` for that channel and frame.  Returns `true`.  If there are no inputs to multiply together, stores `0`'s in the `<outputs>`.  This last bit may seem counterintuitive, since the empty product is actually equal to 1 rather than 0, but if there are no inputs, we should assume that the inputs have ended and are therefore just `0`.
 
 
@@ -650,7 +707,7 @@ The current frame of the buffer, which is usually 128 frames long so this number
 
 ### Instance Methods
 
-#### `_process(<outputs>)` — *boolean* — `true`
+#### `_process(<outputs>)` — *boolean*
 On each frame, sets the `frame` field, calls `generate()`, and puts that value into all of the channels of the output.  You should probably not override this method in subclasses.
 
 #### `generate()` — *number* — `0`
@@ -684,7 +741,7 @@ Processor to generate a wave at a given frequency.  This class is intended to be
 
 This works by keeping track of a `phase` and incrementing it every frame by the `frequency` times 2π/`sampleRate` (`sampleRate` is available globally in audio worklets; see the WebAudio API docs) and reducing it so that it's between 0 (inclusive) and 2π (not inclusive).  When `generate()` is called, `wave()` is evaluated at `phase`, then `updatePhase()` is called to increment/reduce it.
 
-### Audio Params
+### AudioParams
 
 #### `frequency`
 Number of wave cycles per second.
@@ -888,3 +945,49 @@ Produces a gain for the current frame.  If the `phase` is `'main'`, checks the c
 
 #### `startRelease()`
 Calculates `releaseStartFrame`, `releaseUntilFrame`, and `releaseFromValue`.  Note that this gets called from `phaseHandlers.release()` when a message of `{phase: 'release'}` is received by the processor from the `Envelope`.
+
+
+
+
+## Timer < AudioCopmonent < Component
+
+The `Timer` is an `AudioComponent` that outputs a time, with a specified `tempo` (in beats per minute).  It essentially counts the number of beats.  Another `AudioComponent` can use connect a `Timer` to an `AudioParam` to have access to the current beat count according to this `Timer`.  The `tempo` is itself an `AudioParam`, which can be controlled by other `Timer`s, etc., but be careful because the WebAudio API doesn't like cycles in the audio graph; you will have a problem if you connect an `AudioNode` to itself without a `DelayNode` in between.  The default values have a `tempo` of `60000` BPM, which is just a fancy way of saying that it's counting milliseconds.
+
+### Properties
+
+#### `tempo` — *number or `AudioComponent`* — `defaultValue`: `60000` — `isAudioParam`: `true`
+The tempo of the timer, which essentially just means how quickly the time advances, in units per minute.  The default value of `60000` means that the time advances by 60000 every minute, which means that it advances by 1000 evern second.  While `AudioParam` values are limited to 32-bit floats, the internal representation of the time is still a 64-bit double, so while you will lose some precision if you leave a 60000 BPM timer running for, say, a whole day (on the order of 10 ms or so, which you probably wouldn't even notice for most applications), the internal representation will still keep ticking for a few years without much of a problem.  Not that you would do that.  I hope.
+
+#### `initialTime` — *number* — `defaultValue`: `0` — `isProcessorOption`: `true`
+The beat on which the timer should start.  Give it a little lead time by setting this negative if you're worried about the absolute timing of things starting.
+
+### Class Fields
+
+#### `processorName` — *string* — `'TimerProcessor'`
+
+
+
+
+## TimerProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Outputs the number of beats since the start at a specified `tempo` (in beats per minute).  Useful when connected to an `AudioParam` to time things.
+
+### AudioParams
+
+#### `tempo`
+Number of beats per minute.
+
+### Processor Options
+
+#### `initialTime` — *number*
+The number of beats when this processor is constructed, from which to start counting.
+
+### Instance Fields
+
+#### `time` — *number*
+Current output value, which gets incremented every step during `generate()`.
+
+### Instance Methods
+
+#### `generate()`
+Increments `time` by the current `tempo` divided by 60 times `sampleRate`, then returns it.
