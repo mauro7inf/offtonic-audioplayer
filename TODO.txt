@@ -1,5 +1,3 @@
-Timers
-
 References
 
 Filters

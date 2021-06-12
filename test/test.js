@@ -28,6 +28,30 @@ o.orchestra.add({
   release: 20
 });
 
+o.orchestra.add({
+  name: 'waveTestTone',
+  className: 'Tone',
+  gain: 0.15,
+  duration: 1800,
+  envelope: {
+    className: 'ADSREnvelope',
+    attack: 15,
+    attackGain: 1.5,
+    decay: 85,
+    release: 50
+  }
+});
+o.orchestra.add({
+  name: 'waveTestGenerator',
+  pulseWidth: {
+    className: 'LinearGenerator',
+    startTime: 500,
+    endTime: 1300,
+    startValue: 0.5,
+    endValue: 1
+  }
+})
+
 let timeouts = [];
 
 window.addEventListener("load", function (e) {
@@ -47,7 +71,58 @@ function load() {
 function start() {
   console.log('Start!');
 
-  const toneTestTime = 0;
+  const waveTestTime = 0;
+  const wave1 = o.createComponent({
+    instrument: 'waveTestTone',
+    frequency: 300,
+    generator: {
+      className: 'SineOscillator',
+      instrument: 'waveTestGenerator'
+    }
+  });
+  const wave2 = o.createComponent({
+    instrument: 'waveTestTone',
+    frequency: 320,
+    generator: {
+      className: 'TriangleOscillator',
+      instrument: 'waveTestGenerator'
+    }
+  });
+  const wave3 = o.createComponent({
+    instrument: 'waveTestTone',
+    frequency: 340,
+    generator: {
+      className: 'SquareOscillator',
+      instrument: 'waveTestGenerator'
+    }
+  });
+  const wave4 = o.createComponent({
+    instrument: 'waveTestTone',
+    frequency: 360,
+    generator: {
+      className: 'SawtoothOscillator',
+      instrument: 'waveTestGenerator'
+    }
+  });
+  schedule(() => {
+    console.log('waveTest start');
+    wave1.play();
+  }, waveTestTime);
+  schedule(() => {
+    wave2.play();
+  }, waveTestTime + 2000);
+  schedule(() => {
+    wave3.play();
+  }, waveTestTime + 4000);
+  schedule(() => {
+    wave4.play();
+  }, waveTestTime + 6000);
+  schedule(() => {
+    console.log('waveTest end');
+  }, waveTestTime + 8000);
+
+
+  const toneTestTime = waveTestTime + 8500;
   const tone1 = o.createComponent({
     instrument: 'test1',
     frequency: 256,
@@ -61,12 +136,15 @@ function start() {
     tone1.setProperties({
       frequency: 512
     });
+    tone1.getProperty('generator').setProperties({
+      pulseWidth: 0.3
+    })
   }, toneTestTime + 500);
   schedule(() => {
     console.log('toneTest end');
   }, toneTestTime + 1000);
 
-  const sineOscillatorTestTime = 1500;
+  const sineOscillatorTestTime = toneTestTime + 1500;
   const sineOscillator1 = o.createComponent({
     className: 'SineOscillator',
     frequency: {
@@ -105,6 +183,10 @@ function start() {
     console.log('prototypeTest end');
     prototypeNote.stop();
   }, prototypeTestTime + 500);
+
+  schedule(() => {
+    console.log('Done!');
+  }, prototypeTestTime + 1000);
 }
 
 function stop() {

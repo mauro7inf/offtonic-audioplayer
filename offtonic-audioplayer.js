@@ -8,8 +8,13 @@ import AudioComponent from './lib/AudioComponent.js';
 import Playable from './lib/Playable.js';
 
 import ConstantGenerator from './lib/generators/ConstantGenerator.js';
+import LinearGenerator from './lib/generators/LinearGenerator.js';
+
 import Oscillator from './lib/generators/Oscillator.js';
 import SineOscillator from './lib/generators/SineOscillator.js';
+import TriangleOscillator from './lib/generators/TriangleOscillator.js';
+import SquareOscillator from './lib/generators/SquareOscillator.js';
+import SawtoothOscillator from './lib/generators/SawtoothOscillator.js';
 
 import Envelope from './lib/envelopes/Envelope.js';
 import ADSREnvelope from './lib/envelopes/ADSREnvelope.js';
@@ -43,12 +48,25 @@ class Global {
 
     this.ConstantGenerator = ConstantGenerator;
     this.registerClass('ConstantGenerator', ConstantGenerator);
+    this.LinearGenerator = LinearGenerator;
+    this.addModule('lib/processors/LinearGeneratorProcessor.js');
+    this.registerClass('LinearGenerator', LinearGenerator);
+
     this.Oscillator = Oscillator;
     this.addModule('lib/processors/OscillatorProcessor.js');
     this.registerClass('Oscillator', Oscillator);
     this.SineOscillator = SineOscillator;
     this.addModule('lib/processors/SineOscillatorProcessor.js');
     this.registerClass('SineOscillator', SineOscillator);
+    this.TriangleOscillator = TriangleOscillator;
+    this.addModule('lib/processors/TriangleOscillatorProcessor.js');
+    this.registerClass('TriangleOscillator', TriangleOscillator);
+    this.SquareOscillator = SquareOscillator;
+    this.addModule('lib/processors/SquareOscillatorProcessor.js');
+    this.registerClass('SquareOscillator', SquareOscillator);
+    this.SawtoothOscillator = SawtoothOscillator;
+    this.addModule('lib/processors/SawtoothOscillatorProcessor.js');
+    this.registerClass('SawtoothOscillator', SawtoothOscillator);
 
     this.Envelope = Envelope;
     this.addModule('lib/processors/EnvelopeProcessor.js');
