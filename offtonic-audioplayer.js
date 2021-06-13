@@ -7,6 +7,8 @@ import Component from './lib/Component.js';
 import AudioComponent from './lib/AudioComponent.js';
 import Playable from './lib/Playable.js';
 
+import Adder from './lib/arithmetic/Adder.js';
+
 import ConstantGenerator from './lib/generators/ConstantGenerator.js';
 import LinearGenerator from './lib/generators/LinearGenerator.js';
 
@@ -45,6 +47,9 @@ class Global {
     this.registerClass('AudioComponent', AudioComponent);
     this.Playable = Playable;
     this.registerClass('Playable', Playable);
+
+    this.Adder = Adder;
+    this.registerClass('Adder', Adder);
 
     this.ConstantGenerator = ConstantGenerator;
     this.registerClass('ConstantGenerator', ConstantGenerator);

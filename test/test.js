@@ -71,7 +71,59 @@ function load() {
 function start() {
   console.log('Start!');
 
-  const waveTestTime = 0;
+  const arithmeticTestTime = 0;
+  const arithmeticTone = o.createComponent({
+    className: 'Tone',
+    generator: {
+      className: 'SineOscillator',
+      pulseWidth: 0.33
+    },
+    gain: 0.15,
+    duration: 1000,
+    envelope: {
+      className: 'ADSREnvelope',
+      attack: 20,
+      attackGain: 2,
+      decay: 50,
+      release: 100
+    },
+    frequency: {
+      className: 'Adder',
+      term1: {
+        className: 'LinearGenerator',
+        startTime: 100,
+        endTime: 400,
+        startValue: 100,
+        endValue: 200
+      },
+      term2: {
+        className: 'Adder',
+        term1: {
+          className: 'LinearGenerator',
+          startTime: 600,
+          endTime: 900,
+          startValue: 50,
+          endValue: 100
+        },
+        term2: {
+          className: 'LinearGenerator',
+          startTime: 600,
+          endTime: 900,
+          startValue: 50,
+          endValue: 100
+        }
+      }
+    }
+  });
+  schedule(() => {
+    console.log('arithmeticTest start');
+    arithmeticTone.play();
+  }, arithmeticTestTime);
+  schedule(() => {
+    console.log('arithmeticTest end');
+  }, arithmeticTestTime + 1100);
+
+  const waveTestTime = arithmeticTestTime + 1500;
   const wave1 = o.createComponent({
     instrument: 'waveTestTone',
     frequency: 300,

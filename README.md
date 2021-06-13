@@ -628,10 +628,13 @@ This property allows for convenience when creating a `Tone`, since normally the 
 #### `gainNode` — *`GainNode`*
 The `GainNode` that serves as the final output for the `Tone`.  The `node` is connected to it.
 
+#### `isFrequencySetOnGenerator` — *boolean* — default value: `false`
+When `frequency` is set on `generator`, this flag is set to `true`.  During instantiation, the properties may get set in the wrong order, with `frequency` being set before `generator`, in which case `frequency` would not have gotten set on `generator`.  If this is the case, during `finishSetup()`, that problem is rectified.
+
 ### Instance Methods
 
 #### `finishSetup()`
-Also propagates the `frequency`, if it isn't `null` to the `generator`.
+Also propagates the `frequency` to the `generator`, if  isn't `null` (and this hasn't already happened).
 
 #### `createNode()`
 Also sets up the `gainNode` and connects the `node` to it.
@@ -1142,3 +1145,31 @@ Current output value, which gets incremented every step during `generate()`.
 
 #### `generate()`
 Increments `time` by the current `tempo` divided by 60 times `sampleRate`, then returns it.
+
+
+
+
+## Adder < AudioComponent < Component
+
+Adds the values of two `AudioComponent`s.  Actually, connecting multiple `AudioNode`s to the same destination does that automatically, so `Adder` doesn't need to actually *do* anything other than channel calls where they need to go.  To that end, it doesn't actually have a `node`.
+
+### Properties
+
+#### `term1` — *`AudioComponent`* — `defaultValue`: `null` — `isAudioComponent`: `true`
+#### `term2` — *`AudioComponent`* — `defaultValue`: `null` — `isAudioComponent`: `true`
+The `AudioComponent`s to add together.
+
+### Class Fields
+
+#### `isNativeNode` — *boolean* — `true`
+There is no node here, so strictly speaking the node isn't native, but... `null` *is* a native JS object, so...  Point is, `AudioComponent` doesn't try to instantiate a processor.
+
+### Instance Methods
+
+#### `on()`
+#### `off()`
+Calls `on()` or `off()` on `term1` and `term2` (if they aren't `null`).
+
+#### `connectTo(<destination>, <input>)`
+#### `disconnectFrom(<destination>, <input>)`
+Simply calls the corresponding methods on `term1` and `term2` (if they aren't `null`), relying on the fact that connecting two `AudioNode`s to the same destination will automatically add them.
