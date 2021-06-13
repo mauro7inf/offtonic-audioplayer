@@ -8,6 +8,7 @@ import AudioComponent from './lib/AudioComponent.js';
 import Playable from './lib/Playable.js';
 
 import Adder from './lib/arithmetic/Adder.js';
+import Multiplier from './lib/arithmetic/Multiplier.js';
 
 import ConstantGenerator from './lib/generators/ConstantGenerator.js';
 import LinearGenerator from './lib/generators/LinearGenerator.js';
@@ -50,6 +51,9 @@ class Global {
 
     this.Adder = Adder;
     this.registerClass('Adder', Adder);
+    this.Multiplier = Multiplier;
+    this.addModule('lib/processors/MultiplierProcessor.js');
+    this.registerClass('Multiplier', Multiplier);
 
     this.ConstantGenerator = ConstantGenerator;
     this.registerClass('ConstantGenerator', ConstantGenerator);
@@ -85,7 +89,7 @@ class Global {
     this.registerClass('Timer', Timer);
 
     this.Tone = Tone;
-    this.addModule('lib/processors/MultiplierProcessor.js');
+    // Tone uses the MultiplierProcessor, which has already been added above
     this.registerClass('Tone', Tone);
   }
 

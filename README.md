@@ -662,18 +662,6 @@ If `envelope` is an `Envelope`, calls `startRelease(this)` on it; if not, calls 
 
 
 
-## MultiplierProcessor < AudioComponentProcessor < AudioWorkletProcessor
-
-Can be instantiated with any number of inputs.  Simply multiplies together all of the inputs.  Connecting multiple `AudioNode` to the same destination adds their signals, so we need another solution for multiplication; this is it.
-
-### Instance Methods
-
-#### `_process(<outputs>)` — *boolean*
-For each channel and frame, multiplies together all of the inputs and sticks the result in `<outputs>` for that channel and frame.  Returns `true`.  If there are no inputs to multiply together, stores `0`'s in the `<outputs>`.  This last bit may seem counterintuitive, since the empty product is actually equal to 1 rather than 0, but if there are no inputs, we should assume that the inputs have ended and are therefore just `0`.
-
-
-
-
 ## ConstantGenerator < AudioComponent < Component
 
 An `AudioComponent` whose `node` is a `ConstantSourceNode`.  Useful when a value is a number but an `AudioComponent` is expected.
@@ -1173,3 +1161,34 @@ Calls `on()` or `off()` on `term1` and `term2` (if they aren't `null`).
 #### `connectTo(<destination>, <input>)`
 #### `disconnectFrom(<destination>, <input>)`
 Simply calls the corresponding methods on `term1` and `term2` (if they aren't `null`), relying on the fact that connecting two `AudioNode`s to the same destination will automatically add them.
+
+
+
+
+## Multiplier < AudioComponent < Component
+
+Multiplies two signals denoted by `term1` and `term2`.
+
+### Properties
+
+#### `term1` — *`AudioComponent`* — `defaultValue`: `null` — `isAudioComponent`: `true` — `inputIndex`: `0`
+#### `term2` — *`AudioComponent`* — `defaultValue`: `null` — `isAudioComponent`: `true` — `inputIndex`: `1`
+The `AudioComponent`s to multiply together.
+
+### Class Fields
+
+#### `processorName` — *string* — `'MultiplierProcessor'`
+
+#### `numberOfInputs` — *number* — `2`
+
+
+
+
+## MultiplierProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Can be instantiated with any number of inputs.  Simply multiplies together all of the inputs.  Connecting multiple `AudioNode` to the same destination adds their signals, so we need another solution for multiplication; this is it.
+
+### Instance Methods
+
+#### `_process(<outputs>)` — *boolean*
+For each channel and frame, multiplies together all of the inputs and sticks the result in `<outputs>` for that channel and frame.  Returns `true`.  If there are no inputs to multiply together, stores `0`'s in the `<outputs>`.  This last bit may seem counterintuitive, since the empty product is actually equal to 1 rather than 0, but if there are no inputs, we should assume that the inputs have ended and are therefore just `0`.

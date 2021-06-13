@@ -88,29 +88,33 @@ function start() {
       release: 100
     },
     frequency: {
-      className: 'Adder',
-      term1: {
-        className: 'LinearGenerator',
-        startTime: 100,
-        endTime: 400,
-        startValue: 100,
-        endValue: 200
-      },
+      className: 'Multiplier',
+      term1: 100,
       term2: {
         className: 'Adder',
         term1: {
           className: 'LinearGenerator',
-          startTime: 600,
-          endTime: 900,
-          startValue: 50,
-          endValue: 100
+          startTime: 100,
+          endTime: 400,
+          startValue: 1,
+          endValue: 2
         },
         term2: {
-          className: 'LinearGenerator',
-          startTime: 600,
-          endTime: 900,
-          startValue: 50,
-          endValue: 100
+          className: 'Adder',
+          term1: {
+            className: 'LinearGenerator',
+            startTime: 600,
+            endTime: 900,
+            startValue: 0.5,
+            endValue: 1
+          },
+          term2: {
+            className: 'LinearGenerator',
+            startTime: 600,
+            endTime: 900,
+            startValue: 0.5,
+            endValue: 1
+          }
         }
       }
     }
