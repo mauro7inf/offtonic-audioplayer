@@ -716,6 +716,48 @@ Returns 0.  You should override this method in subclasses.
 
 
 
+## LinearGenerator < AudioComponent < Component
+
+Generates a linear change in value.  This can be useful when varying a parameter.
+
+### Properties
+
+#### `timer` — *`Timer`* — `defaultValue`: `{className: 'Timer'}` — `isAudioParam`: `true`
+Overrides `AudioComponent`'s `timer` property to set a default.
+
+#### `startTime` — *number* — `defaultValue`: `0` — `isProcessorOption`: `true`
+#### `startValue` — *number* — `defaultValue`: `0` — `isProcessorOption`: `true`
+#### `endTime` — *number* — `defaultValue`: `1000` — `isProcessorOption`: `true`
+#### `endValue` — *number* — `defaultValue`: `1` — `isProcessorOption`: `true`
+The `LinearGenerator` starts with `startValue`.  At time `startTime` according to the `timer`, it starts ramping the value linearly to reach `endValue` at `endTime`, which it will keep outputting.
+
+### Class Fields
+
+#### ``processorName` — *string* — `LinearGeneratorProcessor`
+
+
+
+
+## LinearGeneratorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Generates a linear change in value.  This can be useful when varying a parameter.
+
+### Processor Options
+
+#### `startTime` — *number*
+#### `startValue` — *number*
+#### `endTime` — *number*
+#### `endValue` — *number*
+The `LinearGeneratorProcessor` starts with `startValue`.  At time `startTime` according to the `timer`, it starts ramping the value linearly to reach `endValue` at `endTime`, which it will keep outputting.
+
+### Instance Methods
+
+#### `generate()` — *number*
+If the current time according to the `timer` is before `startTime`, returns `startValue`; if after `endTime`, returns `endValue`; otherwise, returns a linear interpolation between them.
+
+
+
+
 ## Oscillator < AudioComponent < Component
 
 Generates a wave at a given `frequency`.  Initial phase can also be specified.  This can be your basic sound wave, but it can also be a used in LFO (low-frequency oscillation), maybe to guide a vibrato, for example.  The wave shape here is unspecified; its subclasses provide the wave shape.  You should subclass this when you want a wave that is generated as a function of a single phase, like a sine wave.
@@ -774,6 +816,11 @@ Returns `0`.  This is not very interesting.  You should override this if you wan
 
 Generates a sine wave.
 
+### Properties
+
+#### `pulseWidth` — *number or `AudioComponent`* — `defaultValue`: `0.5` — `isAudioParam`: `true`
+This parameter alters the shape of the wave.  The wave is always 0 at phase 0 and π, but it reaches its maximum at kπ and its minimum at (2 – k)π, where k is the value of `pulseWidth`.  If k = 1/2, the wave is an ordinary sine wave, but if it's lower, it will linearly squeeze the upward portion of the wave while stretching the downward portion, and if k is higher, it will stretch the upward portion and squeeze the downward portion.  The effect is the introduction of higher frequency components.  Note that k = 0.5 – t is exactly the same as k = 0.5 + t, just shifted by π and multiplied by –1.  For an audible signal, this difference is inaudible, but in LFO use cases it might be important.
+
 ### Class Fields
 
 #### `processorName` — *string* — `'SineOscillatorProcessor'`
@@ -785,10 +832,114 @@ Generates a sine wave.
 
 Processor to generate a sine wave.
 
+### AudioParams
+
+#### `pulseWidth`
+This parameter alters the shape of the wave.  The wave is always 0 at phase 0 and π, but it reaches its maximum at kπ and its minimum at (2 – k)π, where k is the value of `pulseWidth`.  If k = 1/2, the wave is an ordinary sine wave, but if it's lower, it will linearly squeeze the upward portion of the wave while stretching the downward portion, and if k is higher, it will stretch the upward portion and squeeze the downward portion.  The effect is the introduction of higher frequency components.  Note that k = 0.5 – t is exactly the same as k = 0.5 + t, just shifted by π and multiplied by –1.  For an audible signal, this difference is inaudible, but in LFO use cases it might be important.
+
 ### Instance Methods
 
 #### `wave()` — *number*
-Sine of the phase.
+Normalizes the `phase` to undo the squeezing and stretching described above under `pulseWidth` (this calculation is not performed if the `pulseWidth` is `0.5` to save processing), then returns the sine of the normalized phase.  To be more specific, if k is the `pulseWidth`, ø is the `phase`, and N(ø) is the normalized phase, if ø < kπ, then N(ø) = π/(2k); if ø > (2 – k)π, then N(ø) = (ø – 2π)/(2k) + 2π; else (kπ ≤ ø ≤ (2 – k)π) N(ø) = (ø – π)/(2 – 2k) + π.
+
+
+
+
+## TriangleOscillator < Oscillator < AudioComponent < Component
+
+Generates a triangle wave.  Triangle waves start at 0, go up to 1 at π/2, go down to –1 at 3π/2, and back up to 0 at 2π, so they look essentially like sine waves but with straight lines from max to min and back.
+
+### Properties
+
+#### `pulseWidth` — *number or `AudioComponent`* — `defaultValue`: `0.5` — `isAudioParam`: `true`
+This parameter alters the shape of the wave.  The wave is always 0 at phase 0 and π, but it reaches its maximum at kπ and its minimum at (2 – k)π, where k is the value of `pulseWidth`.  If k = 1/2, the wave is an ordinary triangle wave, but if it's lower, it will linearly squeeze the upward portion of the wave while stretching the downward portion, and if k is higher, it will stretch the upward portion and squeeze the downward portion.  The effect is the introduction of higher frequency components.  Note that k = 0.5 – t is exactly the same as k = 0.5 + t, just shifted by π and multiplied by –1.  For an audible signal, this difference is inaudible, but in LFO use cases it might be important.  k = 0 (or k = 1) is a sawtooth wave.
+
+### Class Fields
+
+#### `processorName` — *string* — `'TriangleOscillatorProcessor'`
+
+
+
+
+## TriangleOscillatorProcessor < OscillatorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Processor to generate a triangle wave.
+
+### AudioParams
+
+#### `pulseWidth`
+This parameter alters the shape of the wave.  The wave is always 0 at phase 0 and π, but it reaches its maximum at kπ and its minimum at (2 – k)π, where k is the value of `pulseWidth`.  If k = 1/2, the wave is an ordinary triangle wave, but if it's lower, it will linearly squeeze the upward portion of the wave while stretching the downward portion, and if k is higher, it will stretch the upward portion and squeeze the downward portion.  The effect is the introduction of higher frequency components.  Note that k = 0.5 – t is exactly the same as k = 0.5 + t, just shifted by π and multiplied by –1.  For an audible signal, this difference is inaudible, but in LFO use cases it might be important.  k = 0 (or k = 1) is a sawtooth wave.
+
+### Instance Methods
+
+#### `wave()` — *number*
+Normalizes the `phase` to undo the squeezing and stretching described above under `pulseWidth` (this calculation is not performed if the `pulseWidth` is `0.5` to save processing), then returns the triangle wave value of the normalized phase.  To be more specific, if k is the `pulseWidth`, ø is the `phase`, and N(ø) is the normalized phase, if ø < kπ, then N(ø) = π/(2k); if ø > (2 – k)π, then N(ø) = (ø – 2π)/(2k) + 2π; else (kπ ≤ ø ≤ (2 – k)π) N(ø) = (ø – π)/(2 – 2k) + π.
+
+
+
+
+## SquareOscillator < Oscillator < AudioComponent < Component
+
+Generates a square wave.  Square waves start at 1 for the first half of the wave then go to –1 for the second half.  By using the `pulseWidth` parameter, the proportion can be altered.
+
+### Properties
+
+#### `pulseWidth` — *number or `AudioComponent`* — `defaultValue`: `0.5` — `isAudioParam`: `true`
+This parameter alters the shape of the wave.  The wave always starts at 1 and ends at –1, but the point at which it switches is the `pulseWidth` multiplied by 2π.  Note that k < 0.5 is exactly the same as k > 0.5 (where k is the `pulseWidth`, just multiplied by –1 and shifted over by 2πk.  For audible signals this makes no difference, but in LFO applications it might.
+
+### Class Fields
+
+#### `processorName` — *string* — `'SquareOscillatorProcessor'`
+
+
+
+
+## SquareOscillatorProcessor < OscillatorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Processor to generate a square wave.
+
+### AudioParams
+
+#### `pulseWidth`
+This parameter alters the shape of the wave.  The wave always starts at 1 and ends at –1, but the point at which it switches is the `pulseWidth` multiplied by 2π.  Note that k < 0.5 is exactly the same as k > 0.5 (where k is the `pulseWidth`, just multiplied by –1 and shifted over by 2πk.  For audible signals this makes no difference, but in LFO applications it might.
+
+### Instance Methods
+
+#### `wave()` — *number*
+Returns `1` is the `phase` is less than 2πk (where k is the `phaseWidth`) and `–1` if not.
+
+
+
+
+## SawtoothOscillator < Oscillator < AudioComponent < Component
+
+Generates a sawtooth wave.  Sawtooth waves start at 1 and linearly go down to –1 at the end of the period.
+
+### Properties
+
+#### `pulseWidth` — *number or `AudioComponent`* — `defaultValue`: `0.5` — `isAudioParam`: `true`
+This parameter alters the shape of the wave.  The wave always starts at 1 and ends at –1, but the point at which it's 0 is the `pulseWidth` multiplied by 2π.  The wave decreases linearly from 1 to 0 until it reaches that point, then it decreases linearly from 0 to –1 thereafter.  This is not a very dramatic change in the sound.  Note that, if k is the `pulseWidth`, k < 0.5 has exactly the same shape as k > 0.5, just multiplied by –1 and reversed.  For audible signals this makes no difference, but in LFO applications it might.
+
+### Class Fields
+
+#### `processorName` — *string* — `'SawtoothOscillatorProcessor'`
+
+
+
+
+## SawtoothOscillatorProcessor < OscillatorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Processor to generate a sawtooth wave.
+
+### AudioParams
+
+#### `pulseWidth`
+This parameter alters the shape of the wave.  The wave always starts at 1 and ends at –1, but the point at which it's 0 is the `pulseWidth` multiplied by 2π.  The wave decreases linearly from 1 to 0 until it reaches that point, then it decreases linearly from 0 to –1 thereafter.  This is not a very dramatic change in the sound.  Note that, if k is the `pulseWidth`, k < 0.5 has exactly the same shape as k > 0.5, just multiplied by –1 and reversed.  For audible signals this makes no difference, but in LFO applications it might.
+
+### Instance Methods
+
+#### `wave()` — *number*
+If the `phase` is less than 2πk, where k is the `pulseWidth`, linearly interpolates between 1 and 0 and returns the result; otherwise, linearly interpolates between 0 and –1 and returns the result.
 
 
 
