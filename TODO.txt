@@ -7,9 +7,9 @@ Fourier
 Fourier Sawtooth
 Inharmonic
 Pitch Space Sine
-Red Noise
 Shepard
 Shepard Octave
-White Noise
 
 Sequences
+
+Firefox and Safari fallbacks

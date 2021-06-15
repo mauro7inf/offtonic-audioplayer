@@ -932,6 +932,75 @@ If the `phase` is less than 2πk, where k is the `pulseWidth`, linearly interpol
 
 
 
+## WhiteNoiseGenerator < AudioComponent < Component
+
+Generates white noise, which is a signal of a random value from –1 to 1 every frame.
+
+### Class Fields
+
+#### `processorName` — *string* — `'WhiteNoiseGeneratorProcessor'`
+
+
+
+
+## WhiteNoiseGeneratorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Generates white noise, which is a signal of a random value from –1 to 1 every frame.
+
+### Instance Methods
+
+#### `generate()` — *number*
+Generates a random value between –1 and 1.
+
+
+
+
+## RedNoiseGenerator < AudioComponent < Component
+
+Generates red noise (also known as Brownian noise, named after Brownian motion), which is a kind of noise that is biased towards low frequencies.  It takes a `frequency`, but this isn't a real frequency; it's just the reciprocal of a characteristic time constant.
+
+### Properties
+
+#### `frequency` — *number or `AudioComponent`* — `defaultValue`: 440 — `isAudioParam`: `true`
+The inverse time constant of the red noise, which, on the power spectrum, is the frequency where the power drops by a factor of 2 from its maximum at 0 Hz.
+
+#### `initialValue` — *number* — `defaultValue`: `null` — `isProcessorOption`: `true`
+The initial value of the output.  In LFO applications, it's good to keep track of where it starts.
+
+### Class Fields
+
+#### `processorName` — *string* — `'RedNoiseGeneratorProcessor'`
+
+
+
+
+## RedNoiseGeneratorProcessor > GeneratorProcessor > AudioComponentProcessor > AudioWorkletProcessor
+
+Generates red noise (also known as Brownian noise, named after Brownian motion), which is a kind of noise that is biased towards low frequencies.  It takes a `frequency`, but this isn't a real frequency; it's just the reciprocal of a characteristic time constant.
+
+### AudioParams
+
+#### `frequency`
+The inverse time constant of the red noise, which, on the power spectrum, is the frequency where the power drops by a factor of 2 from its maximum at 0 Hz.
+
+### Processor Options
+
+#### `initialValue` — *number* — default value: `null`
+The `value` that the processor begins with.  If it's `null`, the `value` is a random number from –1 to 1.
+
+### Instance Fields
+
+#### `value` — *number* — default value: `initialValue` if not `null`; random between –1 and 1 if `null`
+The value returned by `generate()`, used in the next frame to calculate the new `value`.
+
+### Instance Methods
+
+#### `generate()` — *number*
+If x is the previous `value` and w is the `frequency`, returns r·x + s·(random number between –1 and 1), where r = e^(–∆t/T) = e^(–w/`sampleRate`) (with ∆t being seconds per frame and T being the time constant, 1/`frequency`) and s = sqrt(1 – r^(2)).  This keeps the `value` mostly hovering between –1 and 1, with occasional extremes.
+
+
+
+
 ## Envelope < AudioComponent < Component
 
 An `Envelope` is actually just a gain that is varied over the lifetime of a `Tone`.  One typical envelope is the `ADSREnvelope`, which starts by ramping the gain up from 0 to some maximum over some period of time, then down to 1 (over some time) for the rest of the duration of the tone, and, when the tone is released, it ramps the gain back down to 0 over some time.  This ramping of the gain from and to 0 removes the very high-frequency components inherent in an instantaneous jump from 0 to 1, which cause an audible pop.  `Envelope`s also provide articulation at the front of the note and can provide vibrato or other effects as well.  This `Envelope` class is intended to be abstract; its processor doesn't actually do anything useful (it just outputs `1`).

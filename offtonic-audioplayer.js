@@ -14,6 +14,7 @@ import ConstantGenerator from './lib/generators/ConstantGenerator.js';
 import LinearGenerator from './lib/generators/LinearGenerator.js';
 
 import WhiteNoiseGenerator from './lib/generators/WhiteNoiseGenerator.js';
+import RedNoiseGenerator from './lib/generators/RedNoiseGenerator.js';
 
 import Oscillator from './lib/generators/Oscillator.js';
 import SineOscillator from './lib/generators/SineOscillator.js';
@@ -66,6 +67,9 @@ class Global {
     this.WhiteNoiseGenerator = WhiteNoiseGenerator;
     this.addModule('lib/processors/WhiteNoiseGeneratorProcessor.js');
     this.registerClass('WhiteNoiseGenerator', WhiteNoiseGenerator);
+    this.RedNoiseGenerator = RedNoiseGenerator;
+    this.addModule('lib/processors/RedNoiseGeneratorProcessor.js');
+    this.registerClass('RedNoiseGenerator', RedNoiseGenerator);
 
     this.Oscillator = Oscillator;
     this.addModule('lib/processors/OscillatorProcessor.js');
