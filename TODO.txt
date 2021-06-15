@@ -2,6 +2,14 @@ References
 
 Filters
 
-All the different generators
+All the different generators:
+Fourier
+Fourier Sawtooth
+Inharmonic
+Pitch Space Sine
+Red Noise
+Shepard
+Shepard Octave
+White Noise
 
 Sequences

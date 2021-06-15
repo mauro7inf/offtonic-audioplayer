@@ -71,7 +71,104 @@ function load() {
 function start() {
   console.log('Start!');
 
-  const arithmeticTestTime = 0;
+  const noiseTestTime = 0;
+  schedule(noiseTest, noiseTestTime);
+
+  const replaceValueTestTime = noiseTestTime + 1000;
+  schedule(replaceValueTest, replaceValueTestTime);
+
+  const arithmeticTestTime = replaceValueTestTime + 2000;
+  schedule(arithmeticTest, arithmeticTestTime);
+
+  const waveTestTime = arithmeticTestTime + 1500;
+  schedule(waveTest, waveTestTime);
+
+  const toneTestTime = waveTestTime + 8500;
+  schedule(toneTest, toneTestTime);
+
+  const sineOscillatorTestTime = toneTestTime + 1500;
+  schedule(sineOscillatorTest, sineOscillatorTestTime);
+
+  const prototypeTestTime = sineOscillatorTestTime + 1000;
+  schedule(prototypeTest, prototypeTestTime);
+
+  const doneTime = prototypeTestTime + 1000;
+  schedule(() => {
+    console.log('Done!');
+  }, doneTime);
+}
+
+function stop() {
+  console.log('Stop!');
+  o.player.stopAll();
+  gainAdjustedPlayer.stopAll();
+  timeouts.forEach(timeout => {
+    clearTimeout(timeout);
+  });
+}
+
+function schedule(action, time) {
+  timeouts.push(setTimeout(action, time));
+}
+
+function noiseTest() {
+  const noise1 = o.createComponent({
+    className: 'Tone',
+    generator: {
+      className: 'WhiteNoiseGenerator'
+    },
+    duration: 500,
+    gain: {
+      className: 'LinearGenerator',
+      startValue: 0.1,
+      endValue: 0.9,
+      startTime: 0,
+      endTime: 500
+    }
+  });
+  schedule(() => {
+    console.log('noiseTest start');
+    noise1.play();
+  }, 0);
+  schedule(() => {
+    console.log('noiseTest end');
+  }, 500);
+}
+
+function replaceValueTest() {
+  const replaceValueTone = o.createComponent({
+    className: 'Tone',
+    generator: {
+      className: 'TriangleOscillator',
+      pulseWidth: 0.4
+    },
+    gain: 0.2,
+    duration: 1500,
+    frequency: 600
+  });
+  schedule(() => {
+    console.log('replaceValueTest start');
+    replaceValueTone.play();
+  }, 0);
+  schedule(() => {
+    replaceValueTone.setProperties({
+      frequency: {
+        className: 'ConstantGenerator',
+        value: 600
+      }
+    });
+  }, 500);
+  schedule(() => {
+    replaceValueTone.setProperties({
+      frequency: 600
+    });
+  }, 1000);
+  schedule(() => {
+    console.log('replaceValueTest end')
+  }, 1500);
+}
+
+function arithmeticTest() {
   const arithmeticTone = o.createComponent({
     className: 'Tone',
     generator: {
@@ -122,12 +219,13 @@ function start() {
   schedule(() => {
     console.log('arithmeticTest start');
     arithmeticTone.play();
-  }, arithmeticTestTime);
+  }, 0);
   schedule(() => {
     console.log('arithmeticTest end');
-  }, arithmeticTestTime + 1100);
+  }, 1100);
+}
 
-  const waveTestTime = arithmeticTestTime + 1500;
+function waveTest() {
   const wave1 = o.createComponent({
     instrument: 'waveTestTone',
     frequency: 300,
@@ -163,22 +261,22 @@ function start() {
   schedule(() => {
     console.log('waveTest start');
     wave1.play();
-  }, waveTestTime);
+  }, 0);
   schedule(() => {
     wave2.play();
-  }, waveTestTime + 2000);
+  }, 2000);
   schedule(() => {
     wave3.play();
-  }, waveTestTime + 4000);
+  }, 4000);
   schedule(() => {
     wave4.play();
-  }, waveTestTime + 6000);
+  }, 6000);
   schedule(() => {
     console.log('waveTest end');
-  }, waveTestTime + 8000);
+  }, 8000);
+}
 
-
-  const toneTestTime = waveTestTime + 8500;
+function toneTest() {
   const tone1 = o.createComponent({
     instrument: 'test1',
     frequency: 256,
@@ -187,7 +285,7 @@ function start() {
   schedule(() => {
     console.log('toneTest start');
     tone1.play();
-  }, toneTestTime);
+  }, 0);
   schedule(() => {
     tone1.setProperties({
       frequency: 512
@@ -195,12 +293,13 @@ function start() {
     tone1.getProperty('generator').setProperties({
       pulseWidth: 0.3
     })
-  }, toneTestTime + 500);
+  }, 500);
   schedule(() => {
     console.log('toneTest end');
-  }, toneTestTime + 1000);
+  }, 1000);
+}
 
-  const sineOscillatorTestTime = toneTestTime + 1500;
+function sineOscillatorTest() {
   const sineOscillator1 = o.createComponent({
     className: 'SineOscillator',
     frequency: {
@@ -221,39 +320,23 @@ function start() {
     gainAdjustedPlayer.play(sineOscillator1);
     gainAdjustedPlayer.play(sineOscillator2);
     gainAdjustedPlayer.play(sineOscillator3);
-  }, sineOscillatorTestTime);
+  }, 0);
   schedule(() => {
     console.log('sineOscillatorTest end');
     gainAdjustedPlayer.stop(sineOscillator1);
     gainAdjustedPlayer.stop(sineOscillator2);
     gainAdjustedPlayer.stop(sineOscillator3);
-  }, sineOscillatorTestTime + 500);
+  }, 500);
+}
 
-  const prototypeTestTime = sineOscillatorTestTime + 1000;
+function prototypeTest() {
   const prototypeNote = new PrototypeNote();
   schedule(() => {
     console.log('prototypeTest start');
     prototypeNote.play();
-  }, prototypeTestTime)
+  }, 0)
   schedule(() => {
     console.log('prototypeTest end');
     prototypeNote.stop();
-  }, prototypeTestTime + 500);
-
-  schedule(() => {
-    console.log('Done!');
-  }, prototypeTestTime + 1000);
-}
-
-function stop() {
-  console.log('Stop!');
-  o.player.stopAll();
-  gainAdjustedPlayer.stopAll();
-  timeouts.forEach(timeout => {
-    clearTimeout(timeout);
-  });
-}
-
-function schedule(action, time) {
-  timeouts.push(setTimeout(action, time));
+  }, 500);
 }

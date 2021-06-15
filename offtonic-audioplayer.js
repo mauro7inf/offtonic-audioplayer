@@ -13,6 +13,8 @@ import Multiplier from './lib/arithmetic/Multiplier.js';
 import ConstantGenerator from './lib/generators/ConstantGenerator.js';
 import LinearGenerator from './lib/generators/LinearGenerator.js';
 
+import WhiteNoiseGenerator from './lib/generators/WhiteNoiseGenerator.js';
+
 import Oscillator from './lib/generators/Oscillator.js';
 import SineOscillator from './lib/generators/SineOscillator.js';
 import TriangleOscillator from './lib/generators/TriangleOscillator.js';
@@ -60,6 +62,10 @@ class Global {
     this.LinearGenerator = LinearGenerator;
     this.addModule('lib/processors/LinearGeneratorProcessor.js');
     this.registerClass('LinearGenerator', LinearGenerator);
+
+    this.WhiteNoiseGenerator = WhiteNoiseGenerator;
+    this.addModule('lib/processors/WhiteNoiseGeneratorProcessor.js');
+    this.registerClass('WhiteNoiseGenerator', WhiteNoiseGenerator);
 
     this.Oscillator = Oscillator;
     this.addModule('lib/processors/OscillatorProcessor.js');

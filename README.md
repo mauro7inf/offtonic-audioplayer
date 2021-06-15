@@ -476,13 +476,10 @@ Called by `connectProperty()` and `disconnectProperty()` to handle properties wi
 Called by `connectProperty()` and `disconnectProperty()` to handle properties with `inputIndex` set to a non-negative number.  The value is assumed to be an `AudioComponent`, and `value.on()` and `value.connectTo()` are called on connection and `value.disconnectFrom()` and `value.off()` are called on disconnection.
 
 #### `getProcessorOptions()` — *object*
-Creates and returns the `options` object that the `AudioWorkletProcessor` is instantiated with.  The static fields `numberOfInputs`, `numberOfOutputs`, and `outputChannelCount` are added to this object if they're not `null`, as well as empty objects `parameterData` and `processorOptions`.  `parameterData` holds initial values for the `AudioParam`s of the node, and `processorOptions` holds extra options that are read only at the processor's instantiation.  See the WebAudio API docs for more details on this object.  After this basic object is set up, `addProcessorOption()` is called with each property descriptor.  If you want to set up some custom behavior in the `options` object, you should override this method, but you'll likely want to call `super.getProcessorOptions()` first to populate the object.
+Creates and returns the `options` object that the `AudioWorkletProcessor` is instantiated with.  The static fields `numberOfInputs`, `numberOfOutputs`, and `outputChannelCount` are added to this object if they're not `null`, as well as empty objects `parameterData` and `processorOptions`.  `parameterData` holds initial values for the `AudioParam`s of the node, which you should *not* set, and `processorOptions` holds extra options that are read only at the processor's instantiation.  See the WebAudio API docs for more details on this object.  After this basic object is set up, `addProcessorOption()` is called with each property descriptor.  If you want to set up some custom behavior in the `options` object, you should override this method, but you'll likely want to call `super.getProcessorOptions()` first to populate the object.
 
 #### `addProcessorOption(<options>, <descriptor>)` — *object*
-Adds the appropriate value to the `<options>` object and returns it, calling `addAudioParamOption()` if `isAudioParam` is `true` in the `<descriptor>`, and calling `addProcessorOptionOption()` if `isProcessorOption` is `true` in the `<descriptor>`.  These are not (necessarily) mutually exclusive, so if you have other kinds of options that need special treatment, you can override this method, call `super.addProcessorOption()` first, and handle your new kind of option.
-
-#### `addAudioParamOption(<options>, <propName>)` — *object*
-If the value of the property named by `<propName>` is a number, adds it to the `<options>` object under `parameterData`, with the key being the param name (`paramName` if provided in the descriptor, or just `<propName>` if not).  This sets the initial value of the `AudioParam` to the number given.  If the property value is an `AudioComponent`, it is not provided at the processor's instantiation, since its node will eventually get connected to the `AudioParam`.  Returns the `<options>` object.
+Adds the appropriate value to the `<options>` object and returns it, calling `addProcessorOptionOption()` if `isProcessorOption` is `true` in the `<descriptor>`.  If you have other kinds of options that need special treatment, you can override this method, call `super.addProcessorOption()` first, and handle your new kind of option.
 
 #### `addProcessorOptionOption(<options>, <propName>)` — *object*
 Adds the value of the `<propName>` property to the `<options>` object under `processorOptions`, with the key being the processor option name (`processorOptionName` if provided in the descriptor, or just `<propName>` if not).  This value can be anything, but since it gets passed via structured clone, it shouldn't contain functions.  The processor can read this value at construction time and handle it however is necessary.  Returns the `<options>` object.
@@ -507,7 +504,7 @@ A beat count at a specified tempo.  It can be used to register `timedEvent`s to 
 ### Class Fields
 
 #### `newParameterDescriptors` — *array of `ParameterDescriptor`-like objects* — `[]`
-See the WebAudio API docs for the fields in a `ParameterDescriptor` object.  These descriptors are used to create the `AudioParam`s used by the `AudioWorkletProcessor`.  When the `parameterDescriptors` class field is read, the objects in this array get added to the superclass's `parameterDescriptors` to create this class's `parameterDescriptors`.
+See the WebAudio API docs for the fields in a `ParameterDescriptor` object.  These descriptors are used to create the `AudioParam`s used by the `AudioWorkletProcessor`.  When the `parameterDescriptors` class field is read, the objects in this array get added to the superclass's `parameterDescriptors` to create this class's `parameterDescriptors`.  Be careful about setting default values for these, because if a parameter has a `value` and another `AudioNode` connects to it, that `value` will be added to the output of the `AudioNode`.
 
 #### `parameterDescriptors` — *array of `ParameterDescriptor`-like objects* — `[]`
 See the WebAudio API docs for the fields in a `ParameterDescriptor` object.  This field, actually a static getter, is part of `AudioWorkletProcessor` and is fundamental to how it gets set up.  The parameters described get built into `AudioParam` objects to which you can connect `AudioNode`s and set values and such.  The getter checks if `generatedParameterDescriptors` is an own property of this class, and if not, it calls `generateParameterDescriptors()`, which saves the result, and this getter returns it.  You should not need to override this.  Note that it is an array, not an object like `Component.propertyDescriptors`.  This is a requirement of the WebAudio API.
@@ -644,7 +641,7 @@ Also disconnects the `gainNode` and tears it down.
 
 #### `connectGain()`
 #### `disconnectGain()`
-Connects/disconnects the `gain` property to/from the `gainNode`'s `gain` `AudioParam`.  If `gain` is just a number, simply assigns that number to the `value` of the `AudioParam`.
+Connects/disconnects the `gain` property to/from the `gainNode`'s `gain` `AudioParam`.  If `gain` is just a number, simply assigns that number to the `value` of the `AudioParam`, but if it's an `AudioComponent`, we first need to set the `value` of the `AudioParam` to `0` so that the output of the `AudioComponent` doesn't add to the existing `value`.
 
 #### `connectTo(<destination>, <inputIndex>)`
 #### `disconnectFrom(<destination>, <inputIndex>)`
