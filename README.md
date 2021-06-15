@@ -661,7 +661,7 @@ If `envelope` is an `Envelope`, calls `startRelease(this)` on it; if not, calls 
 
 ## ConstantGenerator < AudioComponent < Component
 
-An `AudioComponent` whose `node` is a `ConstantSourceNode`.  Useful when a value is a number but an `AudioComponent` is expected.
+An `AudioComponent` whose `node` is a `ConstantSourceNode`.  Useful when a value is a number but an `AudioComponent` is expected.  Note that, despite the name, `ConstantGenerator` is *not* a `Generator`.
 
 ### Properties
 
@@ -684,9 +684,32 @@ Stops the `ConstantSourceNode` then calls the overridden method.
 
 
 
+## Generator < AudioComponent < Component
+
+A base class for any `AudioComponent` that wants to generate a signal.  It provides a `scaling` and an `offset` to linearly transform a signal.  Note that any `AudioComponent` with a processor that extends `GeneratorProcessor` should extend `Generator` as well.
+
+### Properties
+
+#### `scaling` — *number or `AudioComponent`* — `defaultValue`: `1`
+#### `offset` — *number or `AudioComponent`* — `defaultValue`: `0`
+A generated signal, produced by `generate()` in a processor that extends `GeneratorProcessor`, gets multiplied by `scaling` and added to `offset` each frame.  If, for example, you have a `SineOscillatorProcessor` generating a sine wave centered at 0 with amplitude 1, going from –1 to 1, you can use the `scaling` to reduce the amplitude to 0.1 and the `offset` to center the wave around 1, causing it to go from 0.9 to 1.1 instead.  This transformation is applied *after* `generate()` is called, so it doesn't affect any internal variables.
+
+### Class Fields
+
+#### `processorName` — *string* — `'GeneratorProcessor'`
+
+
+
+
 ## GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
 
-Superclass for 0-input 1-output processors that generate a signal.  It generates a single value per audio frame and populates all channels of the output with that value at each frame.
+Superclass for 0-input 1-output processors that generate a signal.  It generates a single value per audio frame, scales it and applies an offset, and populates all channels of the output with that value at each frame.  Note that any `AudioComponent` with a processor that extends `GeneratorProcessor` should extend `Generator` as well.
+
+### AudioParams
+
+#### `scaling`
+#### `offset`
+A generated signal, produced by `generate()`, gets multiplied by `scaling` and added to `offset` each frame.  If, for example, you have a `SineOscillatorProcessor` generating a sine wave centered at 0 with amplitude 1, going from –1 to 1, you can use the `scaling` to reduce the amplitude to 0.1 and the `offset` to center the wave around 1, causing it to go from 0.9 to 1.1 instead.  This transformation is applied *after* `generate()` is called, so it doesn't affect any internal variables.
 
 ### Instance Fields
 
@@ -696,7 +719,7 @@ The current frame of the buffer, which is usually 128 frames long so this number
 ### Instance Methods
 
 #### `_process(<outputs>)` — *boolean*
-On each frame, sets the `frame` field, calls `generate()`, and puts that value into all of the channels of the output.  You should probably not override this method in subclasses.
+On each frame, sets the `frame` field, calls `generate()`, multiplies that value by the `value` of the `scaling` `AudioParam` and adds the `value` of the `offset` `AudioParam`, and puts that value into all of the channels of the output.  You should probably not override this method in subclasses.
 
 #### `generate()` — *number* — `0`
 Returns 0.  You should override this method in subclasses.
@@ -704,7 +727,7 @@ Returns 0.  You should override this method in subclasses.
 
 
 
-## LinearGenerator < AudioComponent < Component
+## LinearGenerator < Generator < AudioComponent < Component
 
 Generates a linear change in value.  This can be useful when varying a parameter.
 
@@ -746,7 +769,7 @@ If the current time according to the `timer` is before `startTime`, returns `sta
 
 
 
-## Oscillator < AudioComponent < Component
+## Oscillator < Generator < AudioComponent < Component
 
 Generates a wave at a given `frequency`.  Initial phase can also be specified.  This can be your basic sound wave, but it can also be a used in LFO (low-frequency oscillation), maybe to guide a vibrato, for example.  The wave shape here is unspecified; its subclasses provide the wave shape.  You should subclass this when you want a wave that is generated as a function of a single phase, like a sine wave.
 
@@ -800,7 +823,7 @@ Returns `0`.  This is not very interesting.  You should override this if you wan
 
 
 
-## SineOscillator < Oscillator < AudioComponent < Component
+## SineOscillator < Oscillator < Generator < AudioComponent < Component
 
 Generates a sine wave.
 
@@ -833,7 +856,7 @@ Normalizes the `phase` to undo the squeezing and stretching described above unde
 
 
 
-## TriangleOscillator < Oscillator < AudioComponent < Component
+## TriangleOscillator < Oscillator < Generator < AudioComponent < Component
 
 Generates a triangle wave.  Triangle waves start at 0, go up to 1 at π/2, go down to –1 at 3π/2, and back up to 0 at 2π, so they look essentially like sine waves but with straight lines from max to min and back.
 
@@ -866,7 +889,7 @@ Normalizes the `phase` to undo the squeezing and stretching described above unde
 
 
 
-## SquareOscillator < Oscillator < AudioComponent < Component
+## SquareOscillator < Oscillator < Generator < AudioComponent < Component
 
 Generates a square wave.  Square waves start at 1 for the first half of the wave then go to –1 for the second half.  By using the `pulseWidth` parameter, the proportion can be altered.
 
@@ -899,7 +922,7 @@ Returns `1` is the `phase` is less than 2πk (where k is the `phaseWidth`) and `
 
 
 
-## SawtoothOscillator < Oscillator < AudioComponent < Component
+## SawtoothOscillator < Oscillator < Generator < AudioComponent < Component
 
 Generates a sawtooth wave.  Sawtooth waves start at 1 and linearly go down to –1 at the end of the period.
 
@@ -932,7 +955,7 @@ If the `phase` is less than 2πk, where k is the `pulseWidth`, linearly interpol
 
 
 
-## WhiteNoiseGenerator < AudioComponent < Component
+## WhiteNoiseGenerator < Generator < AudioComponent < Component
 
 Generates white noise, which is a signal of a random value from –1 to 1 every frame.
 
@@ -955,7 +978,7 @@ Generates a random value between –1 and 1.
 
 
 
-## RedNoiseGenerator < AudioComponent < Component
+## RedNoiseGenerator < Generator < AudioComponent < Component
 
 Generates red noise (also known as Brownian noise, named after Brownian motion), which is a kind of noise that is biased towards low frequencies.  It takes a `frequency`, but this isn't a real frequency; it's just the reciprocal of a characteristic time constant.
 
@@ -1001,7 +1024,7 @@ If x is the previous `value` and w is the `frequency`, returns r·x + s·(random
 
 
 
-## Envelope < AudioComponent < Component
+## Envelope < Generator < AudioComponent < Component
 
 An `Envelope` is actually just a gain that is varied over the lifetime of a `Tone`.  One typical envelope is the `ADSREnvelope`, which starts by ramping the gain up from 0 to some maximum over some period of time, then down to 1 (over some time) for the rest of the duration of the tone, and, when the tone is released, it ramps the gain back down to 0 over some time.  This ramping of the gain from and to 0 removes the very high-frequency components inherent in an instantaneous jump from 0 to 1, which cause an audible pop.  `Envelope`s also provide articulation at the front of the note and can provide vibrato or other effects as well.  This `Envelope` class is intended to be abstract; its processor doesn't actually do anything useful (it just outputs `1`).
 
@@ -1078,7 +1101,7 @@ Calls `startRelease()`.
 
 
 
-## ADSREnvelope < Envelope < AudioComponent < Component
+## ADSREnvelope < Envelope < Generator < AudioComponent < Component
 
 An `Envelope` with Attack, Decay, Sustain, and Release (ADSR) phases, standard in audio synthesis.  The `ADSREnvelope` class itself doesn't actually have any of its own behavior; the magic is all in the `ADSREnvelopeProcessor` that lives in the `ADSREnvelope`'s `node`.  The Attack, Decay, and Sustain phases are all just part of the `'main'` `phase`, with the Release phase being the `'release'` `phase`, so they don't correspond exactly.
 
@@ -1157,7 +1180,7 @@ Calculates `releaseStartFrame`, `releaseUntilFrame`, and `releaseFromValue`.  No
 
 
 
-## Timer < AudioCopmonent < Component
+## Timer < Generator < AudioCopmonent < Component
 
 The `Timer` is an `AudioComponent` that outputs a time, with a specified `tempo` (in beats per minute).  It essentially counts the number of beats.  Another `AudioComponent` can use connect a `Timer` to an `AudioParam` to have access to the current beat count according to this `Timer`.  The `tempo` is itself an `AudioParam`, which can be controlled by other `Timer`s, etc., but be careful because the WebAudio API doesn't like cycles in the audio graph; you will have a problem if you connect an `AudioNode` to itself without a `DelayNode` in between.  The default values have a `tempo` of `60000` BPM, which is just a fancy way of saying that it's counting milliseconds.
 

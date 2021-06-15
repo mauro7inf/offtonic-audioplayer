@@ -10,6 +10,8 @@ import Playable from './lib/Playable.js';
 import Adder from './lib/arithmetic/Adder.js';
 import Multiplier from './lib/arithmetic/Multiplier.js';
 
+import Generator from './lib/generators/Generator.js';
+
 import ConstantGenerator from './lib/generators/ConstantGenerator.js';
 import LinearGenerator from './lib/generators/LinearGenerator.js';
 
@@ -57,6 +59,10 @@ class Global {
     this.Multiplier = Multiplier;
     this.addModule('lib/processors/MultiplierProcessor.js');
     this.registerClass('Multiplier', Multiplier);
+
+    this.Generator = Generator;
+    this.addModule('lib/processors/GeneratorProcessor.js');
+    this.registerClass('Generator', Generator);
 
     this.ConstantGenerator = ConstantGenerator;
     this.registerClass('ConstantGenerator', ConstantGenerator);

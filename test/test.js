@@ -74,7 +74,7 @@ function start() {
   const noiseTestTime = 0;
   schedule(noiseTest, noiseTestTime);
 
-  const replaceValueTestTime = noiseTestTime + 3000;
+  const replaceValueTestTime = noiseTestTime + 5000;
   schedule(replaceValueTest, replaceValueTestTime);
 
   const arithmeticTestTime = replaceValueTestTime + 2000;
@@ -150,9 +150,38 @@ function noiseTest() {
   schedule(() => {
     noise2.play();
   }, 1000);
+
+  const noise3 = o.createComponent({
+    className: 'Tone',
+    duration: 2000,
+    generator: {
+      className: 'TriangleOscillator',
+      pulseWidth: {
+        className: 'RedNoiseGenerator',
+        frequency: 1,
+        scaling: 0.1,
+        offset: 0.4
+      }
+    },
+    gain: {
+      className: 'RedNoiseGenerator',
+      frequency: 0.5,
+      scaling: 0.1,
+      offset: 0.15
+    },
+    frequency: {
+      className: 'RedNoiseGenerator',
+      frequency: 2,
+      scaling: 40,
+      offset: 440
+    }
+  });
+  schedule(() => {
+    noise3.play();
+  }, 2500);
   schedule(() => {
     console.log('noiseTest end');
-  }, 2500);
+  }, 4500);
 }
 
 function replaceValueTest() {
