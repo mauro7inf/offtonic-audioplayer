@@ -223,8 +223,8 @@ function noiseTest() {
     duration: 500,
     gain: {
       className: 'LinearGenerator',
-      startValue: 0.1,
-      endValue: 0.9,
+      startValue: 0.01,
+      endValue: 0.2,
       startTime: 0,
       endTime: 500
     }

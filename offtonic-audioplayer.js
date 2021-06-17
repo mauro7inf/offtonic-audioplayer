@@ -28,6 +28,8 @@ import SawtoothOscillator from './lib/generators/SawtoothOscillator.js';
 import Envelope from './lib/envelopes/Envelope.js';
 import ADSREnvelope from './lib/envelopes/ADSREnvelope.js';
 
+import Filter from './lib/filters/Filter.js';
+
 import Timer from './lib/Timer.js';
 
 import Tone from './lib/Tone.js';
@@ -101,6 +103,10 @@ class Global {
     this.ADSREnvelope = ADSREnvelope;
     this.addModule('lib/processors/ADSREnvelopeProcessor.js');
     this.registerClass('ADSREnvelope', ADSREnvelope);
+
+    this.Filter = Filter;
+    this.addModule('lib/processors/FilterProcessor.js');
+    this.registerClass('Filter', Filter);
 
     this.Timer = Timer;
     this.addModule('lib/processors/TimerProcessor.js');

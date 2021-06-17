@@ -489,14 +489,19 @@ Removes this `Component` from the `registry` (if `name` isn't `null`) and sets `
 
 ## AudioComponent < Component
 
-An `AudioComponent` is a `Component` that produces a-rate data through an `AudioNode`.  It doesn't have to produce data intended to produce a *sound*, and in fact, most `AudioComponent`s don't.  An `Envelope`, for example, is an `AudioComponent` that produces gains in time which are multiplied by a signal to create a tone that has articulation, and a `ConstantGenerator` is an `AudioComponent` that produces a specified constant number every audio frame.  `AudioComponent`s can connect to `AudioNode`s or `AudioParam`s depending on the specific use case.
+An `AudioComponent` is a `Component` that produces a-rate data through an `AudioNode` (or a chain thereof).  It doesn't have to produce data intended to produce a *sound*, and in fact, most `AudioComponent`s don't.  An `Envelope`, for example, is an `AudioComponent` that produces gains in time which are multiplied by a signal to create a tone that has articulation, and a `ConstantGenerator` is an `AudioComponent` that produces a specified constant number every audio frame.  `AudioComponent`s can connect to `AudioNode`s or `AudioParam`s depending on the specific use case.
+
+`AudioComponent` assumes that it contains one primary `AudioWorkletNode`, `node`, to produce or provide its data, and its properties are connected to this node.  This data may or may not get passed to a `filter` before it goes to wherever it's supposed to go.  If `node` is not an `AudioWorkletNode`, `isNativeNode` should be set to `true` for the class.  Different arrangements are possible and depend on overriding a few methods: `getFirstNode()` is the node to which external nodes should connect (`node` by default), `getNodeToFilter()` is the node that connects to the `filter` (`node` by default), `getNodeFromFilter()` is the node that the `filter` connects to, if any (`null` by default), and `getNodeToDestination()` is the ultimate output node of the `AudioComponent`, which by default is `node` if `filter` is `null` and `filter`'s `getNodeToDestination()` if not.  So if we wanted to connect node A to an `AudioComponent` and then connect the `AudioComponent` to node B, we would have A connected to `getFirstNode()`, which is the start of a chain ending in `getNodeToFilter()`, which connects to `filter` if present, which connects to a (possibly empty) chain beginning with `getNodeFromFilter()` and ending with `getNodeToDestination()` (which may have already occurred in the chain), which connects to B.
 
 You never instantiate an `AudioComponent` itself, since an `AudioComponent` doesn't actually *do* anything.  Rather, you use its subclasses.  `AudioComponent` contains default methods for dealing with `AudioWorkletNode`s, instantiating them, passing them properties, and so on, and many can be overridden for custom behavior in subclasses.
 
 ### Properties
 
-#### `timer` — *`Timer`* — default `null` — `isAudioParam`: `true`
+#### `timer` — *`Timer`* — `defaultValue`: `null` — `isAudioParam`: `true`
 A timer that can be used for timing events.  You can register timed events with the processor; the processor checks the timer every frame and, if the timer has advanced sufficiently, the processor sends back a message to the `AudioComponent` via the `port`, which can be handled with `handleTriggeredEvent()`.
+
+#### `filter` — *`Filter`* — `defaultValue`: `null` — `connector`: `'connectFilter'` — `disconnector`: `'disconnectFilter'`
+A `Filter` instance (or `null`) through which the signal is passed after whatever's supposed to happen in `node`.  Since `Filter` is also an `AudioComponent`, it may itself have a `filter`, which allows for `Filter` chaining.
 
 ### Class Fields
 
@@ -559,7 +564,13 @@ Does nothing in `AudioComponent`.  You should override this to provide custom be
 
 #### `connectTo(<destination>, <inputIndex>)`
 #### `disconnectFrom(<destination>, <inputIndex>)`
-Calls `connect()` or `disconnect()` on `node` to connect or disconnect its output at index `0` to or from the given `<destination>`; if `<inputIndex>` is a non-negative number, it will (dis)connect it to/from that input index.  The default input index is `0` for a `<destination>` that is an `AudioNode`, but if the `<destination>` is an `AudioParam`, including an input index at all (even `undefined`) will cause an error.  If you need to (dis)connect a different output or have some other behavior, override these methods.
+Calls `connect()` or `disconnect()` on `getNodeToDestination()` to connect or disconnect its output at index `0` to or from the given `<destination>`; if `<inputIndex>` is a non-negative number, it will (dis)connect it to/from that input index.  The default input index is `0` for a `<destination>` that is an `AudioNode`, but if the `<destination>` is an `AudioParam`, including an input index at all (even `undefined`) will cause an error.
+
+#### `getFirstNode()` — *`AudioNode`* — default value: `node`
+#### `getNodeToFilter()` — *`AudioNode`* — default value: `node`
+#### `getNodeFromFilter()` — *`AudioNode`* — default value: `null`
+#### `getNodeToDestination()` — *`AudioNode`* — default value: `filter.getNodeToDestination()` if `filter` is not `null`, or `node` if it is
+The basic structure of the `AudioComponent`.  If we wanted to connect node A to an `AudioComponent` and then connect the `AudioComponent` to node B, we would have A connected to `getFirstNode()`, which is the start of a chain ending in `getNodeToFilter()`, which connects to `filter` if present, which connects to a (possibly empty) chain beginning with `getNodeFromFilter()` and ending with `getNodeToDestination()` (which may have already occurred in the chain), which connects to B.  Override these if your `AudioComponent` has a different structure.
 
 #### `cleanup()`
 Overrides `Component`'s `cleanup()` method; calls `off()` and `super.cleanup()`.  If you override this method, you should probably call `super.cleanup()` at the end as well.
@@ -582,6 +593,10 @@ Called by `connectProperty()` and `disconnectProperty()` to handle properties wi
 #### `connectInputIndex(<propName>)`
 #### `disconnectInputIndex(<propName>)`
 Called by `connectProperty()` and `disconnectProperty()` to handle properties with `inputIndex` set to a non-negative number.  The value is assumed to be an `AudioComponent`, and `value.on()` (if it's not a reference) and `value.connectTo()` are called on connection and `value.disconnectFrom()` and `value.off()` (if it's not a reference) are called on disconnection.
+
+#### `connectFilter()`
+#### `disconnectFilter()`
+The `filter`, if not `null`, is assumed to be an `AudioComponent`.  When connecting, it's turned `on()`, then `getNodeToFilter()` is connected to it, then it is connected to `getNodeFromFilter()` if that is not `null`.  If `filter` is `null`, `getNodeToFilter()` is connected directly to `getNodeFromFilter()` if that is not `null`.  When disconnecting, these connections are undone instead, and `filter` is turned `off()`.
 
 #### `getProcessorOptions()` — *object*
 Creates and returns the `options` object that the `AudioWorkletProcessor` is instantiated with.  The static fields `numberOfInputs`, `numberOfOutputs`, and `outputChannelCount` are added to this object if they're not `null`, as well as empty objects `parameterData` and `processorOptions`.  `parameterData` holds initial values for the `AudioParam`s of the node, which you should *not* set, and `processorOptions` holds extra options that are read only at the processor's instantiation.  See the WebAudio API docs for more details on this object.  After this basic object is set up, `addProcessorOption()` is called with each property descriptor.  If you want to set up some custom behavior in the `options` object, you should override this method, but you'll likely want to call `super.getProcessorOptions()` first to populate the object.
@@ -707,7 +722,7 @@ Also checks if `<event>` is `'release'`; if it is, calls `release()`.
 
 ## Tone < Playable < AudioComponent < Component
 
-Produces an audible tone when played, hence the name.  You can customize it in a variety of ways, and this is the primary way in which you will likely be creating sound when using Offtonic Audioplayer.  A `Tone` has a `generator` that produces a signal (optionally at a `frequency`), moderated by an `envelope` that shapes the volume of the sound over its lifetime, and finally, multiplied by a `gain` that specifies an overall volume.  The primary `node` is a custom `AudioWorkletNode` with processor name `ToneProcessor`, whose inputs are the `generator` and the `envelope`, and that is connected to a `GainNode` that applies the `gain`; that `GainNode` is what's connected to the destination.
+Produces an audible tone when played, hence the name.  You can customize it in a variety of ways, and this is the primary way in which you will likely be creating sound when using Offtonic Audioplayer.  A `Tone` has a `generator` that produces a signal (optionally at a `frequency`), moderated by an `envelope` that shapes the volume of the sound over its lifetime, and finally, multiplied by a `gain` that specifies an overall volume.  The primary `node` is a custom `AudioWorkletNode` with processor name `ToneProcessor`, whose inputs are the `generator` and the `envelope`, and that is connected to a `filter` if present, which is then connected to a `GainNode` that applies the `gain`; that `GainNode` is what's connected to the destination.  Note that `Filter` extends `AudioComponent`, which means that a `filter` can have its own `filter`, allowing you to chain `Filter`s.
 
 ### Properties
 
@@ -742,18 +757,18 @@ When `frequency` is set on `generator`, this flag is set to `true`.  During inst
 Also propagates the `frequency` to the `generator`, if  isn't `null` (and this hasn't already happened).
 
 #### `createNode()`
-Also sets up the `gainNode` and connects the `node` to it.
+Also sets up the `gainNode`.
 
 #### `cleanupNode()`
-Also disconnects the `gainNode` and tears it down.
+Also tears down the `gainNode`.
 
 #### `connectGain()`
 #### `disconnectGain()`
 Connects/disconnects the `gain` property to/from the `gainNode`'s `gain` `AudioParam`.  If `gain` is just a number, simply assigns that number to the `value` of the `AudioParam`, but if it's an `AudioComponent`, we first need to set the `value` of the `AudioParam` to `0` so that the output of the `AudioComponent` doesn't add to the existing `value`.
 
-#### `connectTo(<destination>, <inputIndex>)`
-#### `disconnectFrom(<destination>, <inputIndex>)`
-Connects/disconnects the `gainNode` to the specified `<destination>` and `<inputIndex>`.
+#### `getNodeFromFilter()` — *`AudioNode`* — `gainNode`
+#### `getNodeToDestination()` — *`AudioNode`* — `gainNode`
+These methods provide the `AudioNode` structure for `Tone`.  The connection between `node` and `gainNode` happens automatically in `connectFilter()` thanks to these methods.
 
 #### `getFrequency()` — *number or `AudioComponent`*
 Gets the `frequency` property of the `generator` property.  If that is `null` or `undefined`, returns the value of the `frequency` field of the `Tone` itself.
