@@ -2,6 +2,7 @@ import classRegistry from './lib/ClassRegistry.js';
 import orchestra from './lib/Orchestra.js';
 
 import Player from './lib/Player.js';
+import Registry from './lib/Registry.js';
 
 import Component from './lib/Component.js';
 import AudioComponent from './lib/AudioComponent.js';
@@ -37,6 +38,7 @@ class Global {
     this.ctx = window.AudioContext ? new AudioContext() : new webkitAudioContext();
     this.classRegistry = classRegistry;
     this.orchestra = orchestra;
+    this.Registry = Registry;
 
     let url = new URL(import.meta.url);
     let href = url.href;
@@ -122,11 +124,14 @@ class Global {
     this.ctx.audioWorklet.addModule(this.baseHref + modulePath);
   }
 
-  createComponent(properties, player) {
+  createComponent(properties, player, registry) {
     if (player === null || player === undefined) {
       player = this.player;
     }
-    return this.Component.create(properties, player);
+    if (registry === null || registry === undefined) {
+      registry = player.registry;
+    }
+    return this.Component.create(properties, player, registry);
   }
 }
 

@@ -50,7 +50,20 @@ o.orchestra.add({
     startValue: 0.5,
     endValue: 1
   }
-})
+});
+o.orchestra.add({
+    name: 'refInstrument',
+    className: 'Tone',
+    generator: {
+      className: 'SineOscillator',
+      pulseWidth: {
+        ref: 'mod'
+      }
+    },
+    gain: {
+      ref: 'cresc'
+    }
+  });
 
 let timeouts = [];
 
@@ -70,8 +83,13 @@ function load() {
 
 function start() {
   console.log('Start!');
+  o.player.on();
+  gainAdjustedPlayer.on();
 
-  const noiseTestTime = 0;
+  const refTestTime = 0;
+  schedule(refTest, refTestTime);
+
+  const noiseTestTime = refTestTime + 2500;
   schedule(noiseTest, noiseTestTime);
 
   const replaceValueTestTime = noiseTestTime + 5000;
@@ -94,14 +112,16 @@ function start() {
 
   const doneTime = prototypeTestTime + 1000;
   schedule(() => {
+    o.player.off();
+    gainAdjustedPlayer.off();
     console.log('Done!');
   }, doneTime);
 }
 
 function stop() {
   console.log('Stop!');
-  o.player.stopAll();
-  gainAdjustedPlayer.stopAll();
+  o.player.off();
+  gainAdjustedPlayer.off();
   timeouts.forEach(timeout => {
     clearTimeout(timeout);
   });
@@ -109,6 +129,89 @@ function stop() {
 
 function schedule(action, time) {
   timeouts.push(setTimeout(action, time));
+}
+
+function refTest() {
+  if (o.player.registry.contains('cresc')) {
+    o.player.registry.get('cresc').cleanup();
+  }
+  if (o.player.registry.contains('mod')) {
+    o.player.registry.get('mod').cleanup();
+  }
+  const cresc = o.createComponent({
+    name: 'cresc',
+    className: 'LinearGenerator',
+    startValue: 0.005,
+    endValue: 0.25,
+    startTime: 0,
+    endTime: 1000
+  });
+  const mod = o.createComponent({
+    name: 'mod',
+    className: 'SineOscillator',
+    frequency: 10,
+    scaling: 0.1,
+    offset: 0.35
+  });
+
+  const testRef = {
+    name: 'testRef',
+    className: 'Component'
+  };
+  o.createComponent(testRef);
+  o.player.registry.get('testRef').cleanup();
+  o.createComponent(testRef);
+  o.player.registry.get('testRef').cleanup();
+
+  const refTone1 = o.createComponent({
+    instrument: 'refInstrument',
+    frequency: 400,
+    duration: 200
+  });
+  const refTone2 = o.createComponent({
+    instrument: 'refInstrument',
+    frequency: 450,
+    duration: 200
+  });
+  const refTone3 = o.createComponent({
+    instrument: 'refInstrument',
+    frequency: 500,
+    duration: 200
+  });
+  const refTone4 = o.createComponent({
+    instrument: 'refInstrument',
+    frequency: 400*(4/3),
+    duration: 200
+  });
+  const refTone5 = o.createComponent({
+    instrument: 'refInstrument',
+    frequency: 600,
+    duration: 800
+  });
+
+  schedule(() => {
+    console.log('refTest start');
+    cresc.on();
+    mod.on();
+    refTone1.play();
+  }, 0);
+  schedule(() => {
+    refTone2.play();
+  }, 250);
+  schedule(() => {
+    refTone3.play();
+  }, 500);
+  schedule(() => {
+    refTone4.play();
+  }, 750);
+  schedule(() => {
+    refTone5.play();
+  }, 1000);
+  schedule(() => {
+    cresc.cleanup();
+    mod.cleanup();
+    console.log('refTest end');
+  }, 2000);
 }
 
 function noiseTest() {
@@ -165,13 +268,13 @@ function noiseTest() {
     },
     gain: {
       className: 'RedNoiseGenerator',
-      frequency: 0.5,
+      frequency: 1.5,
       scaling: 0.1,
       offset: 0.15
     },
     frequency: {
       className: 'RedNoiseGenerator',
-      frequency: 2,
+      frequency: 0.5,
       scaling: 40,
       offset: 440
     }

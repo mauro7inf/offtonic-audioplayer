@@ -3,9 +3,10 @@ JavaScript and WebAudio-based tone generator and audio player for web apps
 
 # Overview
 
-Offtonic Audioplayer is a simple-to-use audio player in JS that can be used simply in any (modern-enough) browser-based project with no need for other dependencies.  Simply import offtonic-audioplayer.js:
+Offtonic Audioplayer is a simple-to-use audio player in JS that can be used simply in any (modern-enough) browser-based project with no need for other dependencies.  Simply import offtonic-audioplayer.js and turn on your `Player`:
 
     import o from './offtonic-audioplayer.js';
+    o.player.on();
 
 Then, create your tones and play them!
 
@@ -17,6 +18,10 @@ Then, create your tones and play them!
 	tone.play();
 	// ...
 	tone.stop();
+
+When you no longer want the `Player` active, just turn it off:
+
+	`o.player.off()`
 
 Offtonic Audioplayer can be used in an entirely configuration-based manner, meaning that you can use JSON to describe your sound rather than actual code.
 
@@ -160,6 +165,46 @@ Instruments are applied when `Component.create()` is called.
 
 
 
+### References
+
+A property can also be a reference to an existing `Component` rather than a whole new `Component` that gets built at instantiation.  Ordinarily, a `Component` manages the lifecycle of its subcomponents: the subcomponent is passed in as an object with a bunch of property values, and `o.createComponent()` is called on that object to build the `Component` recursively.  But if you want to share a `Component` instance across multiple `Component`s, you can't quite do that.  If you specify the `name: <name>` property when you define a `Component`, the `Component` instance will be added to the `Component`'s `registry` (which is `o.player.registry` by default).  Then, when you want to reference that `Component` as a property value, just use `{ref: <name>}` as the value.  For example:
+
+	const ramp = o.createComponent({
+		name: 'ramp',
+		className: 'LinearGenerator',
+		startValue: 0,
+		startTime: 0,
+		endValue: 0.2,
+		endTime: 1000
+	});
+
+Now, a `LinearGenerator` named `ramp` is in the defaul `registry`.  Let's use it:
+
+	const rampedTone = o.createComponent({
+		className: 'Tone',
+		frequency: 262,
+		duration: 1000,
+		gain: {
+			ref: 'ramp'
+		}
+	});
+
+`rampedTone` now has `ramp` for its `gain` property.  However, `rampedTone` is not managing `ramp`'s lifecycle, so if you want to use it, you'll have to turn it on (and clean it up) explicitly:
+
+	ramp.on();
+	rampedTone.play();
+	... 
+	ramp.cleanup();
+
+Cleaning up the `name` property also removes the `Component` from the `registry`, so calling `cleanup()` on the `Component` when finished is good practice for decluttering things.  You can also register a `Component` that's a property of something long-lived, so that other `Components` can use it as a property inside the lifetime of the longer-lived `Component`.
+
+Within a `Component`, a reference is stored as the reference object `{ref: <name>}`, so to get the actual `Component` behind it, you can call `getProperty(<propName>)`.  If you need access to the reference object itself, you can call `getProperty(<propName>, false)`, and if you already have the reference object, you can call `resolveReference(<referenceObject>)` to get the `Component` from the `registry`.  If you're implementing your own `connector`s, `disconnector`s, `cleaner`s, etc., you'll need to be cognizant of the fact that you shouldn't try to manage the lifecycle of a `Component` you've referenced.  For a `connector` or `disconnector`, remember *not* to turn the `AudioComponent` `on()` or `off()` if it's a reference.  In a `setter` or `cleaner`, remember not to call `cleanup()` on the referenced `Component` itself.  Note that a reference object is not a `Component`, so if you're looking at the actual contents of the field that holds the property rather than calling `getProperty()`, you can very easily tell whether you should call `cleanup()` on it.
+
+You can also define multiple `Registry` instances (and pass them into `o.createComponent()`) to create multiple namespaces for your references.  This way, with multiple `Player`s and `Registry`s, you can have potentially multiple audio applications in the same page without conflict.
+
+
+
+
 # Class Reference
 
 ## Global
@@ -173,6 +218,9 @@ The `AudioContext` for the `AudioNode`s used by Offtonic Audioplayer.
 
 #### `classRegistry` — *`ClassRegistry`*
 An object mapping `className` property values to class constructors.  You should not have to access this directly.
+
+#### `orchestra` — *`Orchestra`*
+An object mapping `instrument` property values to sets of properties.  You should not have to access this directly.
 
 #### `baseHref` — *string*
 URL of the base directory of Offtonic Audioplayer.  Useful if you need to provide absolute paths to something.
@@ -191,8 +239,8 @@ Retrieves the class instance from the class registry with the given `<className>
 #### `addModule(<modulePath>)`
 Adds to the `AudioContext`'s `AudioWorklet` an `AudioWorkletProcessor` subclass located at `<modulePath>`, a (string) URL path relative to the Offtonic Audioplayer's base directory.  If you create any `AudioWorkletProcessor` subclasses, you should add them here.  Adding the module to the audio context's `AudioWorklet` is a required step in the WebAudio API, but the paths can be confusing since relative URLs are actually compared to the HTML file the script is loaded from rather than the location of the module you're currently in.  This function simplifies this complication by considering all URLs to be relative to the base directory and turning them into absolute URLs with the `baseHref` field.
 
-#### `createComponent(<properties>, <player>)` — *`Component` subclass*
-Creates a `Component` instance based on `<properties>`, which is an object whose keys are property names and whose values are the property values, including the key `className`, whose value should be a class that has been previously registered with `registerClass()` (built-in classes are already registered).  `<player>` is the `Player` instance that should be attached to the component; if it is not provided (`null` or `undefined`), the default player (the global object's `player` field) will be used by default.  If any properties themselves define a new component (by containing `className`), `createComponent()` will be recursively called on them, with the same `<player>` argument.
+#### `createComponent(<properties>, <player>, <registry>)` — *`Component` subclass*
+Creates a `Component` instance based on `<properties>`, which is an object whose keys are property names and whose values are the property values, including the key `className`, whose value should be a class that has been previously registered with `registerClass()` (built-in classes are already registered).  `<player>` is the `Player` instance that should be attached to the component; if it is not provided (`null` or `undefined`), the default player (the global object's `player` field) will be used by default.  Similarly, `<registry>` is the player's `registry` unless another is provided.  If any properties themselves define a new component (by containing `className`), `createComponent()` will be recursively called on them, with the same `<player>` argument.
 
 
 
@@ -243,6 +291,32 @@ Removes the instrument named `<name>` from `instruments`, if it exists.  If it d
 
 
 
+## Registry
+
+A library/namespace for `Component` references, useful when multiple `Component`s share the same actual `Component` instance for some property.  This is *not* a singleton, since it could be useful to define separate namespaces (for example, in the case of multiple audio applications on the same page whose names may intersect).  The `Player` instance creates its own `Registry`, which is assigned by default to any new `Component`s associated with that `Player`.
+
+### Instance Fields
+
+#### `components` — *object where the keys are names and the values are `Component` instances* — default value `{}`
+The object that holds the component library.
+
+### Instance Methods
+
+#### `add(<component>)` — *boolean*
+Adds `<component>` to `components`, provided that it has key `name`, and returns `true`.  If it doesn't, or the name already exists, logs an error to the console and returns `false`.
+
+#### `get(<name>)` — *`Component`*
+Retrieves the `Component` with the given `<name>`, or `null` (with a logged error) if it can't find it.
+
+#### `remove(<name>)`
+Removes the `Component` with the given `<name>` from the registry.  If it wasn't there in the first place, logs an error.
+
+#### `contains(<name>)` — *boolean*
+Returns `true` if `<name>` is in `components` and `false` otherwise.
+
+
+
+
 ## Player
 
 A `Player` instance represents a destination for the `AudioNode`s of the `AudioComponent`s (generally `Playable`s, but you can play pretty any object that implements a few methods).  The player's `node` field is a `GainNode` to which playable nodes are connected, and that `GainNode` is connected to the `AudioContext`'s `destination` (generally the speakers) by default, but you can connect it to something else if you'd like.  In previous iterations of Offtonic Audioplayer, the `Player` was the `ScriptProcessorNode` responsible for playing all of the sound generated by the `AudioComponent`s, but in this current `AudioWorklet` implementation, that is not possible, so the `Player`'s job is less involved.  The `Player` does provide an opportunity to adjust master volume, master filters, etc., and since it's easy to simply create multiple `Player` instances and connect them to different destinations, including other `Player`s, you can even create multiple configurations and have different sounds play through each of them simultaneously.
@@ -259,28 +333,46 @@ Easily available `Global` singleton instance.
 #### `ctx` — *`AudioContext`*
 Default `AudioContext` from `o`, for convenience.
 
-#### `destination` — *`AudioNode`* — default `ctx.destination`
+#### `destination` — *`AudioNode`* — default value: `ctx.destination`
 Destination `AudioNode` to which all `Player` sound is sent.  Can be changed with `setDestination()`.
 
-#### `destinationIndex` — *number* — default `0`
+#### `destinationIndex` — *number* — default value: `0`
 Index of the input in the `destination` `AudioNode` to which the `Player` sends its sound.  Can be changed with `setDestination()`.
 
-#### `gain` — *number* — default `1`
+#### `gain` — *number* — default value: `1`
 Master gain for the `Player`.  Change it with `setGain()`.
 
 #### `node` — *`GainNode`*
 The sound-outputting `AudioNode` of the `Player`, to which `AudioComponent`s are connected to play sound, created at `Player` instance construction.
 
-#### `inputIndex` — *number* — default `0`
+#### `inputIndex` — *number* — default value: `0`
 Index of the input on `node` to which `AudioComponent`s should connect.  You probably shouldn't try to change this unless you override `setupNode()` to make `node` something other than a `GainNode` that has multiple inputs.
 
 #### `playing` — *array of `AudioComponent`s*
 Set of playable components that are playing right now.  When the `Player` plays a note, it goes into this array; when the `Player` stops a note, it's removed.  When `stopAll()` is called, all notes in the array are stopped and removed.
 
+#### `registry` — *`Registry`*
+The `Registry` instance associated with the `Player`.  All new `Component`s created with this `Player` are assigned this `registry` by default.
+
+#### `timer` — *`Timer`* — `Component` created from `{name: 'Default Timer', className: 'Timer'}`
+The default `Timer`, which counts the time since the `Player` was turned `on()`.  Its name is `'Default Timer'` and it's the default timer on most `AudioComponent`s that use one.
+
+#### `isOn` — *boolean* — default value: `false`
+Whether the `Player` is on.
+
 ### Instance Methods
 
+#### `on()`
+Calls `setupNode()` and creates and starts the `timer`.  Call this at the start of a session with this `Player`.
+
+#### `off()`
+Stops all notes, calls `cleanupNode()`, and cleans up the `timer`.  Call this at the end of a session with this `Player` to make sure that there aren't errant `AudioNode`s hanging around and leaking CPU time and memory.
+
 #### `setupNode()`
-Called at construction.  Creates the `node`, sets the gain, and connects it to `destination`.
+Called when the `Player` is turned `on()`.  Creates the `node`, sets the gain, and connects it to `destination`.
+
+#### `cleanupNode()`
+Called when the `Player` is turned `off()`.  Disconnects the `node` from the `destination` and tears it down.
 
 #### `setGain(<gain>)`
 Sets the `node`'s gain to `<gain>`.
@@ -304,6 +396,10 @@ Stops all playable notes by calling `disconnectFrom()` and `off()` on them, then
 
 A `Component` is a piece of the sound-producing apparatus of Offtonic Audioplayer that can be instantiated by means of a properties object.  `Component` should probably never be directly instantiated, since a `Component` doesn't actually *do* anything on its own; the `Component` superclass simply provides the necessary methods to parse the properties for its subclasses to inherit.
 
+### Properties
+
+#### `name` — *string* — `defaultValue`: `null` — `setter`: `'setName'` — `cleaner`: `'cleanupName'`
+
 ### Class Fields
 
 #### `o` — *`Global`*
@@ -320,8 +416,8 @@ Any subclass inheriting from `Component` has this field automatically populated 
 #### `generatePropertyDescriptors()`
 Copies the superclass's `propertyDescriptors` into a new object, adds this class's `newPropertyDescriptors` to the object (if present), then saves it in this class's `generatedPropertyDescriptors` for future retrieval through `propertyDescriptors`.  You shouldn't ever have to touch this method.
 
-#### `create(<properties>, <player>)` — `Component` subclass instance
-`o.createComponent()` just calls this method, so you should probably call that instead since it's easier.  Creates a new object with `<properties>` (after resolving all instruments named in it) as its properties and `<player>` as its player by calling the constructor specified in `<properties>.className` if present (if not, calls the current class's constructor), then `.withPlayer(<player>).withProperties(<properties>)` on the constructed object.
+#### `create(<properties>, <player>, <registry>)` — `Component` subclass instance
+`o.createComponent()` just calls this method, so you should probably call that instead since it's easier.  Creates a new object with `<properties>` (after resolving all instruments named in it) as its properties, `<player>` as its player, and `<registry>` as its registry by calling the constructor specified in `<properties>.className` if present (if not, calls the current class's constructor), then `.withPlayer(<player>).withRegistry(<registry>).withProperties(<properties>)` on the constructed object.
 
 ### Constructor
 
@@ -337,6 +433,9 @@ So you can easily check if a given object is a `Component` and therefore respond
 
 #### `player` — *Player*
 The `Player` instance passed to `create()` when creating this `Component`.  It's only really applicable for `Playable` instances, but since `Component` property definitions can be chained, all `Component`s created with a particular `create()` call are given the `Player`.
+
+#### `registry` — *Registry*
+The `Registry` instance passed to `create()` when creating this `Component`.  When any sub-component needs to resolve a reference, it will look inside this `registry`.
 
 ### Instance Methods
 
@@ -355,8 +454,11 @@ Sets the properties to the values in `<properties>`.  If `<useDefault>` is `true
 #### `finishSetup()`
 Does nothing in `Component`, but you can override it if you need.  Gets called at the end of `setProperties()` to initialize the `Component` and perform any tasks that need multiple properties to be around at the same time, like calculations.
 
-#### `getProperty(<propName>)` — *anything*
-Returns the value of the property with the specified `<propName>`, which may be a number, a `Component`, or really anything else.  If the property descriptor specifies a `getter`, that function will be called to retrieve the value; otherwise, `genericGetter()` is called.
+#### `getProperty(<propName>, <resolveReference>)` — *anything*
+Returns the value of the property with the specified `<propName>`, which may be a number, a `Component`, or really anything else.  If the property descriptor specifies a `getter`, that function will be called to retrieve the value; otherwise, `genericGetter()` is called.  If the value is a reference (an object with a `ref` field) and `<resolveReference>` is not explicitly set to `false`, the object returned will be the `Component` referenced, but if `resolveReference` is `false`, the object returned will be the object with the `ref` field.
+
+#### `resolveReference(<reference>)` — *anything*
+If `<reference>` is a non-`null` object with a `ref` field, returns the component stored in the `registry` under the value of `ref`; otherwise simply returns `<reference>`.
 
 #### `genericGetter(<propName>)` — *anything*
 Returns the value of `this.<propName>`, which is the default way to store property values.  When implementing a custom getter, you may want to consider calling `genericGetter()` during the process.
@@ -367,6 +469,9 @@ Instantiates `<propDefinition>` if necessary (meaning that `<propDefinition>.cla
 #### `genericSetter(<propName>, <propValue>)`
 Simply sets `this.<propName>` to `<propValue>`, which is the default way to store property values.  When implementing a custom setter, you may want to consider calling `genericSetter()` during the process.
 
+#### `setName(<name>)`
+Cleans up the existing `name`, sets the new `<name>`, and if that `<name>` isn't `null`, adds this `Component` to the `registry` under `<name>`.
+
 #### `cleanup()`
 Performs any cleanup tasks necessary, like dismantling `AudioNode`s that should no longer run and otherwise freeing resources.  If you override `cleanup()`, you should probably call `super.cleanup()` to make sure you don't miss something important.  In `Component`, `cleanup()` goes through every property and calls `cleanupProperty()` for the property.
 
@@ -375,6 +480,9 @@ If the property named by `<propName>` has a `cleaner` in its descriptor, this me
 
 #### `genericCleaner(<propName>)`
 If the property named by `<propName>` is itself a `Component`, calls `cleanup()` on the property, then sets `this.<propName>` to `null`.  If you need more specialized behavior and override this method, you should probably still call it from your override.
+
+#### `cleanupName()`
+Removes this `Component` from the `registry` (if `name` isn't `null`) and sets `name` to `null`.
 
 
 
@@ -469,11 +577,11 @@ If a `connector` or `disconnector` is provided for this property, that method is
 
 #### `connectAudioParam(<propName>)`
 #### `disconnectAudioParam(<propName>)`
-Called by `connectProperty()` and `disconnectProperty()` to handle properties with `isAudioParam` set to `true`.  If the value of the property named by `<propName>` is an `AudioComponent`, `value.on()` and `value.connectTo()` are called to connect it to the `AudioParam` object it needs to be connected to, and `value.disconnectFrom()` and `value.off()` are called to disconnect.  If the value is not an `AudioComponent`, it's simply assigned into the `AudioParam`'s `value` field on connection; there is no need to disconnect it afterward.
+Called by `connectProperty()` and `disconnectProperty()` to handle properties with `isAudioParam` set to `true`.  If the value of the property named by `<propName>` is an `AudioComponent`, `value.on()` (if it's not a reference) and `value.connectTo()` are called to connect it to the `AudioParam` object it needs to be connected to, and `value.disconnectFrom()` and `value.off()` (if it's not a reference) are called to disconnect.  If the value is not an `AudioComponent`, it's simply assigned into the `AudioParam`'s `value` field on connection; there is no need to disconnect it afterward.
 
 #### `connectInputIndex(<propName>)`
 #### `disconnectInputIndex(<propName>)`
-Called by `connectProperty()` and `disconnectProperty()` to handle properties with `inputIndex` set to a non-negative number.  The value is assumed to be an `AudioComponent`, and `value.on()` and `value.connectTo()` are called on connection and `value.disconnectFrom()` and `value.off()` are called on disconnection.
+Called by `connectProperty()` and `disconnectProperty()` to handle properties with `inputIndex` set to a non-negative number.  The value is assumed to be an `AudioComponent`, and `value.on()` (if it's not a reference) and `value.connectTo()` are called on connection and `value.disconnectFrom()` and `value.off()` (if it's not a reference) are called on disconnection.
 
 #### `getProcessorOptions()` — *object*
 Creates and returns the `options` object that the `AudioWorkletProcessor` is instantiated with.  The static fields `numberOfInputs`, `numberOfOutputs`, and `outputChannelCount` are added to this object if they're not `null`, as well as empty objects `parameterData` and `processorOptions`.  `parameterData` holds initial values for the `AudioParam`s of the node, which you should *not* set, and `processorOptions` holds extra options that are read only at the processor's instantiation.  See the WebAudio API docs for more details on this object.  After this basic object is set up, `addProcessorOption()` is called with each property descriptor.  If you want to set up some custom behavior in the `options` object, you should override this method, but you'll likely want to call `super.getProcessorOptions()` first to populate the object.
@@ -573,8 +681,8 @@ The `Playable` subclass of `AudioComponent` provides some basic mechanics for pl
 
 ### Properties
 
-#### `timer` — `Timer` — `defaultValue`: `{className: 'Timer'}` — `isAudioParam`: `true`
-Overwrites the `timer` property in `AudioComponent` in order to provide a default value.  This default value is the default `Timer`, which runs at 60000 BPM, so `duration` can be specified in ms by default.
+#### `timer` — `Timer` — `defaultValue`: `{ref: 'Default Timer'}` — `isAudioParam`: `true`
+Overwrites the `timer` property in `AudioComponent` in order to provide a default value.  This default value is a reference to the `'Default Timer'`, which runs at 60000 BPM, so `duration` can be specified in ms by default.
 
 #### `duration` — *number* — `defaultValue`: `null`
 Specifies the duration of the `Playable`, in beats of the `timer` (ms by default).  If it's `null`, the `Playable` will only release when you call `release()`, but if it's a number, `release()` will get called after the value of `duration` has elapsed.
@@ -733,14 +841,17 @@ Generates a linear change in value.  This can be useful when varying a parameter
 
 ### Properties
 
-#### `timer` — *`Timer`* — `defaultValue`: `{className: 'Timer'}` — `isAudioParam`: `true`
+#### `timer` — *`Timer`* — `defaultValue`: `{ref: 'Default Timer'}` — `isAudioParam`: `true`
 Overrides `AudioComponent`'s `timer` property to set a default.
 
 #### `startTime` — *number* — `defaultValue`: `0` — `isProcessorOption`: `true`
 #### `startValue` — *number* — `defaultValue`: `0` — `isProcessorOption`: `true`
 #### `endTime` — *number* — `defaultValue`: `1000` — `isProcessorOption`: `true`
 #### `endValue` — *number* — `defaultValue`: `1` — `isProcessorOption`: `true`
-The `LinearGenerator` starts with `startValue`.  At time `startTime` according to the `timer`, it starts ramping the value linearly to reach `endValue` at `endTime`, which it will keep outputting.
+The `LinearGenerator` starts with `startValue`.  At time `startTime` according to the `timer` (see `isAbsolute`), it starts ramping the value linearly to reach `endValue` at `endTime`, which it will keep outputting.
+
+#### `isAbsolute` — *boolean* — `defaultValue`: `false` — `isProcessorOption`: `true`
+Whether `startTime` and `endTime` are absolute or relative to when the `LinearGenerator` was first turned `on()`.  If `isAbsolute` is `true`, a `startTime` of 500 will mean that the ramp-up will start when the `timer` says 500; if `isAbsolute` is `false`, a `startTime` of 500 will mean that the ramp-up will start 500 `timer` counts after the processor starts.
 
 ### Class Fields
 
@@ -755,16 +866,24 @@ Generates a linear change in value.  This can be useful when varying a parameter
 
 ### Processor Options
 
+#### `isAbsolute` — *boolean*
+Whether `startTime` and `endTime` are absolute numbers on `timer` or are relative to when the processor starts.
+
 #### `startTime` — *number*
 #### `startValue` — *number*
 #### `endTime` — *number*
 #### `endValue` — *number*
-The `LinearGeneratorProcessor` starts with `startValue`.  At time `startTime` according to the `timer`, it starts ramping the value linearly to reach `endValue` at `endTime`, which it will keep outputting.
+The `LinearGeneratorProcessor` starts with `startValue`.  At time `startTime` according to the `timer` (see `isAbsolute`), it starts ramping the value linearly to reach `endValue` at `endTime`, which it will keep outputting.
+
+### Instance Fields
+
+#### `timesSet` — *boolean* — default value: `isAbsolute`
+When the processor is constructed, we don't actually have any data from its `AudioParam`s, so we don't know what time the `timer` says.  If `isAbsolute` is `false`, we still need to calculate `startTime` and `endTime`, so we set this flag to `false` and fix the issue when we do have the data available.
 
 ### Instance Methods
 
 #### `generate()` — *number*
-If the current time according to the `timer` is before `startTime`, returns `startValue`; if after `endTime`, returns `endValue`; otherwise, returns a linear interpolation between them.
+If `timesSet` is `false`, adds the current `timer` time to `startTime` and `endTime` and sets `timesSet` to `true`.  If the current time according to the `timer` is before `startTime`, returns `startValue`; if after `endTime`, returns `endValue`; otherwise, returns a linear interpolation between them.
 
 
 
