@@ -1,5 +1,3 @@
-Default timer reference
-
 Filters
 
 All the different generators:
