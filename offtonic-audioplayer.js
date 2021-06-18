@@ -1,38 +1,38 @@
-import classRegistry from './lib/ClassRegistry.js';
-import orchestra from './lib/Orchestra.js';
+import classRegistry from './lib/registries/ClassRegistry.js';
+import orchestra from './lib/registries/Orchestra.js';
 
 import Player from './lib/Player.js';
-import Registry from './lib/Registry.js';
+import Registry from './lib/registries/Registry.js';
 
-import Component from './lib/Component.js';
-import AudioComponent from './lib/AudioComponent.js';
-import Playable from './lib/Playable.js';
+import Component from './lib/components/Component.js';
+import AudioComponent from './lib/components/AudioComponent.js';
+import Playable from './lib/components/Playable.js';
 
-import Adder from './lib/arithmetic/Adder.js';
-import Multiplier from './lib/arithmetic/Multiplier.js';
+import Adder from './lib/components/arithmetic/Adder.js';
+import Multiplier from './lib/components/arithmetic/Multiplier.js';
 
-import Generator from './lib/generators/Generator.js';
+import Generator from './lib/components/generators/Generator.js';
 
-import ConstantGenerator from './lib/generators/ConstantGenerator.js';
-import LinearGenerator from './lib/generators/LinearGenerator.js';
+import ConstantGenerator from './lib/components/generators/ConstantGenerator.js';
+import LinearGenerator from './lib/components/generators/LinearGenerator.js';
 
-import WhiteNoiseGenerator from './lib/generators/WhiteNoiseGenerator.js';
-import RedNoiseGenerator from './lib/generators/RedNoiseGenerator.js';
+import WhiteNoiseGenerator from './lib/components/generators/WhiteNoiseGenerator.js';
+import RedNoiseGenerator from './lib/components/generators/RedNoiseGenerator.js';
 
-import Oscillator from './lib/generators/Oscillator.js';
-import SineOscillator from './lib/generators/SineOscillator.js';
-import TriangleOscillator from './lib/generators/TriangleOscillator.js';
-import SquareOscillator from './lib/generators/SquareOscillator.js';
-import SawtoothOscillator from './lib/generators/SawtoothOscillator.js';
+import Oscillator from './lib/components/generators/Oscillator.js';
+import SineOscillator from './lib/components/generators/SineOscillator.js';
+import TriangleOscillator from './lib/components/generators/TriangleOscillator.js';
+import SquareOscillator from './lib/components/generators/SquareOscillator.js';
+import SawtoothOscillator from './lib/components/generators/SawtoothOscillator.js';
 
-import Envelope from './lib/envelopes/Envelope.js';
-import ADSREnvelope from './lib/envelopes/ADSREnvelope.js';
+import Envelope from './lib/components/envelopes/Envelope.js';
+import ADSREnvelope from './lib/components/envelopes/ADSREnvelope.js';
 
-import Filter from './lib/filters/Filter.js';
+import Filter from './lib/components/filters/Filter.js';
 
-import Timer from './lib/Timer.js';
+import Timer from './lib/components/Timer.js';
 
-import Tone from './lib/Tone.js';
+import Tone from './lib/components/Tone.js';
 
 class Global {
   constructor() {
@@ -61,51 +61,51 @@ class Global {
     this.Adder = Adder;
     this.registerClass('Adder', Adder);
     this.Multiplier = Multiplier;
-    this.addModule('lib/processors/MultiplierProcessor.js');
+    this.addModule('lib/processors/arithmetic/MultiplierProcessor.js');
     this.registerClass('Multiplier', Multiplier);
 
     this.Generator = Generator;
-    this.addModule('lib/processors/GeneratorProcessor.js');
+    this.addModule('lib/processors/generators/GeneratorProcessor.js');
     this.registerClass('Generator', Generator);
 
     this.ConstantGenerator = ConstantGenerator;
     this.registerClass('ConstantGenerator', ConstantGenerator);
     this.LinearGenerator = LinearGenerator;
-    this.addModule('lib/processors/LinearGeneratorProcessor.js');
+    this.addModule('lib/processors/generators/LinearGeneratorProcessor.js');
     this.registerClass('LinearGenerator', LinearGenerator);
 
     this.WhiteNoiseGenerator = WhiteNoiseGenerator;
-    this.addModule('lib/processors/WhiteNoiseGeneratorProcessor.js');
+    this.addModule('lib/processors/generators/WhiteNoiseGeneratorProcessor.js');
     this.registerClass('WhiteNoiseGenerator', WhiteNoiseGenerator);
     this.RedNoiseGenerator = RedNoiseGenerator;
-    this.addModule('lib/processors/RedNoiseGeneratorProcessor.js');
+    this.addModule('lib/processors/generators/RedNoiseGeneratorProcessor.js');
     this.registerClass('RedNoiseGenerator', RedNoiseGenerator);
 
     this.Oscillator = Oscillator;
-    this.addModule('lib/processors/OscillatorProcessor.js');
+    this.addModule('lib/processors/generators/OscillatorProcessor.js');
     this.registerClass('Oscillator', Oscillator);
     this.SineOscillator = SineOscillator;
-    this.addModule('lib/processors/SineOscillatorProcessor.js');
+    this.addModule('lib/processors/generators/SineOscillatorProcessor.js');
     this.registerClass('SineOscillator', SineOscillator);
     this.TriangleOscillator = TriangleOscillator;
-    this.addModule('lib/processors/TriangleOscillatorProcessor.js');
+    this.addModule('lib/processors/generators/TriangleOscillatorProcessor.js');
     this.registerClass('TriangleOscillator', TriangleOscillator);
     this.SquareOscillator = SquareOscillator;
-    this.addModule('lib/processors/SquareOscillatorProcessor.js');
+    this.addModule('lib/processors/generators/SquareOscillatorProcessor.js');
     this.registerClass('SquareOscillator', SquareOscillator);
     this.SawtoothOscillator = SawtoothOscillator;
-    this.addModule('lib/processors/SawtoothOscillatorProcessor.js');
+    this.addModule('lib/processors/generators/SawtoothOscillatorProcessor.js');
     this.registerClass('SawtoothOscillator', SawtoothOscillator);
 
     this.Envelope = Envelope;
-    this.addModule('lib/processors/EnvelopeProcessor.js');
+    this.addModule('lib/processors/envelopes/EnvelopeProcessor.js');
     this.registerClass('Envelope', Envelope);
     this.ADSREnvelope = ADSREnvelope;
-    this.addModule('lib/processors/ADSREnvelopeProcessor.js');
+    this.addModule('lib/processors/envelopes/ADSREnvelopeProcessor.js');
     this.registerClass('ADSREnvelope', ADSREnvelope);
 
     this.Filter = Filter;
-    this.addModule('lib/processors/FilterProcessor.js');
+    this.addModule('lib/processors/filters/FilterProcessor.js');
     this.registerClass('Filter', Filter);
 
     this.Timer = Timer;

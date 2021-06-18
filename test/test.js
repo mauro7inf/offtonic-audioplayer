@@ -66,6 +66,7 @@ o.orchestra.add({
   });
 
 let timeouts = [];
+let finallyActions = {};
 
 window.addEventListener("load", function (e) {
   load();
@@ -73,6 +74,9 @@ window.addEventListener("load", function (e) {
 
 function load() {
   console.log('Loaded!');
+  console.log('You will see logged here the specifics of each test and nothing else.  ' +
+    'It should say "Loaded!" when you load the test page, "Start!" when you start the test, and "Done!" when the test ends, ' +
+    'as well as "Stop!" if you hit the Stop button.  Any other logs, warnings, or errors should be considered test failures.');
   document.getElementById('start').addEventListener("click", function (e) {
     start();
   });
@@ -120,24 +124,37 @@ function start() {
 
 function stop() {
   console.log('Stop!');
-  o.player.off();
-  gainAdjustedPlayer.off();
   timeouts.forEach(timeout => {
     clearTimeout(timeout);
   });
+  timeouts = [];
+  o.player.stopAll();
+  gainAdjustedPlayer.stopAll();
+  Object.values(finallyActions).forEach(action => action());
+  o.player.off();
+  gainAdjustedPlayer.off();
 }
 
 function schedule(action, time) {
   timeouts.push(setTimeout(action, time));
 }
 
+function scheduleFinally(action, time, key) { // this will still happen even if we stop the tests
+  finallyActions[key] = action;
+  timeouts.push(setTimeout(() => {
+    delete finallyActions[key];
+    action();
+  }, time));
+}
+
 function refTest() {
-  if (o.player.registry.contains('cresc')) {
+  console.log('You should hear five notes with vibrato in a continuous crescendo.');
+  /*if (o.player.registry.contains('cresc')) {
     o.player.registry.get('cresc').cleanup();
   }
   if (o.player.registry.contains('mod')) {
     o.player.registry.get('mod').cleanup();
-  }
+  }*/
   const cresc = o.createComponent({
     name: 'cresc',
     className: 'LinearGenerator',
@@ -207,7 +224,7 @@ function refTest() {
   schedule(() => {
     refTone5.play();
   }, 1000);
-  schedule(() => {
+  scheduleFinally(() => {
     cresc.cleanup();
     mod.cleanup();
     console.log('refTest end');
@@ -215,6 +232,8 @@ function refTest() {
 }
 
 function noiseTest() {
+  console.log('You should hear some white noise getting louder, some red noise getting higher, ' +
+      'and an insect-like buzz going about randomly.');
   const noise1 = o.createComponent({
     className: 'Tone',
     generator: {
@@ -288,6 +307,7 @@ function noiseTest() {
 }
 
 function replaceValueTest() {
+  console.log('You should hear one continuous tone.');
   const replaceValueTone = o.createComponent({
     className: 'Tone',
     generator: {
@@ -321,6 +341,7 @@ function replaceValueTest() {
 }
 
 function arithmeticTest() {
+  console.log('You should hear a tone that slides up a fifth then up to the octave.');
   const arithmeticTone = o.createComponent({
     className: 'Tone',
     generator: {
@@ -378,6 +399,7 @@ function arithmeticTest() {
 }
 
 function waveTest() {
+  console.log('You should hear four slow tones, ascending, with different timbres, the first three of which start clear and get brassy.');
   const wave1 = o.createComponent({
     instrument: 'waveTestTone',
     frequency: 300,
@@ -429,6 +451,7 @@ function waveTest() {
 }
 
 function toneTest() {
+  console.log('You should hear an articulated tone that goes up an octave and ends with a long release.');
   const tone1 = o.createComponent({
     instrument: 'test1',
     frequency: 256,
@@ -452,6 +475,7 @@ function toneTest() {
 }
 
 function sineOscillatorTest() {
+  console.log('You should hear a three-note chord that starts and stops with clicks rather than smoothly.');
   const sineOscillator1 = o.createComponent({
     className: 'SineOscillator',
     frequency: {
@@ -482,6 +506,7 @@ function sineOscillatorTest() {
 }
 
 function prototypeTest() {
+  console.log('You should hear some white noise briefly.');
   const prototypeNote = new PrototypeNote();
   schedule(() => {
     console.log('prototypeTest start');
