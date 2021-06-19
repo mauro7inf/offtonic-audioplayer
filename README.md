@@ -213,6 +213,9 @@ The `Global` singleton class (found in `offtonic-audioplayer.js`, imported in th
 
 ### Instance Fields
 
+#### `debug` — *boolean* — default value: `false`
+Set this to `true` if you want to see warnings in the console (anything displayed with `o.info()`, o.warn()`, or `o.error()`).
+
 #### `ctx` — *`AudioContext`*
 The `AudioContext` for the `AudioNode`s used by Offtonic Audioplayer.
 
@@ -242,6 +245,11 @@ Adds to the `AudioContext`'s `AudioWorklet` an `AudioWorkletProcessor` subclass 
 #### `createComponent(<properties>, <player>, <registry>)` — *`Component` subclass*
 Creates a `Component` instance based on `<properties>`, which is an object whose keys are property names and whose values are the property values, including the key `className`, whose value should be a class that has been previously registered with `registerClass()` (built-in classes are already registered).  `<player>` is the `Player` instance that should be attached to the component; if it is not provided (`null` or `undefined`), the default player (the global object's `player` field) will be used by default.  Similarly, `<registry>` is the player's `registry` unless another is provided.  If any properties themselves define a new component (by containing `className`), `createComponent()` will be recursively called on them, with the same `<player>` argument.
 
+#### `info(...<args>)`
+#### `warn(...<args>)`
+#### `error(...<args>)`
+If `debug` is set to `true`, calls `console.info(<args>)`, `console.warn(<args>)`, and `console.error(<args>)`, respectively.  Note that `info()` does not (currently) provide a call stack in Chrome, while `warn()` and `error()` do.
+
 
 
 
@@ -250,6 +258,9 @@ Creates a `Component` instance based on `<properties>`, which is an object whose
 The `ClassRegistry` singleton simply contains an object whose keys are class names and whose values are constructors.  You shouldn't have to interact with this class directly.
 
 ### Instance Fields
+
+#### `o` — *`Global`*
+It's just here to access the logging functionality.
 
 #### `classes` — *object*
 An object whose keys are class name strings and whose values are their corresponding class instance (constructor function).
@@ -280,13 +291,13 @@ An object whose keys are instrument `name` strings and whose values are their co
 Copies the `<properties>` to a new object, recursively adding any properties from instruments named by `instrument` fields inside.  For an example, see the section on Instruments above.  This gets called at `Component` creation; you should never have to call it yourself.
 
 #### `add(<instrument>)` — *boolean*
-Adds the `<instrument>` to the `instruments` object under key `<instrument>.name` if it exists, returning `true`.  If that field does not exist or if the key already exists, an error is logged and `false` is returned instead.  You should call this to register any instruments that you create.
+Adds the `<instrument>` to the `instruments` object under key `<instrument>.name` if it exists, returning `true`.  If that field does not exist or if the key already exists, `false` is returned instead.  You should call this to register any instruments that you create.
 
 #### `get(<name>)` — *object*
-Returns the instrument with `name` `<name>`, if it exists.  If it does not, logs an error and returns `{}`.
+Returns the instrument with `name` `<name>`, if it exists.  If it does not, returns `{}`.
 
 #### `remove(<name>)`
-Removes the instrument named `<name>` from `instruments`, if it exists.  If it does not, logs an error.
+Removes the instrument named `<name>` from `instruments`, if it exists.
 
 
 
@@ -303,13 +314,13 @@ The object that holds the component library.
 ### Instance Methods
 
 #### `add(<component>)` — *boolean*
-Adds `<component>` to `components`, provided that it has key `name`, and returns `true`.  If it doesn't, or the name already exists, logs an error to the console and returns `false`.
+Adds `<component>` to `components`, provided that it has key `name`, and returns `true`.  If it doesn't, or the name already exists, returns `false`.
 
 #### `get(<name>)` — *`Component`*
-Retrieves the `Component` with the given `<name>`, or `null` (with a logged error) if it can't find it.
+Retrieves the `Component` with the given `<name>`, or `null` if it can't find it.
 
 #### `remove(<name>)`
-Removes the `Component` with the given `<name>` from the registry.  If it wasn't there in the first place, logs an error.
+Removes the `Component` with the given `<name>` from the registry (if it's there).
 
 #### `contains(<name>)` — *boolean*
 Returns `true` if `<name>` is in `components` and `false` otherwise.
@@ -530,6 +541,9 @@ Returns the name of the processor option that the property named by `<propName>`
 
 #### `getParamFromNode(<node>, <paramName>, <isNativeNode>)` — `AudioParam`
 Utility method that returns the `AudioParam` object with the given `<paramName>` from the given `<node>`.  Params are accessed differently depending on whether the node is a native node or an `AudioWorkletNode`, so that switch is necessary.  You can use this `AudioParam` to connect `AudioNodes` to it.
+
+#### `disconnectNodes(<node1>, <outputIndex>, <node2>, <inputIndex>)`
+Disconnects `<node1>`'s output number `<outputIndex>` from `<node2>`'s input number `<inputIndex>`.  `<inputIndex>` is optional and should be omitted if `<node2>` is actually an `AudioParam`.  Disconnecting nodes can fail if the connection no longer exists for whatever reason, so the disconnection here happens in a `try`/`catch`, and if it fails, a warning is logged (if `o.debug` is `true`).  You should use this instead of simply calling `disconnect` on the node unless you *know* the connection is still there.  Cases where it might not be are when the `player` is turned `off()`, which destroys the default timer, while `AudioComponents` still using that default timer live in the `registry`.  Offtonic Audioplayer can't guarantee that resources in the `registry` will be cleaned up in the proper order, so it's likely that this will result in references being cleaned up before their dependencies.
 
 ### Instance Fields
 

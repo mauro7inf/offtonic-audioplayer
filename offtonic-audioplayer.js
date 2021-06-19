@@ -36,9 +36,11 @@ import Tone from './lib/components/Tone.js';
 
 class Global {
   constructor() {
+    this.debug = false;
     // global context stuff
     this.ctx = window.AudioContext ? new AudioContext() : new webkitAudioContext();
     this.classRegistry = classRegistry;
+    this.classRegistry.o = this;
     this.orchestra = orchestra;
     this.Registry = Registry;
 
@@ -138,6 +140,24 @@ class Global {
       registry = player.registry;
     }
     return this.Component.create(properties, player, registry);
+  }
+
+  info(...args) {
+    if (this.debug) {
+      console.info.apply(console, args);
+    }
+  }
+
+  warn(...args) {
+    if (this.debug) {
+      console.warn.apply(console, args);
+    }
+  }
+
+  error(...args) {
+    if (this.debug) {
+      console.error.apply(console, args);
+    }
   }
 }
 

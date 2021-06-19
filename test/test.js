@@ -1,6 +1,7 @@
 import o from '../offtonic-audioplayer.js';
 
 window.o = o; // for console debugging
+o.debug = true;
 
 let gainAdjustedPlayer = new o.Player();
 gainAdjustedPlayer.setGain(0.1);
@@ -128,11 +129,11 @@ function stop() {
     clearTimeout(timeout);
   });
   timeouts = [];
-  o.player.stopAll();
-  gainAdjustedPlayer.stopAll();
-  Object.values(finallyActions).forEach(action => action());
   o.player.off();
   gainAdjustedPlayer.off();
+  Object.values(finallyActions).forEach(action => action());
+  //o.player.off();
+  //gainAdjustedPlayer.off();
 }
 
 function schedule(action, time) {
@@ -149,12 +150,6 @@ function scheduleFinally(action, time, key) { // this will still happen even if 
 
 function refTest() {
   console.log('You should hear five notes with vibrato in a continuous crescendo.');
-  /*if (o.player.registry.contains('cresc')) {
-    o.player.registry.get('cresc').cleanup();
-  }
-  if (o.player.registry.contains('mod')) {
-    o.player.registry.get('mod').cleanup();
-  }*/
   const cresc = o.createComponent({
     name: 'cresc',
     className: 'LinearGenerator',
@@ -225,8 +220,11 @@ function refTest() {
     refTone5.play();
   }, 1000);
   scheduleFinally(() => {
+    console.log('If the player has previously stopped, there may be a warning here.');
     cresc.cleanup();
     mod.cleanup();
+  }, 2000);
+  schedule(() => {
     console.log('refTest end');
   }, 2000);
 }
