@@ -94,7 +94,7 @@ function start() {
   const filterTestTime = 0;
   schedule(filterTest, filterTestTime);
 
-  const refTestTime = filterTestTime + 2500;
+  const refTestTime = filterTestTime + 5000;
   schedule(refTest, refTestTime);
 
   const noiseTestTime = refTestTime + 2500;
@@ -152,7 +152,8 @@ function scheduleFinally(action, time, key) { // this will still happen even if 
 }
 
 function filterTest() {
-  console.log('You should hear a slowly waving sawtooth.');
+  console.log('You should hear a slowly waving sawtooth, then a wavy tone that goes up and down.');
+
   const filterTone1 = o.createComponent({
     className: 'Tone',
     generator: {
@@ -184,9 +185,49 @@ function filterTest() {
     console.log('filterTest start');
     filterTone1.play();
   }, 0);
+
+  const filterTone2 = o.createComponent({
+    className: 'Tone',
+    duration: 2000,
+    generator: {
+      className: 'SineOscillator'
+    },
+    frequency: {
+      className: 'SineOscillator',
+      frequency: 2,
+      scaling: 30,
+      offset: 330,
+      filter: {
+        className: 'CutoffFilter',
+        highCutoff: 333,
+        lowCutoff: 300,
+        isNormalized: false
+      }
+    },
+    gain: 0.1,
+    filter: {
+      className: 'CutoffFilter',
+      isNormalized: true,
+      highCutoff: {
+        className: 'TriangleOscillator',
+        frequency: 1.5,
+        scaling: 0.49,
+        offset: 0.5
+      },
+      lowCutoff: {
+        className: 'TriangleOscillator',
+        frequency: 1.25,
+        scaling: 0.49,
+        offset: -0.5
+      }
+    }
+  });
+  schedule(() => {
+    filterTone2.play();
+  }, 2500);
   schedule(() => {
     console.log('filterTest end');
-  }, 2100);
+  }, 4600);
 }
 
 function refTest() {

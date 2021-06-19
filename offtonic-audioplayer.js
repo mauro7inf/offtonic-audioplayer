@@ -30,6 +30,7 @@ import ADSREnvelope from './lib/components/envelopes/ADSREnvelope.js';
 
 import Filter from './lib/components/filters/Filter.js';
 import FirstOrderFilter from './lib/components/filters/FirstOrderFilter.js';
+import CutoffFilter from './lib/components/filters/CutoffFilter.js';
 
 import Timer from './lib/components/Timer.js';
 
@@ -113,6 +114,9 @@ class Global {
     this.FirstOrderFilter = FirstOrderFilter;
     this.addModule('lib/processors/filters/FirstOrderFilterProcessor.js');
     this.registerClass('FirstOrderFilter', FirstOrderFilter);
+    this.CutoffFilter = CutoffFilter;
+    this.addModule('lib/processors/filters/CutoffFilterProcessor.js');
+    this.registerClass('CutoffFilter', CutoffFilter);
 
     this.Timer = Timer;
     this.addModule('lib/processors/TimerProcessor.js');
