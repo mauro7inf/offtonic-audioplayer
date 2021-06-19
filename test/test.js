@@ -91,7 +91,10 @@ function start() {
   o.player.on();
   gainAdjustedPlayer.on();
 
-  const refTestTime = 0;
+  const filterTestTime = 0;
+  schedule(filterTest, filterTestTime);
+
+  const refTestTime = filterTestTime + 2500;
   schedule(refTest, refTestTime);
 
   const noiseTestTime = refTestTime + 2500;
@@ -146,6 +149,44 @@ function scheduleFinally(action, time, key) { // this will still happen even if 
     delete finallyActions[key];
     action();
   }, time));
+}
+
+function filterTest() {
+  console.log('You should hear a slowly waving sawtooth.');
+  const filterTone1 = o.createComponent({
+    className: 'Tone',
+    generator: {
+      className: 'SawtoothOscillator'
+    },
+    frequency: 333,
+    duration: 2000,
+    gain: 0.1,
+    filter: {
+      className: 'FirstOrderFilter',
+      a0: 2,
+      b0: {
+        className: 'SineOscillator',
+        frequency: 1,
+        initialPhase: 0,
+        scaling: 0.5,
+        offset: 1
+      },
+      a1: {
+        className: 'SineOscillator',
+        frequency: 1,
+        initialPhase: 0,
+        scaling: -0.5,
+        offset: 1
+      }
+    }
+  });
+  schedule(() => {
+    console.log('filterTest start');
+    filterTone1.play();
+  }, 0);
+  schedule(() => {
+    console.log('filterTest end');
+  }, 2100);
 }
 
 function refTest() {

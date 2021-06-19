@@ -29,6 +29,7 @@ import Envelope from './lib/components/envelopes/Envelope.js';
 import ADSREnvelope from './lib/components/envelopes/ADSREnvelope.js';
 
 import Filter from './lib/components/filters/Filter.js';
+import FirstOrderFilter from './lib/components/filters/FirstOrderFilter.js';
 
 import Timer from './lib/components/Timer.js';
 
@@ -109,6 +110,9 @@ class Global {
     this.Filter = Filter;
     this.addModule('lib/processors/filters/FilterProcessor.js');
     this.registerClass('Filter', Filter);
+    this.FirstOrderFilter = FirstOrderFilter;
+    this.addModule('lib/processors/filters/FirstOrderFilterProcessor.js');
+    this.registerClass('FirstOrderFilter', FirstOrderFilter);
 
     this.Timer = Timer;
     this.addModule('lib/processors/TimerProcessor.js');

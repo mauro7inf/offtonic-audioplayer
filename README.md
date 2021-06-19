@@ -1429,3 +1429,8 @@ Can be instantiated with any number of inputs.  Simply multiplies together all o
 
 #### `_process(<outputs>)` — *boolean*
 For each channel and frame, multiplies together all of the inputs and sticks the result in `<outputs>` for that channel and frame.  Returns `true`.  If there are no inputs to multiply together, stores `0`'s in the `<outputs>`.  This last bit may seem counterintuitive, since the empty product is actually equal to 1 rather than 0, but if there are no inputs, we should assume that the inputs have ended and are therefore just `0`.
+
+
+
+
+## Filter < AudioComponent < Component
