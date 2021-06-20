@@ -29,6 +29,7 @@ import Envelope from './lib/components/envelopes/Envelope.js';
 import ADSREnvelope from './lib/components/envelopes/ADSREnvelope.js';
 
 import Filter from './lib/components/filters/Filter.js';
+import LinearFilter from './lib/components/filters/LinearFilter.js';
 import FirstOrderFilter from './lib/components/filters/FirstOrderFilter.js';
 import CutoffFilter from './lib/components/filters/CutoffFilter.js';
 import StepFilter from './lib/components/filters/StepFilter.js';
@@ -112,6 +113,9 @@ class Global {
     this.Filter = Filter;
     this.addModule('lib/processors/filters/FilterProcessor.js');
     this.registerClass('Filter', Filter);
+    this.LinearFilter = LinearFilter;
+    this.addModule('lib/processors/filters/LinearFilterProcessor.js');
+    this.registerClass('LinearFilter', LinearFilter);
     this.FirstOrderFilter = FirstOrderFilter;
     this.addModule('lib/processors/filters/FirstOrderFilterProcessor.js');
     this.registerClass('FirstOrderFilter', FirstOrderFilter);

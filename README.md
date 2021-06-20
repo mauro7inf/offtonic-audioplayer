@@ -57,6 +57,9 @@ Property name, which is also the key in the `propertyDescriptors` object (the va
 #### `defaultValue` — value or *object* (optional)
 Default value of the property if no value is provided at object creation (as part of the `withProperties()` call).  This can be an object containing the properties to define a new component.  A default value for a property is set on the component at the same time that a non-default value would have been set for that property; if a value *is* provided, a `Component` instance defined in the `defaultValue` property does not get instantiated.
 
+#### `value` — value or *object* (optional)
+Value of the property, regardless of whether a value is provided (any provided value is ignored).  Use this in subclasses that fix a specific value for a superclass property.
+
 #### `getter` and `setter` — *string* (optional)
 The values are method names that get called when `getProperty()` and `setProperty()` are called.  `Component` provides `genericGetter()` and `genericSetter()` that do the basics, but if you need more functionality, or if your property works differently from the default way of handling them, you can provide a getter and/or setter.
 
@@ -1474,6 +1477,55 @@ Returns `<input>`.  Override this if you want more interesting behavior.  The ot
 
 
 
+## LinearFilter < Filter < AudioComponent < Component
+
+A `Filter` that can be subclassed to be a linear filter, meaning that it remembers the last few inputs and outputs and the new output is a linear combination of the old inputs and outputs.  For an input x(n) and output y(n), where x(n) is the nth sample of the input, x(n – 1) is the (n – 1)th, etc., a general linear filter has the relation a0·y(n) + a1·y(n – 1) + a2·y(n – 2) + ... = b0·x(n) + b1·x(n – 1) + b2·x(n – 2) + ....  The ai terms are called the feedback coefficients and the bi terms are called the feedforward coefficients.  If a0 = 0, we can't actually determine y(n), which is the output, and if b0 = 0, the input x(n) is ignored, so it's usually a bad idea for either value to be 0.  The `LinearFilter` itself doesn't do anything; you should use its subclasses for interesting behavior.
+
+### Properties
+
+#### `memory` — *nonnegative integer* — `value`: `0` — `isProcessorOption`: `true`
+How many previous inputs and outputs are necessary to keep around.  If this is `0`, you might as well just use a `GainNode`, so any subclasses should set this value to whatever makes sense for the subclass.
+
+### Class Fields
+
+#### `processorName` — *string* — `'LinearFilterProcessor'`
+
+
+
+
+## LinearFilterProcessor < FilterProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+A base processor class for linear filters.  For an input x(n) and output y(n), where x(n) is the nth sample of the input, x(n – 1) is the (n – 1)th, etc., a general linear filter has the relation a0·y(n) + a1·y(n – 1) + a2·y(n – 2) + ... = b0·x(n) + b1·x(n – 1) + b2·x(n – 2) + ....  The ai terms are called the feedback coefficients and the bi terms are called the feedforward coefficients.  If a0 = 0, we can't actually determine y(n), which is the output, and if b0 = 0, the input x(n) is ignored, so it's usually a bad idea for either value to be 0.  If you subclass this, the only things you actually need to override are `getFeedbackCoefficients()` and `getFeedforwardCoefficients()`, which return the ai and bi, respectively.
+
+### Processor Options
+
+#### `memory` — *nonnegative integer*
+How many old input and output values to keep around.  The same number is used for both inputs and outputs for simplicity, so don't worry if you need less of one than the other.
+
+### Instance Fields
+
+#### `lastInputs` — *array of arrays of numbers* — default value: `[]`
+#### `lastOutputs` — *array of arrays of numbers* — default value: `[]`
+The values to keep.  Each of these is an array where the array index is the channel index, and the values are arrays containing the last `memory` inputs and outputs.  So, if you want the second-to-last input in channel 0, you'd get `lastInputs[0][1]` (since `lastInputs[0][0]` is the last index).  When `prefillMemory()` is called, the arrays of inputs and outputs are prefilled with `0`.
+
+### Instance Methods
+
+#### `filter(<input>, <frame>, <channel>)` — *number*
+Calls `prefillMemory()`, `getFeedbackCoefficients()`, and `getFeedforwardCoefficients()`, calculates the output, calls `addToMemory()`, and returns the output.  If the output is not finite, it's set to `0`.  This is because if for whatever reason a value in the filter becomes infinite, *all* subsequent values will be infinite as well due to the memory, so this allows the processor to recover gracefully.  You should not need to override this method if you're implementing a linear filter (and it's actually linear).
+
+#### `getFeedbackCoefficients(<frame>)` — *array of numbers*
+#### `getFeedforwardCoefficients(<frame>)` — *array of numbers*
+Both return `[1]`.  You should probably override these methods to do something rather than doing nothing, but the 0th element of both return values should probably be nonzero.
+
+#### `prefillMemory(<channel>)`
+Since we don't know how many channels this `AudioNode` will have, when we call `filter()` with a particular `<channel>`, we check in this method whether `lastInputs` and `lastOutputs` have a `<channel>` element, and if not, we add it and fill it with `memory` `0`'s.
+
+#### `addToMemory(<input>, <output>, <channel>)`
+If `memory` is greater than 0, pops the last value of `lastInputs` and `lastOutputs` and inserts `<input>` and `<output>`, respectively, at the beginning of the arrays.  This keeps the most recent values at position 0.
+
+
+
+
 ## FirstOrderFilter < Filter < AudioComponent < Component
 
 A `Filter` that applies a first-order transfer function.  In layman's terms (well... relatively speaking), if your input is x(n) and your output is y(n), a first-order filter is defined by a0·y(n) + a1·y(n – 1) = b0·x(n) + b1·x(n – 1).  There are other formulations of the same thing, but for our purposes, what this means is that we output a kind of average between the current input and the previous output.
@@ -1486,6 +1538,9 @@ A `Filter` that applies a first-order transfer function.  In layman's terms (wel
 #### `b1` — *number or `AudioParam`* — `defaultValue`: `0` — `isAudioParam`: `true`
 If x(n) is the input signal and y(n) is the output, `a0`·y(n) + `a1`·y(n – 1) = `b0`·x(n) + `b1`·x(n – 1).
 
+#### `memory` — *nonnegative integer* — `value`: `1` — `isProcessorOption`: `true`
+How many previous inputs and outputs are necessary to keep around.  For this filter, it's `1`.
+
 ### Class Fields
 
 #### `processorName` — *string* — `'FirstOrderFiterProcessor'`
@@ -1495,7 +1550,7 @@ If x(n) is the input signal and y(n) is the output, `a0`·y(n) + `a1`·y(n – 1
 
 ## FirstOrderFilterProcessor < FilterProcessor < AudioComponentProcessor < AudioWorkletProcessor
 
-A processor for a filter that executes a0·y(n) + a1·y(n – 1) = b0·x(n) + b1·x(n – 1) (see above).  It does this by keeping the last inputs and outputs (which start at `0`) and doing the arithmetic.
+A processor for a filter that executes a0·y(n) + a1·y(n – 1) = b0·x(n) + b1·x(n – 1) (see above).  It does this by keeping the last inputs and outputs (which start at `0` when the processor first starts to run) and doing the arithmetic.
 
 ### AudioParams
 
@@ -1505,14 +1560,11 @@ A processor for a filter that executes a0·y(n) + a1·y(n – 1) = b0·x(n) + b1
 #### `b1`
 If x(n) is the input signal and y(n) is the output, `a0`·y(n) + `a1`·y(n – 1) = `b0`·x(n) + `b1`·x(n – 1).
 
-### Instance Fields
+### Instance Methods
 
-#### `lastInputs` — *array of numbers, one for each output channel* — default value: `[]`
-#### `lastOutputs` — *array of numbers, one for each output channel* — default value: `[]`
-When `filter()` is called, the input value and the value returned are put in these two arrays.  Since there are possibly multiple channels in this `AudioNode`, these arrays have one value per channel, however many there are, and when `filter()` needs to interact with these arrays, it only does so with the value at the correct channel.
-
-#### `filter(<input>, <frame>, <channel>)` — *number*
-Solves for y(n) in the equation above and returns it, storing the input in `lastInputs` and the output in `lastOutputs`.
+#### `getFeedbackCoefficients(<frame>)` — *array of numbers*
+#### `getFeedforwardCoefficients(<frame>)` — *array of numbers*
+Returns the values of `AudioParam`s [`a0`, `a1`] and [`b0`, `b1`], respectively.
 
 
 
