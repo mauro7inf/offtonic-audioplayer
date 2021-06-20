@@ -94,7 +94,7 @@ function start() {
   const filterTestTime = 0;
   schedule(filterTest, filterTestTime);
 
-  const refTestTime = filterTestTime + 5000;
+  const refTestTime = filterTestTime + 7500;
   schedule(refTest, refTestTime);
 
   const noiseTestTime = refTestTime + 2500;
@@ -135,8 +135,7 @@ function stop() {
   o.player.off();
   gainAdjustedPlayer.off();
   Object.values(finallyActions).forEach(action => action());
-  //o.player.off();
-  //gainAdjustedPlayer.off();
+  finallyActions = {};
 }
 
 function schedule(action, time) {
@@ -152,7 +151,8 @@ function scheduleFinally(action, time, key) { // this will still happen even if 
 }
 
 function filterTest() {
-  console.log('You should hear a slowly waving sawtooth, then a wavy tone that goes up and down.');
+  console.log('You should hear a slowly waving sawtooth, then a wavy tone that goes up and down, ' +
+    'then a downward scale that starts relatively smooth and gets lots of overtones.');
 
   const filterTone1 = o.createComponent({
     className: 'Tone',
@@ -225,9 +225,44 @@ function filterTest() {
   schedule(() => {
     filterTone2.play();
   }, 2500);
+
+  const filterTone3 = o.createComponent({
+    className: 'Tone',
+    duration: 2000,
+    generator: {
+      className: 'SineOscillator'
+    },
+    frequency: {
+      className: 'LinearGenerator',
+      startValue: 666,
+      endValue: 333,
+      startTime: 0,
+      endTime: 2000,
+      filter: {
+        className: 'StepFilter',
+        steps: 13,
+        highCutoff: 666,
+        lowCutoff: 333
+      }
+    },
+    gain: 0.15,
+    filter: {
+      className: 'StepFilter',
+      steps: {
+        className: 'LinearGenerator',
+        startValue: 10,
+        endValue: 1,
+        startTime: 0,
+        endTime: 2000
+      }
+    }
+  });
+  schedule(() => {
+    filterTone3.play();
+  }, 5000);
   schedule(() => {
     console.log('filterTest end');
-  }, 4600);
+  }, 7100);
 }
 
 function refTest() {
