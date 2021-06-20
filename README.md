@@ -1434,3 +1434,166 @@ For each channel and frame, multiplies together all of the inputs and sticks the
 
 
 ## Filter < AudioComponent < Component
+
+Any `AudioComponent` can be routed through a `Filter`, which is an `AudioComponent` that takes the `AudioComponent`'s output as its input signal and produces a filtered output signal.  A `Filter`, being an `AudioComponent`, can have its own `Filter` as well, which just means that the filters get chained: the output from the first filter becomes the input of the second, etc.  The last filter in a chain is the one whose `AudioNode` connects to whatever destination the original `AudioComponent` is supposed to have, at least by default (depending on the value of `getNodeToDestination()`).  This base `Filter` class would ordinarily not do anything, but since it provides `scaling` and `offset` properties (similar to `Generator`), there's a use case for using this `Filter` class on its own, but most likely you'll want to subclass it instead.
+
+### Properties
+
+#### `scaling` — *number or `AudioComponent`* — `defaultValue`: `1` — `isAudioParam`: `true`
+#### `offset` — *number or `AudioComponent`* — `defaultValue`: `0` — `isAudioParam`: `true`
+Multiplies the output of the filter by the value of `scaling` and adds the value of `offset` to it.
+
+### Class Fields
+
+#### `numberOfInputs` — *number* — `1`
+A `Filter` only has one input.  If you want to deal with more inputs, you'll probably want to create a new class.
+
+#### `processorName` — *string* — `'FilterProcessor'`
+
+
+
+
+## FilterProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Turns an input into an output.  There are many types of filter, linear and nonlinear, but the thing they mostly do is execute some function on the input to produce the output.
+
+### AudioParams
+
+#### `scaling`
+#### `offset`
+Multiplies the output by the `value` of `scaling` and adds the `value` of `offset` to it.
+
+### Instance Methods
+
+#### `_process(<outputs>)` — *boolean*
+Returns `!this.isDone()`.  Before that, it goes through each frame and channel of the output, and if there is an input at all, it calls `filter()` on the input and applies the `scaling` and `offset` to populate the `<outputs>`.
+
+#### `filter(<input>, <frame>, <channel>)` — *number*
+Returns `<input>`.  Override this if you want more interesting behavior.  The other arguments are necessary (well, not *necessary* necessary; they could have been stored as instance fields) because some filters store past values, and if `filter()` is being called on multiple input channels, their past values need to be kept separately.
+
+
+
+
+## FirstOrderFilter < Filter < AudioComponent < Component
+
+A `Filter` that applies a first-order transfer function.  In layman's terms (well... relatively speaking), if your input is x(n) and your output is y(n), a first-order filter is defined by a0·y(n) + a1·y(n – 1) = b0·x(n) + b1·x(n – 1).  There are other formulations of the same thing, but for our purposes, what this means is that we output a kind of average between the current input and the previous output.
+
+### Properties
+
+#### `a0` — *number or `AudioParam`* — `defaultValue`: `1` — `isAudioParam`: `true`
+#### `a1` — *number or `AudioParam`* — `defaultValue`: `0` — `isAudioParam`: `true`
+#### `b0` — *number or `AudioParam`* — `defaultValue`: `1` — `isAudioParam`: `true`
+#### `b1` — *number or `AudioParam`* — `defaultValue`: `0` — `isAudioParam`: `true`
+If x(n) is the input signal and y(n) is the output, `a0`·y(n) + `a1`·y(n – 1) = `b0`·x(n) + `b1`·x(n – 1).
+
+### Class Fields
+
+#### `processorName` — *string* — `'FirstOrderFiterProcessor'`
+
+
+
+
+## FirstOrderFilterProcessor < FilterProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+A processor for a filter that executes a0·y(n) + a1·y(n – 1) = b0·x(n) + b1·x(n – 1) (see above).  It does this by keeping the last inputs and outputs (which start at `0`) and doing the arithmetic.
+
+### AudioParams
+
+#### `a0`
+#### `a1`
+#### `b0`
+#### `b1`
+If x(n) is the input signal and y(n) is the output, `a0`·y(n) + `a1`·y(n – 1) = `b0`·x(n) + `b1`·x(n – 1).
+
+### Instance Fields
+
+#### `lastInputs` — *array of numbers, one for each output channel* — default value: `[]`
+#### `lastOutputs` — *array of numbers, one for each output channel* — default value: `[]`
+When `filter()` is called, the input value and the value returned are put in these two arrays.  Since there are possibly multiple channels in this `AudioNode`, these arrays have one value per channel, however many there are, and when `filter()` needs to interact with these arrays, it only does so with the value at the correct channel.
+
+#### `filter(<input>, <frame>, <channel>)` — *number*
+Solves for y(n) in the equation above and returns it, storing the input in `lastInputs` and the output in `lastOutputs`.
+
+
+
+
+## Cutoff Filter < Filter < AudioComponent < Component
+
+A `Filter` that cuts off the top and bottom of a wave, setting them to the specified max and min values, and, optionally, renormalizes it (by scaling it and applying an offset) to be between –1 and 1 again.  (Note that you can achieve the same renormalization effect by providing a suitable `scaling` and `offset`).
+
+### Properties
+
+#### `highCutoff` — *number or `AudioComponent`* — `defaultValue`: `1` — `isAudioParam`: `true`
+#### `lowCutoff` — *number or `AudioComponent`* — `defaultValue`: `-1` — `isAudioParam`: `true`
+These two numbers are the high and low boundary of the signal; if the signal lies outside the boundary, it is set to the boundary value.  For example, if `highCutoff` is 0.6 and `lowCutoff` is –0.4, then a value of 0.7 will be changed to 0.6 and a value of –3 will be changed to –0.4.  If `highCutoff` is lower than `lowCutoff`, the roles will simply be interchanged: values above `lowCutoff` will be reduced to `lowCutoff` and values below `highCutoff` will be raised to `highCutoff`.  In either case, values in between the two will not be affected.
+
+#### `isNormalized` — *boolean* — `defaultValue`: `true` — `isProcessorOption`: `true`
+Whether to apply a scaling and offset to map the low and high cutoffs to –1 and 1, respectively.  This is useful when the filter is filtering an audio signal because cutting off pieces of the wave removes power from the wave, making it softer; normalizing to compensate maintains the volume (to an extent).
+
+### Class Fields
+
+#### `processorName` — *string* — `'CutoffFilterProcessor'`
+
+
+
+
+## CutoffFilterProcessor < FilterProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Cuts off the top and bottom of an input signal and optionally renormalizes it so that the top and bottom are at 1 and –1, respectively.
+
+### AudioParams
+
+#### `highCutoff`
+#### `lowCutoff`
+The two cutoffs, one high and one low (it does not matter which is which).  Input values above the high one will be reduced to the high cutoff, and input values below the low one will be augmented to the low cutoff.
+
+### Processor Options
+
+#### `isNormalized`
+Whether the signal is scaled/offset such that the high and low cutoffs are 1 and –1, respectively.
+
+### Instance Methods
+
+#### `filter(<input>, <frame>, <channel>)` — *number*
+Cuts off the signal as appropriate, and normalizes it if appropriate.
+
+
+
+
+## StepFilter < Filter < AudioComponent < Component
+
+Kind of like a bitcrusher, except smoother.  It takes the input signal and sort of rounds it to one of `steps` equally-speaced steps, starting at the low cutoff and ending possibly at the high cutoff (if `steps` is an integer).  It turns a smooth curve into a jagged pixellated mess, which also adds high-frequency components to the sound while losing fidelity if you're using it on an audio signal.
+
+### Properties
+
+#### `steps` — *number or `AudioComponent`* — `defaultValue`: `Math.pow(2, 23)` — `isAudioParam`: `true`
+The number of steps in which to divide the range.  If the range is from –1 to 1 and `steps` is 1, for example, every value will be replaced with 0.  If `steps` is 2, then every value will be either –1 or 1.  If `steps` is 3, every value will be –1, 0, or 1.  If `steps` is 4, every value will be –1, –1/3, 1/3, or 1.  And so on.  The rounding is not usual rounding: it's done such that, if you were to ramp smoothly from –1 to 1 with `steps` at 4, you'd spend 1/4 of the time at –1, 1/4 at –1/3, 1/4 at 1/3, and 1/4 at 1.  `steps` is always counted from the bottom of the range, so if it isn't an integer, the value at the bottom is a possible value for the output, but the top of the range isn't.
+
+#### `highCutoff` — *number or `AudioComponent`* — `defaultValue`: `1` — `isAudioParam`: `true`
+#### `lowCutoff` — *number or `AudioComponent`* — `defaultValue`: `-1` — `isAudioParam`: `true`
+The boundaries which will be divided into `steps`.  Values outside this boundary don't actually get cut off, though the rounding does get weird.  It doesn't matter which is lower or higher.
+
+### Class Fields
+
+#### `processorName` — *string* — `StepFilterProcessor`
+
+
+
+
+## StepFilterProcessor < FilterProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Kind of like a bitcrusher, except smoother.  It takes the input signal and sort of rounds it to one of `steps` equally-speaced steps, starting at the low cutoff and ending possibly at the high cutoff (if `steps` is an integer).  It turns a smooth curve into a jagged pixellated mess, which also adds high-frequency components to the sound while losing fidelity if you're using it on an audio signal.
+
+### AudioParams
+
+#### `steps`
+The number of steps in which to divide the range.  If the range is from –1 to 1 and `steps` is 1, for example, every value will be replaced with 0.  If `steps` is 2, then every value will be either –1 or 1.  If `steps` is 3, every value will be –1, 0, or 1.  If `steps` is 4, every value will be –1, –1/3, 1/3, or 1.  And so on.  The rounding is not usual rounding: it's done such that, if you were to ramp smoothly from –1 to 1 with `steps` at 4, you'd spend 1/4 of the time at –1, 1/4 at –1/3, 1/4 at 1/3, and 1/4 at 1.  `steps` is always counted from the bottom of the range, so if it isn't an integer, the value at the bottom is a possible value for the output, but the top of the range isn't.
+
+#### `highCutoff`
+#### `lowCutoff`
+The boundaries which will be divided into `steps`.  Values outside this boundary don't actually get cut off, though the rounding does get weird.  It doesn't matter which is lower or higher.
+
+### Instance Methods
+
+#### `filter(<input>, <frame>, <channel>)` — *number*
+Identifies the boundaries and the width of a step (if the `value` of `steps` is ≤1, returns the center value, the average of the low and high boundaries).  The slice index is floor((input - low)/sliceWidth), and that slice index is multiplied by width/(`steps` – 1) (and added to low) to get the output.  If the input is equal to the high value, which would mathematically round to the next slice up, we make an exception and round it down, so for example, if the range is from –1 to 1 with the `value` of `steps` being 2, if –1 ≤ input < 0 it will get rounded to –1, while if 0 ≤ input ≤ 1 it will get rounded up to 1.  The bottom slice has an exclusive inequality on the upper end, while the top slice has inclusive inequalities on both ends.
