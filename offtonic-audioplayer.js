@@ -38,6 +38,10 @@ import Timer from './lib/components/Timer.js';
 
 import Tone from './lib/components/Tone.js';
 
+import Sequence from './lib/components/Sequence.js';
+import Action from './lib/components/actions/Action.js';
+import PlayAction from './lib/components/actions/PlayAction.js';
+
 class Global {
   constructor() {
     this.debug = false;
@@ -60,6 +64,7 @@ class Global {
     this.Component.o = this;
     this.registerClass('Component', Component);
     this.AudioComponent = AudioComponent;
+    this.addModule('lib/processors/AudioComponentProcessor.js');
     this.registerClass('AudioComponent', AudioComponent);
     this.Playable = Playable;
     this.registerClass('Playable', Playable);
@@ -133,6 +138,14 @@ class Global {
     this.Tone = Tone;
     // Tone uses the MultiplierProcessor, which has already been added above
     this.registerClass('Tone', Tone);
+
+    this.Sequence = Sequence
+    // Sequence uses the AudioComponentProcessor, which already has been added above
+    this.registerClass('Sequence', Sequence);
+    this.Action = Action;
+    this.registerClass('Action', Action);
+    this.PlayAction = PlayAction;
+    this.registerClass('PlayAction', PlayAction);
   }
 
   registerClass(className, classInstance) {

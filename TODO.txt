@@ -1,4 +1,4 @@
-Filters
+Standard filters (biquad, Butterworth, etc.)
 
 All the different generators:
 Fourier
@@ -11,3 +11,5 @@ Shepard Octave
 Sequences
 
 Firefox and Safari fallbacks
+
+Note names

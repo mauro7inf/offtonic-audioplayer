@@ -91,7 +91,13 @@ function start() {
   o.player.on();
   gainAdjustedPlayer.on();
 
-  const filterTestTime = 0;
+  const sequenceTestTime = 0;
+  schedule(sequenceTest, sequenceTestTime);
+
+  const nullDurationTestTime = sequenceTestTime + 1500;
+  schedule(nullDurationTest, nullDurationTestTime);
+
+  const filterTestTime = nullDurationTestTime + 1000;
   schedule(filterTest, filterTestTime);
 
   const refTestTime = filterTestTime + 7500;
@@ -148,6 +154,69 @@ function scheduleFinally(action, time, key) { // this will still happen even if 
     delete finallyActions[key];
     action();
   }, time));
+}
+
+function sequenceTest() {
+  console.log('You should hear two notes that overlap, with a final cutoff with an audio click, and see a log message.');
+
+  const sequence = o.createComponent({
+    className: 'Sequence',
+    componentCreationLeadTime: 100,
+    events: [
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 750,
+            frequency: 800
+          }
+        }
+      },
+      {
+        time: 500,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 750,
+            frequency: 900
+          }
+        }
+      },
+      {
+        time: 750,
+        action: () => console.log('This log message is supposed to be here.')
+      }
+    ]
+  });
+
+  schedule(() => {
+    console.log('sequenceTest start');
+    sequence.play();
+  }, 0);
+  schedule(() => {
+    sequence.stop();
+    console.log('sequenceTest stop');
+  }, 1000);
+}
+
+function nullDurationTest() {
+  console.log('You should hear a short tone that stops with an audio click.');
+
+  const nullDurationTone = o.createComponent({
+    className: 'Tone'
+  });
+  schedule(() => {
+    console.log('nulLDurationTest start');
+    nullDurationTone.play();
+  }, 0);
+  schedule(() => {
+    nullDurationTone.stop();
+    nullDurationTone.stop(); // make sure this second stop() doesn't break things
+    console.log('nulLDurationTest end');
+  }, 500);
 }
 
 function filterTest() {
