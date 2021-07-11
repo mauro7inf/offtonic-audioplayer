@@ -799,6 +799,137 @@ If `envelope` is an `Envelope`, calls `startRelease(this)` on it; if not, calls 
 
 
 
+## Sequence < Playable < AudioComponent < Component
+
+Activates a sequence of events on an audio-rate timer.  You can use this to play a whole song, for example.  Timer precision is necessarily within 128 samples, though, since that's the buffer size of the `AudioWorkletProcessor`.
+
+### Properties
+
+#### `events` — *array of `Event`s* — `defaultValue`: `[]` — `getter`: `'getEvents'` — `setter`: `'setEvents'`
+The `Event`s.  The events in the array are registered in order, and since events can be timed based on the previous registered event (by populating the `after` field rather than the `time` field in the event), it's probably a good idea to put the events in the order in which you want them to be executed.
+
+#### `componentCreationLeadTime` — *number* — `defaultValue`: `null`
+If this value is not `null`, a special creation event will be added before every event that has an `action` to create the `action` as a `Component`.  This allows the `action` to start promptly, since `Component` creation can be costly.
+
+### Class Fields
+
+#### `processorName` — *string* — `'AudioComponentProcessor'`
+Only the base features of the `AudioComponentProcessor` are required here, specifically, its `timer` and timed event handling capabilities.  No audio is actually produced.
+
+### Instance Fields
+
+#### `events` — *object where the keys are numbers and the values are the `Event`s* — default value: `null`
+The `events` property contains an array, but when they get stored in the `Sequence`, they get added to the `events` object with a numeric key, making `events` similar to an array.  The message that triggers an event (or creates an event's `action`) refers to the event by its key in this array.
+
+#### `lastEventTime` — *number* — default value: `0`
+The time of the most recent `Event` recorded.
+
+#### `eventCounter` — *number* — default value: `0`
+The key for the current event added to the `events` object.
+
+#### `playing` — *array of `Playable`s* — default value: `[]`
+When a `PlayAction` is performed, the action's `playable` is added to this array, so that if `stop()` or `releaseAll()` is called on the `Sequence` itself, it knows what dependent `Playable` objects it also needs to `stop()`.
+
+### Instance Methods
+
+#### `setEvents(<events>)`
+Empties the `events` object and called `addEvent()` on each `Event` in the `<events>` array, in order.
+
+#### `addEvent(<event>, <recordTime>)`
+Adds the given `<event>` to the `events` object under the `eventCounter` key, and, if `<recordTime>` is `true`, also sets `lastEventTime`.  If the `<event>` doesn't have a `time`, it's computed based on the `lastEventTime` and `<event>.after`; if the `node` is not `null`, `registerTimedEvent()` is called to set the processor up to trigger the `<event>` when its `time` comes.  If `componentCreationLeadTime` is `true` and `<event>.action` is an object and not already a created component, a new creation event is also created and `addEvent()` is called on it, with a `<recordTime>` of `false` since we don't want this automatically generated creation event to interfere with the timing of the other events.
+
+#### `registerPlayable(<playable>)`
+Adds `<playable>` to the `playing` array so that if `stop()` or `releaseAll()` is called on the `Sequence`, it knows what's playing.
+
+#### `handleTriggeredEvent(<eventId>)`
+Calls the super's method, then executes the `Event` stored in `events.<eventId>`.  See the documentation for `Event` for details on how `Event`s get executed, but that functionality happens in this method.
+
+#### `createNode()`
+Calls the super's method, then registers all `Event`s in the `events` object with the processor.
+
+#### `release()`
+No-op.
+
+#### `releaseAll()`
+Calls `release()` on all `Playable`s stored in `playing`.
+
+#### `stop()`
+Calls the super's method, then calls `stop()` on all `Playable`s stored in `playing`.
+
+
+
+
+## Event *(interface)*
+
+`Event` is not a real class; it's just the interface `Sequence` expects for its `events`.  You should attempt to instantiate it like a `Component`, and `o.Event` is not defined.  In general, an `Event` contains some timing information and some sort of action to be performed at the specified time, but that action can be `Component` creation, arbitrary code execution, or an `Action` object of some sort.
+
+### Instance Fields
+
+#### `time` — *number*
+#### `after` — *number*
+The time at which to trigger the `Event`.  Exactly one of these should be provided.  If `time` is provided, the `Event` will trigger at time `time`; if `after` is provided, the `Event` will trigger at a time `after` after the previous `Event` in the `Sequence`.
+
+#### `action` — *a function, an `Action`, or a definition of an `Action`*
+#### `create` — *eventId*
+The action to be performed.  Exactly one of `action` and `create` should be provided.  If `action` is a function, the function will be called at the specified time.  If `action` is an instance of `Action`, its `perform()` method will be called at the specified time.  If `action` is an object, it will be assumed to be the definition for an `Action`, so it will be created using `o.createComponent()` (with the `Sequence`'s `player` and `registry`) and then `perform()` will be called on it.  If `create` is provided instead, if the `Event` at the given `eventId` in the `Sequence`'s `events` object contains an `action` that is not an `Action`, `o.createComponent()` will be called on it but `perform()` will not be called (since it will presumably be called later).
+
+
+
+
+## Action < Component
+
+An abstract `action` for an `Event`.  Doesn't do anything on its own.
+
+### Instance Fields
+
+#### `isAction` — *boolean* — `true`
+
+### Instance Methods
+
+#### `perform(<sequence>)`
+Does nothing in this class; override it in subclasses.  `<sequence>` should be the `Sequence` that is executing the `Event` hosting this `Action`.
+
+
+
+
+## PlayAction < Action < Component
+
+An `Action` that plays a given `Playable` and stores it in the parent `Sequence`'s `playing` array to make sure it can be `release()`d or `stop()`d as necessary.  
+
+### Properties
+
+#### `playable` — *`Playable`* — `defaultValue`: `null`
+The `Playable` that will be `play()`d.
+
+### Instance Methods
+
+#### `perform(<sequence>)`
+Calls `play()` on `playable` then calls `<sequence>.registerPlayable()` with the `playable`.
+
+
+
+
+## MethodAction < Action < Component
+
+An `Action` that calls a named `method` on the `target` object, passing in `arguments`.  In a pure JSON context, this allows for code execution without needing to use actual code.
+
+### Properties
+
+#### `target` — *object* — `defaultValue`: `null`
+#### `method` — *string* — `defaultValue`: `null`
+Assuming both `target` and `method` are populated and valid, `method` will be called on `target` with the arguments specified in `arguments`.
+
+#### `arguments` — *value or array* — `defaultValue`: `null`
+The arguments to pass into `method`.  If it's `null`, no arguments will be passed.  If it's a value that is not an array, that value will be passed as the only argument.  If it's an array, the elements of the array will be the arguments.  If you want to pass in a single argument that is an array (or you want to pass in `null` as an argument), you should put it in an array.  So, for example, if you want to have `[foo]` as an argument, `arguments` should be `[[foo]]`; if you want `null` as an argument, `arguments` should be `[null]`.
+
+### Instance Methods
+
+#### `perform(<sequence>)`
+If things are valid, calls `method` on `target`, with the provided `arguments` if there are any.
+
+
+
+
 ## ConstantGenerator < AudioComponent < Component
 
 An `AudioComponent` whose `node` is a `ConstantSourceNode`.  Useful when a value is a number but an `AudioComponent` is expected.  Note that, despite the name, `ConstantGenerator` is *not* a `Generator`.

@@ -91,7 +91,10 @@ function start() {
   o.player.on();
   gainAdjustedPlayer.on();
 
-  const sequenceTestTime = 0;
+  const methodActionTestTime = 0;
+  schedule(methodActionTest, methodActionTestTime);
+
+  const sequenceTestTime = methodActionTestTime + 500;
   schedule(sequenceTest, sequenceTestTime);
 
   const nullDurationTestTime = sequenceTestTime + 1500;
@@ -156,6 +159,61 @@ function scheduleFinally(action, time, key) { // this will still happen even if 
   }, time));
 }
 
+function methodActionTest() {
+  console.log('You should see a "default:" counter, "Welcome", "to this", and a log of an array containing "test".');
+
+  const sequence = o.createComponent({
+    className: 'Sequence',
+    componentCreationLeadTime: 100,
+    events: [
+      {
+        time: 0,
+        action: {
+          className: 'MethodAction',
+          target: console,
+          method: 'count'
+        }
+      },
+      {
+        after: 100,
+        action: {
+          className: 'MethodAction',
+          target: console,
+          method: 'log',
+          arguments: 'Welcome'
+        }
+      },
+      {
+        after: 100,
+        action: {
+          className: 'MethodAction',
+          target: console,
+          method: 'log',
+          arguments: ['to', 'this']
+        }
+      },
+      {
+        after: 100,
+        action: {
+          className: 'MethodAction',
+          target: console,
+          method: 'log',
+          arguments: [['test']]
+        }
+      }
+    ]
+  });
+
+  schedule(() => {
+    console.log('methodActionTest start');
+    sequence.play();
+  }, 0);
+  schedule(() => {
+    sequence.stop();
+    console.log('methodActionTest stop');
+  }, 400);
+}
+
 function sequenceTest() {
   console.log('You should hear two notes that overlap, with a final cutoff with an audio click, and see a log message.');
 
@@ -186,7 +244,7 @@ function sequenceTest() {
         }
       },
       {
-        time: 750,
+        after: 250,
         action: () => console.log('This log message is supposed to be here.')
       }
     ]
@@ -209,13 +267,13 @@ function nullDurationTest() {
     className: 'Tone'
   });
   schedule(() => {
-    console.log('nulLDurationTest start');
+    console.log('nullDurationTest start');
     nullDurationTone.play();
   }, 0);
   schedule(() => {
     nullDurationTone.stop();
     nullDurationTone.stop(); // make sure this second stop() doesn't break things
-    console.log('nulLDurationTest end');
+    console.log('nullDurationTest end');
   }, 500);
 }
 

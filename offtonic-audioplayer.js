@@ -41,6 +41,7 @@ import Tone from './lib/components/Tone.js';
 import Sequence from './lib/components/Sequence.js';
 import Action from './lib/components/actions/Action.js';
 import PlayAction from './lib/components/actions/PlayAction.js';
+import MethodAction from './lib/components/actions/MethodAction.js';
 
 class Global {
   constructor() {
@@ -146,6 +147,8 @@ class Global {
     this.registerClass('Action', Action);
     this.PlayAction = PlayAction;
     this.registerClass('PlayAction', PlayAction);
+    this.MethodAction = MethodAction;
+    this.registerClass('MethodAction', MethodAction);
   }
 
   registerClass(className, classInstance) {
