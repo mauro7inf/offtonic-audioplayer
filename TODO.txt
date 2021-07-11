@@ -8,8 +8,8 @@ Pitch Space Sine
 Shepard
 Shepard Octave
 
-Sequences
-
 Firefox and Safari fallbacks
 
 Note names
+
+Rewrite tests as sequences
