@@ -91,7 +91,10 @@ function start() {
   o.player.on();
   gainAdjustedPlayer.on();
 
-  const methodActionTestTime = 0;
+  const releaseTestTime = 0;
+  schedule(releaseTest, releaseTestTime);
+
+  const methodActionTestTime = releaseTestTime + 2000;
   schedule(methodActionTest, methodActionTestTime);
 
   const sequenceTestTime = methodActionTestTime + 500;
@@ -157,6 +160,65 @@ function scheduleFinally(action, time, key) { // this will still happen even if 
     delete finallyActions[key];
     action();
   }, time));
+}
+
+function releaseTest() {
+  console.log('You should hear two tones stopping at different times, but they should stop completely before the next test starts.');
+
+  const sequence = o.createComponent({
+    className: 'Sequence',
+    events: [
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            frequency: 500,
+            gain: 0.1,
+            duration: 250,
+            generator: {
+              className: 'TriangleOscillator',
+              pulseWidth: 0.4
+            },
+            envelope: {
+              className: 'ADSREnvelope',
+              release: 1000
+            }
+          }
+        }
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            frequency: 625,
+            gain: 0.1,
+            duration: 1750,
+            generator: {
+              className: 'TriangleOscillator',
+              pulseWidth: 0.45
+            },
+            envelope: {
+              className: 'ADSREnvelope',
+              release: 1000
+            }
+          }
+        }
+      }
+    ]
+  });
+
+  schedule(() => {
+    console.log('releaseTest start');
+    sequence.play();
+  }, 0);
+  schedule(() => {
+    sequence.releaseAll();
+    console.log('releaseTest stop');
+  }, 1000);
 }
 
 function methodActionTest() {

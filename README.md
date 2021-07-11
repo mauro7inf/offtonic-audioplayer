@@ -1334,10 +1334,10 @@ Registry of functions to handle phase changes.  When the phase changes, if there
 Also sets the `phase` on the processor.
 
 #### `changePhase(<phase>)`
-Sets the `phase`, posts a message through `node.port` that is an object that looks like `{phase: <phase>}`, and calls `phaseHandlers.<phase>` if it exists.
+Sets the `phase` as `<phase>` (if it's different from the current `phase`), posts a message through `node.port` that is an object that looks like `{phase: <phase>}`, and calls `phaseHandlers.<phase>` if it exists.
 
 #### `receiveMessage(<messageEvent>)`
-First calls `super.receiveMessage(<messageEvent>)`.  If the message has a `phase`, sets the `phase` and calls the appropriate handler if it exists.
+First calls `super.receiveMessage(<messageEvent>)`.  If the message has a `phase` different from the current `phase`, sets the `phase` and calls the appropriate handler if it exists.
 
 #### `startRelease(<playable>)`
 Sets the `playable` field and changes the phase to `'release'`.
