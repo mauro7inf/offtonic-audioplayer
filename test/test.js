@@ -68,6 +68,8 @@ o.orchestra.add({
 
 let timeouts = [];
 let finallyActions = {};
+let testSequence = null;
+let done = false;
 
 window.addEventListener("load", function (e) {
   load();
@@ -87,59 +89,99 @@ function load() {
 }
 
 function start() {
-  console.log('Start!');
-  o.player.on();
-  gainAdjustedPlayer.on();
-
-  const releaseTestTime = 0;
-  schedule(releaseTest, releaseTestTime);
-
-  const methodActionTestTime = releaseTestTime + 2000;
-  schedule(methodActionTest, methodActionTestTime);
-
-  const sequenceTestTime = methodActionTestTime + 500;
-  schedule(sequenceTest, sequenceTestTime);
-
-  const nullDurationTestTime = sequenceTestTime + 1500;
-  schedule(nullDurationTest, nullDurationTestTime);
-
-  const filterTestTime = nullDurationTestTime + 1000;
-  schedule(filterTest, filterTestTime);
-
-  const refTestTime = filterTestTime + 7500;
-  schedule(refTest, refTestTime);
-
-  const noiseTestTime = refTestTime + 2500;
-  schedule(noiseTest, noiseTestTime);
-
-  const replaceValueTestTime = noiseTestTime + 5000;
-  schedule(replaceValueTest, replaceValueTestTime);
-
-  const arithmeticTestTime = replaceValueTestTime + 2000;
-  schedule(arithmeticTest, arithmeticTestTime);
-
-  const waveTestTime = arithmeticTestTime + 1500;
-  schedule(waveTest, waveTestTime);
-
-  const toneTestTime = waveTestTime + 8500;
-  schedule(toneTest, toneTestTime);
-
-  const sineOscillatorTestTime = toneTestTime + 1500;
-  schedule(sineOscillatorTest, sineOscillatorTestTime);
-
-  const prototypeTestTime = sineOscillatorTestTime + 1000;
-  schedule(prototypeTest, prototypeTestTime);
-
-  const doneTime = prototypeTestTime + 1000;
-  schedule(() => {
-    o.player.off();
-    gainAdjustedPlayer.off();
-    console.log('Done!');
-  }, doneTime);
+  if (testSequence !== null) { // can't have multiple instances of the test running at the same time
+    testSequence.stop();
+    testSequence = null;
+  }
+  testSequence = o.createComponent({
+    className: 'Sequence',
+    beforeEvents: [
+      {
+        action: beforeTests
+      }
+    ],
+    events: [
+      {
+        after: 0,
+        action: releaseTest
+      },
+      {
+        after: 2000,
+        action: methodActionTest
+      },
+      {
+        after: 500,
+        action: sequenceTest
+      },
+      {
+        after: 1500,
+        action: nullDurationTest
+      },
+      {
+        after: 1000,
+        action: filterTest
+      },
+      {
+        after: 7500,
+        action: refTest
+      },
+      {
+        after: 2500,
+        action: noiseTest
+      },
+      {
+        after: 5000,
+        action: replaceValueTest
+      },
+      {
+        after: 2000,
+        action: arithmeticTest
+      },
+      {
+        after: 1500,
+        action: waveTest
+      },
+      {
+        after: 8500,
+        action: toneTest
+      },
+      {
+        after: 1500,
+        action: sineOscillatorTest
+      },
+      {
+        after: 1000,
+        action: prototypeTest
+      },
+      {
+        after: 1000,
+        action: () => {
+          done = true;
+        }
+      },
+      {
+        after: 50,
+        action: {
+          className: 'SequenceAction',
+          method: 'release'
+        }
+      }
+    ],
+    afterEvents: [
+      {
+        action: afterTests
+      }
+    ]
+  });
+  testSequence.play();
 }
 
 function stop() {
   console.log('Stop!');
+  if (testSequence !== null) {
+    testSequence.stop();
+    testSequence = null;
+  }
   timeouts.forEach(timeout => {
     clearTimeout(timeout);
   });
@@ -160,6 +202,21 @@ function scheduleFinally(action, time, key) { // this will still happen even if 
     delete finallyActions[key];
     action();
   }, time));
+}
+
+function beforeTests() {
+  done = false;
+  console.log('Start!');
+  o.player.on();
+  gainAdjustedPlayer.on();
+}
+
+function afterTests() {
+  o.player.off();
+  gainAdjustedPlayer.off();
+  if (done) {
+    console.log('Done!');
+  }
 }
 
 function releaseTest() {
@@ -216,7 +273,7 @@ function releaseTest() {
     sequence.play();
   }, 0);
   schedule(() => {
-    sequence.releaseAll();
+    sequence.releasePlaying();
     console.log('releaseTest stop');
   }, 1000);
 }

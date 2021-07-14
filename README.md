@@ -719,14 +719,22 @@ Overwrites the `timer` property in `AudioComponent` in order to provide a defaul
 #### `duration` — *number* — `defaultValue`: `null`
 Specifies the duration of the `Playable`, in beats of the `timer` (ms by default).  If it's `null`, the `Playable` will only release when you call `release()`, but if it's a number, `release()` will get called after the value of `duration` has elapsed.
 
+### Instance Fields
+
+#### `callbacks` — *array of functions* — default value: `[]`
+Callbacks to call after `stop()`.
+
 ### Instance Methods
 
 #### `play()`
 #### `stop()`
-Calls `player.play()` or `player.stop()` on this object.
+Calls `player.play()` or `player.stop()` on this object.  If `stop()`, the `callbacks` are then called in the order in which they were registered, and the `callbacks` array is emptied.
 
-#### `release()`
-Calls `stop()`.  Override this if you want custom behavior before actually stopping the sound, like a reverb effect or something, as `stop()` will stop the sound immediately.
+#### `release(<callback>)`
+Calls `registerCallback(<callback>)`, then calls `stop()`.  Override this if you want custom behavior before actually stopping the sound, like a reverb effect or something, as `stop()` will stop the sound immediately, but you should remember to register the `<callback>`.
+
+#### `registerCallback(<callback>)`
+If a `<callback>` is provided (as in, not `undefined` or `null`), adds it to the `callbacks` array.
 
 #### `createNode()`
 Also registers the `release` event with the processor to take place after `duration` has elapsed.
@@ -793,8 +801,8 @@ Gets the `frequency` property of the `generator` property.  If that is `null` or
 #### `setFrequency(<frequency>)`
 Sets the `frequency` field to `<frequency>` and, if `generator` is present, calls `generator.setPropery('frequency', <frequency>)`.
 
-#### `release()`
-If `envelope` is an `Envelope`, calls `startRelease(this)` on it; if not, calls `stop()`.  If `startRelease(this)` is called on the `envelope`, it should eventually call `stop()` on this `Tone`, which is why we pass `this` as an argument.
+#### `release(<callback>)`
+Calls `registerCallback(<callback>)`.  If `envelope` is an `Envelope`, calls `startRelease()` on it, passing in a callback that calls `this.stop()` when the `Envelope` is done; if not, calls `stop()`.
 
 
 
@@ -805,8 +813,15 @@ Activates a sequence of events on an audio-rate timer.  You can use this to play
 
 ### Properties
 
+#### `instruments` — *array of instruments* — `defaultValue`: `[]` — `setter`: `'setIntruments'` — `cleaner`: `'cleanupInstruments'`
+A list of instruments (see the Instruments section above) to add to the global `orchestra` when the `Sequence` is created.  The instruments are removed from the `orchestra` on cleanup.
+
 #### `events` — *array of `Event`s* — `defaultValue`: `[]` — `getter`: `'getEvents'` — `setter`: `'setEvents'`
 The `Event`s.  The events in the array are registered in order, and since events can be timed based on the previous registered event (by populating the `after` field rather than the `time` field in the event), it's probably a good idea to put the events in the order in which you want them to be executed.
+
+#### `beforeEvents` — *array of `Event`s* — `defaultValue`: `[]`
+#### `afterEvents` — *array of `Event`s* — `defaultValue`: `[]`
+When `play()` is called, `executeEvent()` is called on all `Event`s in `beforeEvents` before playing starts, and likewise, after `stop()` is called and the `Sequence` stops, all `Event`s in `afterEvents` are executed.  Both are called in the order they're in.
 
 #### `componentCreationLeadTime` — *number* — `defaultValue`: `null`
 If this value is not `null`, a special creation event will be added before every event that has an `action` to create the `action` as a `Component`.  This allows the `action` to start promptly, since `Component` creation can be costly.
@@ -832,6 +847,15 @@ When a `PlayAction` is performed, the action's `playable` is added to this array
 
 ### Instance Methods
 
+#### `setInstruments(<instruments>)`
+Calls `cleanupInstruments()`, sets the `instruments` field to `[]`, and calls `addInstrument()` on each instrument in the passed-in `<instruments>` array.
+
+#### `addInstrument(<instrument>)`
+If `<instrument>` is actually an array, calls `addInstrument()` on each element of the array (this is so that you can add instruments after the `Sequence` has been created).  Adds the `<instrument>` to the `orchestra` and to the `instruments` field.
+
+#### `cleanupInstruments()`
+Removes from the `orchestra` every instrument in the `instruments` field.
+
 #### `setEvents(<events>)`
 Empties the `events` object and called `addEvent()` on each `Event` in the `<events>` array, in order.
 
@@ -842,16 +866,22 @@ Adds the given `<event>` to the `events` object under the `eventCounter` key, an
 Adds `<playable>` to the `playing` array so that if `stop()` or `releaseAll()` is called on the `Sequence`, it knows what's playing.
 
 #### `handleTriggeredEvent(<eventId>)`
-Calls the super's method, then executes the `Event` stored in `events.<eventId>`.  See the documentation for `Event` for details on how `Event`s get executed, but that functionality happens in this method.
+Calls the super's method, then executes the `Event` stored in `events.<eventId>` by calling `executeEvent()`.
+
+#### `executeEvent(<event>)`
+Executes the `<event>`.  See the documentation for `Event` for details on how `Event`s get executed
 
 #### `createNode()`
 Calls the super's method, then registers all `Event`s in the `events` object with the processor.
 
-#### `release()`
-No-op.
+#### `removeFromPlaying(<playable>, <stop>)`
+Removes `<playable>` from `playing` array if it's there.  If `<stop>` is `true` and the `playing` array is empty, calls `stop()`.
 
-#### `releaseAll()`
-Calls `release()` on all `Playable`s stored in `playing`.
+#### `release(<callback>)`
+Calls `registerCallback(<callback>)`, then calls `release()` on all `Playable`s stored in `playing`, removing them from the array when they're done.  When the array is empty, `stop()` is called, which calls the `<callback>` if one was provided.
+
+#### `releasePlaying()`
+Calls `release()` on all `Playable`s stored in `playing`, removing them from the array when they're done.
 
 #### `stop()`
 Calls the super's method, then calls `stop()` on all `Playable`s stored in `playing`.
@@ -867,7 +897,7 @@ Calls the super's method, then calls `stop()` on all `Playable`s stored in `play
 
 #### `time` — *number*
 #### `after` — *number*
-The time at which to trigger the `Event`.  Exactly one of these should be provided.  If `time` is provided, the `Event` will trigger at time `time`; if `after` is provided, the `Event` will trigger at a time `after` after the previous `Event` in the `Sequence`.
+The time at which to trigger the `Event`.  Exactly one of these should be provided for timed events; these fields are ignored for untimed events (like those in `beforeEvents` and `afterEvents` in a `Sequence`).  If `time` is provided, the `Event` will trigger at time `time`; if `after` is provided, the `Event` will trigger at a time `after` after the previous `Event` in the `Sequence`.
 
 #### `action` — *a function, an `Action`, or a definition of an `Action`*
 #### `create` — *eventId*
@@ -926,6 +956,24 @@ The arguments to pass into `method`.  If it's `null`, no arguments will be passe
 
 #### `perform(<sequence>)`
 If things are valid, calls `method` on `target`, with the provided `arguments` if there are any.
+
+
+
+
+## SequenceAction < MethodAction < Action < Component
+
+A `MethodAction` whose target is the `Sequence` that called `perform()` on it.  Useful for having a `Sequence` call `release()` on itself.
+
+### Properties
+
+#### `target` — *object* — `value`: `null`
+This gets set by the `perform()` method to the `Sequence` instance that called said method.
+
+### Instance Methods
+
+#### `perform(<sequence>)`
+
+Sets the `target` property to `<sequence>`, then calls the superclass's `perform()` method.
 
 
 
@@ -1319,8 +1367,8 @@ An `Envelope` is actually just a gain that is varied over the lifetime of a `Ton
 #### `isEnvelope` — *boolean* — `true`
 Allows a check for whether an `AudioComponent` is an `Envelope`, meaning that it implements `startRelease()` and calls `playable.stop()` on its own.
 
-#### `playable` — *`Playable`* — default value: `null`
-The `Playable` object that the `Envelope` needs to call `stop()` on after `startRelease()` is called.  Gets set on `startRelease()`.
+#### `callbacks` — *array of functions* — default value: `[]`
+Callbacks to call when `stop()` is called.  Populated on `startRelease()` or just `registerCallback()`.
 
 #### `phase` — *string* — default value: `'main'`
 Unlike an `OscillatorProcessor`'s `phase`, this `phase` is the phase of the lifetime of the `Envelope`.  By default, an `Envelope` starts in the `'main'` phase; after `startRelease()` is called, it switches to the `'release'` phase, and when that's done, to the `'stop'` phase.  More phases (or different phases) could be added by subclasses, but keep in mind that a `port` message must be sent to change the phase in the processor, so this phase system has some inherent latency as the processor processes a whole buffer of frames at a time.
@@ -1339,11 +1387,14 @@ Sets the `phase` as `<phase>` (if it's different from the current `phase`), post
 #### `receiveMessage(<messageEvent>)`
 First calls `super.receiveMessage(<messageEvent>)`.  If the message has a `phase` different from the current `phase`, sets the `phase` and calls the appropriate handler if it exists.
 
-#### `startRelease(<playable>)`
-Sets the `playable` field and changes the phase to `'release'`.
+#### `startRelease(<callback>)`
+Calls `registerCallback(<callback>)` and changes the phase to `'release'`.
+
+#### `registerCallback(<callback>)`
+Adds `<callback>` to the `callbacks` array, if provided (meaning that it's not `undefined` or `null`).
 
 #### `stop()`
-Calls `stop()` on `playable` if it isn't `null`.
+Calls each of the `callbacks` and empties that array.
 
 #### `phaseHandlers.stop()`
 Calls `stop()`.

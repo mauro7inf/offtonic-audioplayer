@@ -42,6 +42,7 @@ import Sequence from './lib/components/Sequence.js';
 import Action from './lib/components/actions/Action.js';
 import PlayAction from './lib/components/actions/PlayAction.js';
 import MethodAction from './lib/components/actions/MethodAction.js';
+import SequenceAction from './lib/components/actions/SequenceAction.js';
 
 class Global {
   constructor() {
@@ -140,7 +141,7 @@ class Global {
     // Tone uses the MultiplierProcessor, which has already been added above
     this.registerClass('Tone', Tone);
 
-    this.Sequence = Sequence
+    this.Sequence = Sequence;
     // Sequence uses the AudioComponentProcessor, which already has been added above
     this.registerClass('Sequence', Sequence);
     this.Action = Action;
@@ -149,6 +150,8 @@ class Global {
     this.registerClass('PlayAction', PlayAction);
     this.MethodAction = MethodAction;
     this.registerClass('MethodAction', MethodAction);
+    this.SequenceAction = SequenceAction;
+    this.registerClass('SequenceAction', SequenceAction);
   }
 
   registerClass(className, classInstance) {
