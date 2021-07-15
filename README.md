@@ -61,13 +61,13 @@ Default value of the property if no value is provided at object creation (as par
 Value of the property, regardless of whether a value is provided (any provided value is ignored).  Use this in subclasses that fix a specific value for a superclass property.
 
 #### `getter` and `setter` — *string* (optional)
-The values are method names that get called when `getProperty()` and `setProperty()` are called.  `Component` provides `genericGetter()` and `genericSetter()` that do the basics, but if you need more functionality, or if your property works differently from the default way of handling them, you can provide a getter and/or setter.
+The values are method names that get called when `getProperty()` and `setProperty()` are called.  `Component` provides `genericGetter()` and `genericSetter()` that do the basics, but if you need more functionality, or if your property works differently from the default way of handling them, you can provide a getter and/or setter.  If `getter` is `null`, calling `getProperty()` will always return `undefined`; if `setter` is `null`, calling `setProperty()` will have no effect.
 
 #### `connector` and `disconnector` — *string* (optional)
-The values are method names that get called when `connectProperty` and `disconnectProperty()` are called.  `AudioComponent` assumes that properties that need it (those that have `isAudioParam` set to `true`, for example, or `inputIndex` set to a non-negative number) possess a `connectTo()` method that connects the property's `node` field to the primary component's `node` field, as well as a `disconnectFrom()` method to undo this.  These `node` fields are `AudioNode` instances, whether native nodes or `AudioWorkletNode`s, and they work as prescribed in the WebAudio API docs.  If you need any special behavior, perhaps because you're connecting to a node other than the component's `node` field, you should provide `connector` and/or `disconnector` methods for the property.
+The values are method names that get called when `connectProperty` and `disconnectProperty()` are called.  `AudioComponent` assumes that properties that need it (those that have `isAudioParam` set to `true`, for example, or `inputIndex` set to a non-negative number) possess a `connectTo()` method that connects the property's `node` field to the primary component's `node` field, as well as a `disconnectFrom()` method to undo this.  These `node` fields are `AudioNode` instances, whether native nodes or `AudioWorkletNode`s, and they work as prescribed in the WebAudio API docs.  If you need any special behavior, perhaps because you're connecting to a node other than the component's `node` field, you should provide `connector` and/or `disconnector` methods for the property.  These should not be set to `null`.
 
 #### `cleaner` — *string* (optional)
-The value is a method name that gets called when `cleanupProperty()` is called, with the goal of freeing resources associated with this property.  `Component` provides `genericCleaner()` that does the basics, but if you need more functionality, or if your property works differently from the default way of handling them, you can provide a cleaner.
+The value is a method name that gets called when `cleanupProperty()` is called, with the goal of freeing resources associated with this property.  `Component` provides `genericCleaner()` that does the basics, but if you need more functionality, or if your property works differently from the default way of handling them, you can provide a cleaner.  If `cleaner` is `null`, the property will not be cleaned up automatically at all, and you'll probably want to do that yourself somehow.
 
 #### `isAudioParam` — *boolean* (optional) — default `false`
 #### `paramName` — *string* (optional) — default value is the value of the `name` property
@@ -487,7 +487,7 @@ Simply sets `this.<propName>` to `<propValue>`, which is the default way to stor
 Cleans up the existing `name`, sets the new `<name>`, and if that `<name>` isn't `null`, adds this `Component` to the `registry` under `<name>`.
 
 #### `cleanup()`
-Performs any cleanup tasks necessary, like dismantling `AudioNode`s that should no longer run and otherwise freeing resources.  If you override `cleanup()`, you should probably call `super.cleanup()` to make sure you don't miss something important.  In `Component`, `cleanup()` goes through every property and calls `cleanupProperty()` for the property.
+Performs any cleanup tasks necessary, like dismantling `AudioNode`s that should no longer run and otherwise freeing resources.  If you override `cleanup()`, you should probably call `super.cleanup()` to make sure you don't miss something important.  In `Component`, `cleanup()` goes through every property and calls `cleanupProperty()` for the property (if it isn't a reference).  `cleanup()` is called automatically by `Playable` instances on `stop()`, but if you manually start any other `Component`, you'll want to call `cleanup()` on it yourself.
 
 #### `cleanupProperty(<propName>)`
 If the property named by `<propName>` has a `cleaner` in its descriptor, this method calls that cleaner to clean up the property; if it does not, it calls `genericCleaner(<propName>)`.
@@ -728,7 +728,7 @@ Callbacks to call after `stop()`.
 
 #### `play()`
 #### `stop()`
-Calls `player.play()` or `player.stop()` on this object.  If `stop()`, the `callbacks` are then called in the order in which they were registered, and the `callbacks` array is emptied.
+Calls `player.play()` or `player.stop()` on this object.  If `stop()`, the `callbacks` are then called in the order in which they were registered, and the `callbacks` array is emptied, after which `cleanup()` is called.
 
 #### `release(<callback>)`
 Calls `registerCallback(<callback>)`, then calls `stop()`.  Override this if you want custom behavior before actually stopping the sound, like a reverb effect or something, as `stop()` will stop the sound immediately, but you should remember to register the `<callback>`.
@@ -820,8 +820,8 @@ A list of instruments (see the Instruments section above) to add to the global `
 The `Event`s.  The events in the array are registered in order, and since events can be timed based on the previous registered event (by populating the `after` field rather than the `time` field in the event), it's probably a good idea to put the events in the order in which you want them to be executed.
 
 #### `beforeEvents` — *array of `Event`s* — `defaultValue`: `[]`
-#### `afterEvents` — *array of `Event`s* — `defaultValue`: `[]`
-When `play()` is called, `executeEvent()` is called on all `Event`s in `beforeEvents` before playing starts, and likewise, after `stop()` is called and the `Sequence` stops, all `Event`s in `afterEvents` are executed.  Both are called in the order they're in.
+#### `afterEvents` — *array of `Event`s* — `defaultValue`: `[]` — `cleaner`: `null`
+When `play()` is called, `executeEvent()` is called on all `Event`s in `beforeEvents` before playing starts, and likewise, after `stop()` is called and the `Sequence` stops, all `Event`s in `afterEvents` are executed.  Both are called in the order they're in.  `afterEvents` are executed after the `cleanup()` step, so `cleaner` is `null`.
 
 #### `componentCreationLeadTime` — *number* — `defaultValue`: `null`
 If this value is not `null`, a special creation event will be added before every event that has an `action` to create the `action` as a `Component`.  This allows the `action` to start promptly, since `Component` creation can be costly.
@@ -917,7 +917,7 @@ An abstract `action` for an `Event`.  Doesn't do anything on its own.
 ### Instance Methods
 
 #### `perform(<sequence>)`
-Does nothing in this class; override it in subclasses.  `<sequence>` should be the `Sequence` that is executing the `Event` hosting this `Action`.
+Does nothing in this class, then calls `cleanup()`; override it in subclasses, but call `super.perform()` to ensure that `cleanup()` gets called (though it may not actually do anything either).  `<sequence>` should be the `Sequence` that is executing the `Event` hosting this `Action`.
 
 
 
@@ -928,8 +928,8 @@ An `Action` that plays a given `Playable` and stores it in the parent `Sequence`
 
 ### Properties
 
-#### `playable` — *`Playable`* — `defaultValue`: `null`
-The `Playable` that will be `play()`d.
+#### `playable` — *`Playable`* — `defaultValue`: `null` — `cleaner`: `null`
+The `Playable` that will be `play()`d.  `Playable`s clean themselves up, so there's no need for a `cleaner`.
 
 ### Instance Methods
 
@@ -945,12 +945,12 @@ An `Action` that calls a named `method` on the `target` object, passing in `argu
 
 ### Properties
 
-#### `target` — *object* — `defaultValue`: `null`
+#### `target` — *object* — `defaultValue`: `null` — `cleaner`: `null`
 #### `method` — *string* — `defaultValue`: `null`
-Assuming both `target` and `method` are populated and valid, `method` will be called on `target` with the arguments specified in `arguments`.
+Assuming both `target` and `method` are populated and valid, `method` will be called on `target` with the arguments specified in `arguments`.  `target` is assumed to need to live beyond the lifetime of the `Action` itself and thus does not need a `cleaner`, and `method` is a string so it doesn't get cleaned up in the first place.
 
-#### `arguments` — *value or array* — `defaultValue`: `null`
-The arguments to pass into `method`.  If it's `null`, no arguments will be passed.  If it's a value that is not an array, that value will be passed as the only argument.  If it's an array, the elements of the array will be the arguments.  If you want to pass in a single argument that is an array (or you want to pass in `null` as an argument), you should put it in an array.  So, for example, if you want to have `[foo]` as an argument, `arguments` should be `[[foo]]`; if you want `null` as an argument, `arguments` should be `[null]`.
+#### `arguments` — *value or array* — `defaultValue`: `null` — `cleaner`: `null`
+The arguments to pass into `method`.  If it's `null`, no arguments will be passed.  If it's a value that is not an array, that value will be passed as the only argument.  If it's an array, the elements of the array will be the arguments.  If you want to pass in a single argument that is an array (or you want to pass in `null` as an argument), you should put it in an array.  So, for example, if you want to have `[foo]` as an argument, `arguments` should be `[[foo]]`; if you want `null` as an argument, `arguments` should be `[null]`.  It is assumed that the `arguments` will not need to be cleaned up at the same time as the `Action`.
 
 ### Instance Methods
 
@@ -966,7 +966,7 @@ A `MethodAction` whose target is the `Sequence` that called `perform()` on it.  
 
 ### Properties
 
-#### `target` — *object* — `value`: `null`
+#### `target` — *object* — `value`: `null` — `cleaner`: `null`
 This gets set by the `perform()` method to the `Sequence` instance that called said method.
 
 ### Instance Methods
