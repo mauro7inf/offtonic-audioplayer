@@ -43,6 +43,9 @@ import Action from './lib/components/actions/Action.js';
 import PlayAction from './lib/components/actions/PlayAction.js';
 import MethodAction from './lib/components/actions/MethodAction.js';
 import SequenceAction from './lib/components/actions/SequenceAction.js';
+import CreateAction from './lib/components/actions/CreateAction.js';
+import CleanupAction from './lib/components/actions/CleanupAction.js';
+import PropertyAction from './lib/components/actions/PropertyAction.js';
 
 class Global {
   constructor() {
@@ -152,6 +155,12 @@ class Global {
     this.registerClass('MethodAction', MethodAction);
     this.SequenceAction = SequenceAction;
     this.registerClass('SequenceAction', SequenceAction);
+    this.CreateAction = CreateAction;
+    this.registerClass('CreateAction', CreateAction);
+    this.CleanupAction = CleanupAction;
+    this.registerClass('CleanupAction', CleanupAction);
+    this.PropertyAction = PropertyAction;
+    this.registerClass('PropertyAction', PropertyAction);
   }
 
   registerClass(className, classInstance) {

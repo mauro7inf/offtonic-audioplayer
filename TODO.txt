@@ -12,8 +12,4 @@ Firefox and Safari fallbacks
 
 Note names
 
-Rewrite tests as sequences
-
-Score (sequence and instruments)
-
 Make orchestra part of registry

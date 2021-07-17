@@ -468,6 +468,9 @@ Sets the properties to the values in `<properties>`.  If `<useDefault>` is `true
 #### `finishSetup()`
 Does nothing in `Component`, but you can override it if you need.  Gets called at the end of `setProperties()` to initialize the `Component` and perform any tasks that need multiple properties to be around at the same time, like calculations.
 
+#### `hasProperty(<propName>)` — *boolean*
+Returns `true` if `<propName>` is a property of this object's class and `false` if not.  The property value might still be `null`; only whether the property is defined in the `propertyDescriptors` class field matters for the purposes of this method.
+
 #### `getProperty(<propName>, <resolveReference>)` — *anything*
 Returns the value of the property with the specified `<propName>`, which may be a number, a `Component`, or really anything else.  If the property descriptor specifies a `getter`, that function will be called to retrieve the value; otherwise, `genericGetter()` is called.  If the value is a reference (an object with a `ref` field) and `<resolveReference>` is not explicitly set to `false`, the object returned will be the `Component` referenced, but if `resolveReference` is `false`, the object returned will be the object with the `ref` field.
 
@@ -726,12 +729,14 @@ Callbacks to call after `stop()`.
 
 ### Instance Methods
 
-#### `play()`
+#### `play(<callback>)`
+Calls `registerCallback(<callback>)`, then calls `player.play()` on this object.  The `<callback>` will be executed when `stop()` is called, so you can essentially schedule a `Playable` to perform some cleanup task when it's done.
+
 #### `stop()`
-Calls `player.play()` or `player.stop()` on this object.  If `stop()`, the `callbacks` are then called in the order in which they were registered, and the `callbacks` array is emptied, after which `cleanup()` is called.
+Calls `player.stop()` on this object; the `callbacks` are then called in the order in which they were registered, and the `callbacks` array is emptied, after which `cleanup()` is called.
 
 #### `release(<callback>)`
-Calls `registerCallback(<callback>)`, then calls `stop()`.  Override this if you want custom behavior before actually stopping the sound, like a reverb effect or something, as `stop()` will stop the sound immediately, but you should remember to register the `<callback>`.
+Calls `registerCallback(<callback>)`, then calls `stop()`.  Override this if you want custom behavior before actually stopping the sound, like a reverb effect or something, as `stop()` will stop the sound immediately, but you should remember to register the `<callback>`.  The `<callback>` will be executed when `stop()` is called, so you can essentially schedule a `Playable` to perform some cleanup task when it's done.
 
 #### `registerCallback(<callback>)`
 If a `<callback>` is provided (as in, not `undefined` or `null`), adds it to the `callbacks` array.
@@ -809,7 +814,7 @@ Calls `registerCallback(<callback>)`.  If `envelope` is an `Envelope`, calls `st
 
 ## Sequence < Playable < AudioComponent < Component
 
-Activates a sequence of events on an audio-rate timer.  You can use this to play a whole song, for example.  Timer precision is necessarily within 128 samples, though, since that's the buffer size of the `AudioWorkletProcessor`.
+Activates a sequence of events on an audio-rate timer.  You can use this to play a whole song, for example.  Timer precision is necessarily within 128 samples, though, since that's the buffer size of the `AudioWorkletProcessor`.  The `Sequence` will not end unless you specifically end it, either by calling `stop()` or `release()` or setting a `duration` (property from `Playable`), or using a `SequenceAction` within the sequence to trigger one of these methods.
 
 ### Properties
 
@@ -836,6 +841,9 @@ Only the base features of the `AudioComponentProcessor` are required here, speci
 #### `events` — *object where the keys are numbers and the values are the `Event`s* — default value: `null`
 The `events` property contains an array, but when they get stored in the `Sequence`, they get added to the `events` object with a numeric key, making `events` similar to an array.  The message that triggers an event (or creates an event's `action`) refers to the event by its key in this array.
 
+#### `necessaryEvents` — *array of `Event`s* — default value: `[]`
+`Event`s in `events` that are part of cleanup.  These `Event`s are executed before the `afterEvents` when `stop()` is called (provided that the necessary `Event`s have been executed first).
+
 #### `lastEventTime` — *number* — default value: `0`
 The time of the most recent `Event` recorded.
 
@@ -844,6 +852,9 @@ The key for the current event added to the `events` object.
 
 #### `playing` — *array of `Playable`s* — default value: `[]`
 When a `PlayAction` is performed, the action's `playable` is added to this array, so that if `stop()` or `releaseAll()` is called on the `Sequence` itself, it knows what dependent `Playable` objects it also needs to `stop()`.
+
+#### `created` — *array of `Component`s* — default value: `[]`
+When a `CreateAction` is performed, the action's `component` is added to this array, so that if `stop()` is called on the `Sequence` itself, it knows what dependent `Component` objects it also needs to `cleanup()` (and possibly turn `off()`).
 
 ### Instance Methods
 
@@ -856,26 +867,35 @@ If `<instrument>` is actually an array, calls `addInstrument()` on each element 
 #### `cleanupInstruments()`
 Removes from the `orchestra` every instrument in the `instruments` field.
 
+#### `getAllAfterEvents()` — *array of `Event`s*
+Returns the concatenated contents of `necessaryEvents` and `afterEvents`.
+
 #### `setEvents(<events>)`
 Empties the `events` object and called `addEvent()` on each `Event` in the `<events>` array, in order.
 
 #### `addEvent(<event>, <recordTime>)`
-Adds the given `<event>` to the `events` object under the `eventCounter` key, and, if `<recordTime>` is `true`, also sets `lastEventTime`.  If the `<event>` doesn't have a `time`, it's computed based on the `lastEventTime` and `<event>.after`; if the `node` is not `null`, `registerTimedEvent()` is called to set the processor up to trigger the `<event>` when its `time` comes.  If `componentCreationLeadTime` is `true` and `<event>.action` is an object and not already a created component, a new creation event is also created and `addEvent()` is called on it, with a `<recordTime>` of `false` since we don't want this automatically generated creation event to interfere with the timing of the other events.
+Adds the given `<event>` to the `events` object under the `eventCounter` key (and to `afterEvents` if `afterEvent` has a valid value), and, if `<recordTime>` is `true`, also sets `lastEventTime`.  If the `<event>` doesn't have a `time`, it's computed based on the `lastEventTime` and `<event>.after`; if the `node` is not `null`, `registerTimedEvent()` is called to set the processor up to trigger the `<event>` when its `time` comes.  If `componentCreationLeadTime` is `true` and `<event>.action` is an object and not already a created component, a new creation event is also created and `addEvent()` is called on it, with a `<recordTime>` of `false` since we don't want this automatically generated creation event to interfere with the timing of the other events.
 
 #### `registerPlayable(<playable>)`
 Adds `<playable>` to the `playing` array so that if `stop()` or `releaseAll()` is called on the `Sequence`, it knows what's playing.
 
-#### `handleTriggeredEvent(<eventId>)`
-Calls the super's method, then executes the `Event` stored in `events.<eventId>` by calling `executeEvent()`.
+#### `registerCreated(<component>)`
+Adds `<component>` to the `created` array so that if `stop()` is called on the `Sequence`, it knows what needs to be cleaned up.
+
+#### `handleTriggeredEvent(<eventIndex>)`
+Calls the super's method, then executes the `Event` stored in `events.<eventIndex>` by calling `executeEvent()`.
 
 #### `executeEvent(<event>)`
-Executes the `<event>`.  See the documentation for `Event` for details on how `Event`s get executed
+Executes the `<event>` if `<event>.isDone` is not `true`, then sets `<event>.isDone` to `true`.  See the documentation for `Event` for details on how `Event`s get executed.
 
 #### `createNode()`
 Calls the super's method, then registers all `Event`s in the `events` object with the processor.
 
 #### `removeFromPlaying(<playable>, <stop>)`
 Removes `<playable>` from `playing` array if it's there.  If `<stop>` is `true` and the `playing` array is empty, calls `stop()`.
+
+#### `removeFromCreated(<component>)`
+Calls `off()` on the `<component>` if it is an `AudioComponent`, then calls `cleanup()` on the `<component>` and removes it from the `created` array.
 
 #### `release(<callback>)`
 Calls `registerCallback(<callback>)`, then calls `release()` on all `Playable`s stored in `playing`, removing them from the array when they're done.  When the array is empty, `stop()` is called, which calls the `<callback>` if one was provided.
@@ -884,7 +904,7 @@ Calls `registerCallback(<callback>)`, then calls `release()` on all `Playable`s 
 Calls `release()` on all `Playable`s stored in `playing`, removing them from the array when they're done.
 
 #### `stop()`
-Calls the super's method, then calls `stop()` on all `Playable`s stored in `playing`.
+Calls `stop()` on all `Playable`s stored in `playing`, calls `removeFromCreated()` on all `Component`s stored in `created`, then calls the super's method.  After this, executes all `necessaryEvents` that need to be executed, then all the `afterEvents`, calling `cleanup()` on their `action`s as necessary.
 
 
 
@@ -895,13 +915,22 @@ Calls the super's method, then calls `stop()` on all `Playable`s stored in `play
 
 ### Instance Fields
 
+#### `id` — *string*
+An arbitrary ID for the `Event`, in case you need to refer to it in another `Event`.  It's optional, but it should be unique in the `Sequence` if provided.
+
+#### `isDone` — *`undefined` or `true`*
+Set by the `Sequence` when the event is executed.
+
 #### `time` — *number*
 #### `after` — *number*
 The time at which to trigger the `Event`.  Exactly one of these should be provided for timed events; these fields are ignored for untimed events (like those in `beforeEvents` and `afterEvents` in a `Sequence`).  If `time` is provided, the `Event` will trigger at time `time`; if `after` is provided, the `Event` will trigger at a time `after` after the previous `Event` in the `Sequence`.
 
 #### `action` — *a function, an `Action`, or a definition of an `Action`*
-#### `create` — *eventId*
+#### `create` — *eventIndex*
 The action to be performed.  Exactly one of `action` and `create` should be provided.  If `action` is a function, the function will be called at the specified time.  If `action` is an instance of `Action`, its `perform()` method will be called at the specified time.  If `action` is an object, it will be assumed to be the definition for an `Action`, so it will be created using `o.createComponent()` (with the `Sequence`'s `player` and `registry`) and then `perform()` will be called on it.  If `create` is provided instead, if the `Event` at the given `eventId` in the `Sequence`'s `events` object contains an `action` that is not an `Action`, `o.createComponent()` will be called on it but `perform()` will not be called (since it will presumably be called later).
+
+#### `afterEvents` — *boolean, `id` string, or array of `id` strings*
+The event will also be added to the `Sequence`'s `necessaryEvents` but executed only if the `Event`s corresponding to the passed-in `id`s have already been executed (which is always true if `afterEvents` is `true` or `[]`, as there are no referred-to `Event`s).  Since `Event`s only get executed once, if it is executed in the main sequence, it is not executed afterwards.  The `Event` will not get executed in the main sequence at all if the `Event`s named in `afterEvents` have not already been executed.
 
 
 
@@ -974,6 +1003,70 @@ This gets set by the `perform()` method to the `Sequence` instance that called s
 #### `perform(<sequence>)`
 
 Sets the `target` property to `<sequence>`, then calls the superclass's `perform()` method.
+
+
+
+
+## CreateAction < Action < Component
+
+Creates a `component` and, optionally, turns it `on()` and manages its lifecycle through the `Sequence` that performs this `Action`.
+
+### Properties
+
+#### `component` — *`Component`* — `defaultValue`: `null` — `cleaner`: `null`
+The `Component` to be created.  Technically speaking, creation actually happens when the `Action` itself is created.  If you want this `component` to actually *do* anything, you will probably want to give it a `name` so that it can be added to the `Sequence`'s `registry`.
+
+#### `store` — *boolean* — `defaultValue`: `true`
+If `true`, adds the created `component` to the `<sequence>`'s `created` array when `perform(<sequence>)` is called.  This allows the `<sequence>` to call `cleanup()` on the `component` when `stop()` is called on the `<sequence>`.  If you don't do this, you'll probably want to call `cleanup()` yourself somehow.
+
+#### `run` — *boolean* — `defaultValue`: `true`
+If `true` and `component` is an `AudioComponent`, calls `on()`.
+
+### Instance Methods
+
+#### `perform(<sequence>)`
+If the `component` is not null, it turns it `on()` if it's an `AudioComponent` and `run` is true, and it adds it to the `<sequence>`'s `created` array if `store` is `true`, then calls the superclass's method.
+
+
+
+
+## CleanupAction < Action < Component
+
+Cleans up a `component` that has been stored in the `Sequence` (through a `CreateAction`), removing it from the `Sequence`'s `created` array.
+
+### Properties
+
+#### `component` — *`Component` or ref* — `defaultValue`: `null` — `cleaner`: `null`
+The `Component` to be cleaned up.  It should probably be a ref rather than a definition or a `Component`, since presumably you want to clean up an existing `Component`.
+
+### Instance Methods
+
+#### `perform(<sequence>)`
+Calls `<sequence>.removeFromCreated()` (if `component` is not `null`) then the super's method.
+
+
+
+
+## PropertyAction < Action < Component
+
+Sets properties on a `Component` (or other object), traversing a `path` of properties, fields, and indices.
+
+### Properties
+
+#### `component` — *`Component` or object* — `defaultValue`: `null` — `cleaner`: `null`
+The object on which to set the properties.  If you want to set a property of a property of this object, simply use the `path` property.  If the target object at the end of the `path` is not a `Component`, the fields named in `properties` will simply be set to the values named in `properties`.
+
+#### `properties` — *object* — `defaultValue`: `{}`
+An object whose keys are property names and whose values are the property values to set (the argument to a `Component`'s `setProperties()` method).
+
+#### `path` — *strings or array of strings* — `defaultValue`: `[]`
+A list of property names and fields to traverse in order to reach the actual object whose properties will be set.  Leave as `[]` to set properties on the passed-in `component` itself.  If, when traversing the `path`, a particular property value is not a `Component`, the `path` is treated as a dot path instead.  For example, if a particular property value is an array, the next `path` element could be a numerical index into that array.
+
+### Instance Methods
+
+#### `perform(<sequence>)`
+Sets the `properties` on the `component` at the specified `path`.  If the path doesn't actually exist on the `component`, nothing happens.
+
 
 
 
