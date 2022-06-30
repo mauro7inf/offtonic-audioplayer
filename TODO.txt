@@ -8,8 +8,7 @@ Pitch Space Sine
 Shepard
 Shepard Octave
 
-Firefox and Safari fallbacks
-Figure out way to let third-party audio nodes work in Firefox
+Safari fallback
 
 Note names
 
