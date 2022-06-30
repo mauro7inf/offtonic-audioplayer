@@ -9,7 +9,10 @@ Shepard
 Shepard Octave
 
 Firefox and Safari fallbacks
+Figure out way to let third-party audio nodes work in Firefox
 
 Note names
 
 Make orchestra part of registry
+
+Array properties

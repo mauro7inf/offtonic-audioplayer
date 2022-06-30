@@ -60,6 +60,7 @@ class Global {
     let url = new URL(import.meta.url);
     let href = url.href;
     this.baseHref = href.substring(0, href.indexOf('offtonic-audioplayer.js'));
+    this.addModule('lib/allProcessors.js'); // for Firefox compatibility, all processors go in one big file
 
     this.Player = Player;
     this.Player.o = this;
@@ -69,7 +70,7 @@ class Global {
     this.Component.o = this;
     this.registerClass('Component', Component);
     this.AudioComponent = AudioComponent;
-    this.addModule('lib/processors/AudioComponentProcessor.js');
+    //this.addModule('lib/processors/AudioComponentProcessor.js');
     this.registerClass('AudioComponent', AudioComponent);
     this.Playable = Playable;
     this.registerClass('Playable', Playable);
@@ -77,67 +78,67 @@ class Global {
     this.Adder = Adder;
     this.registerClass('Adder', Adder);
     this.Multiplier = Multiplier;
-    this.addModule('lib/processors/arithmetic/MultiplierProcessor.js');
+    //this.addModule('lib/processors/arithmetic/MultiplierProcessor.js');
     this.registerClass('Multiplier', Multiplier);
 
     this.Generator = Generator;
-    this.addModule('lib/processors/generators/GeneratorProcessor.js');
+    //this.addModule('lib/processors/generators/GeneratorProcessor.js');
     this.registerClass('Generator', Generator);
 
     this.ConstantGenerator = ConstantGenerator;
     this.registerClass('ConstantGenerator', ConstantGenerator);
     this.LinearGenerator = LinearGenerator;
-    this.addModule('lib/processors/generators/LinearGeneratorProcessor.js');
+    //this.addModule('lib/processors/generators/LinearGeneratorProcessor.js');
     this.registerClass('LinearGenerator', LinearGenerator);
 
     this.WhiteNoiseGenerator = WhiteNoiseGenerator;
-    this.addModule('lib/processors/generators/WhiteNoiseGeneratorProcessor.js');
+    //this.addModule('lib/processors/generators/WhiteNoiseGeneratorProcessor.js');
     this.registerClass('WhiteNoiseGenerator', WhiteNoiseGenerator);
     this.RedNoiseGenerator = RedNoiseGenerator;
-    this.addModule('lib/processors/generators/RedNoiseGeneratorProcessor.js');
+    //this.addModule('lib/processors/generators/RedNoiseGeneratorProcessor.js');
     this.registerClass('RedNoiseGenerator', RedNoiseGenerator);
 
     this.Oscillator = Oscillator;
-    this.addModule('lib/processors/generators/OscillatorProcessor.js');
+    //this.addModule('lib/processors/generators/OscillatorProcessor.js');
     this.registerClass('Oscillator', Oscillator);
     this.SineOscillator = SineOscillator;
-    this.addModule('lib/processors/generators/SineOscillatorProcessor.js');
+    //this.addModule('lib/processors/generators/SineOscillatorProcessor.js');
     this.registerClass('SineOscillator', SineOscillator);
     this.TriangleOscillator = TriangleOscillator;
-    this.addModule('lib/processors/generators/TriangleOscillatorProcessor.js');
+    //this.addModule('lib/processors/generators/TriangleOscillatorProcessor.js');
     this.registerClass('TriangleOscillator', TriangleOscillator);
     this.SquareOscillator = SquareOscillator;
-    this.addModule('lib/processors/generators/SquareOscillatorProcessor.js');
+    //this.addModule('lib/processors/generators/SquareOscillatorProcessor.js');
     this.registerClass('SquareOscillator', SquareOscillator);
     this.SawtoothOscillator = SawtoothOscillator;
-    this.addModule('lib/processors/generators/SawtoothOscillatorProcessor.js');
+    //this.addModule('lib/processors/generators/SawtoothOscillatorProcessor.js');
     this.registerClass('SawtoothOscillator', SawtoothOscillator);
 
     this.Envelope = Envelope;
-    this.addModule('lib/processors/envelopes/EnvelopeProcessor.js');
+    //this.addModule('lib/processors/envelopes/EnvelopeProcessor.js');
     this.registerClass('Envelope', Envelope);
     this.ADSREnvelope = ADSREnvelope;
-    this.addModule('lib/processors/envelopes/ADSREnvelopeProcessor.js');
+    //this.addModule('lib/processors/envelopes/ADSREnvelopeProcessor.js');
     this.registerClass('ADSREnvelope', ADSREnvelope);
 
     this.Filter = Filter;
-    this.addModule('lib/processors/filters/FilterProcessor.js');
+    //this.addModule('lib/processors/filters/FilterProcessor.js');
     this.registerClass('Filter', Filter);
     this.LinearFilter = LinearFilter;
-    this.addModule('lib/processors/filters/LinearFilterProcessor.js');
+    //this.addModule('lib/processors/filters/LinearFilterProcessor.js');
     this.registerClass('LinearFilter', LinearFilter);
     this.FirstOrderFilter = FirstOrderFilter;
-    this.addModule('lib/processors/filters/FirstOrderFilterProcessor.js');
+    //this.addModule('lib/processors/filters/FirstOrderFilterProcessor.js');
     this.registerClass('FirstOrderFilter', FirstOrderFilter);
     this.CutoffFilter = CutoffFilter;
-    this.addModule('lib/processors/filters/CutoffFilterProcessor.js');
+    //this.addModule('lib/processors/filters/CutoffFilterProcessor.js');
     this.registerClass('CutoffFilter', CutoffFilter);
     this.StepFilter = StepFilter;
-    this.addModule('lib/processors/filters/StepFilterProcessor.js');
+    //this.addModule('lib/processors/filters/StepFilterProcessor.js');
     this.registerClass('StepFilter', StepFilter);
 
     this.Timer = Timer;
-    this.addModule('lib/processors/TimerProcessor.js');
+    //this.addModule('lib/processors/TimerProcessor.js');
     this.registerClass('Timer', Timer);
 
     this.Tone = Tone;
