@@ -25,7 +25,7 @@ When you no longer want the `Player` active, just turn it off:
 
 Offtonic Audioplayer can be used in an entirely configuration-based manner, meaning that you can use JSON to describe your sound rather than actual code.
 
-Behind the scenes, Offtonic Audioplayer uses `AudioWorkletNode`s, which may not yet be supported in all browsers.  As of this writing, most of its features are supported on the latest Chrome and Firefox, but Safari does not yet support them, which means that Offtonic Audioplayer does not work on iOS.  Previous iterations were based on `ScriptProcessorNode`s, which *are* available on Safari, but that API is deprecated (and its performance is terrible since it executes an audio callback on the main thread).  So I guess don't use this if you want your web app to work on iOS.  As of this writing, Firefox doesn't allow you to import modules in a worklet, so to get around this and allow processor classes to inherit from other processor classes, all processor classes are put into one big file (via a script).  This could make extending the functionality of Offtonic Audioplayer trickier, unfortunately.
+Behind the scenes, Offtonic Audioplayer uses `AudioWorkletNode`s, which may not yet be supported in all browsers.  As of this writing, most of its features are supported on the latest Chrome and Firefox, but Safari does not yet support them, which means that Offtonic Audioplayer does not work on iOS.  Previous iterations were based on `ScriptProcessorNode`s, which *are* available on Safari, but that API is deprecated (and its performance is terrible since it executes an audio callback on the main thread).  So I guess don't use this if you want your web app to work on iOS.  As of this writing, Firefox doesn't allow you to import modules in a worklet, so to get around this and allow processor classes to inherit from other processor classes, a global object called `offtonicAudioplayer` is added to the `AudioWorkletGlobalScope`, and the processor classes are added there so that they can be retrieved in other processor class files.  This workaround circumvents the module system, so it's up to you to ensure that modules are added to the `AudioContext` in the correct order.  It's a bit of a headache, but at least Firefox users can still use your app, right?
 
 I'm sure you'll want to define your own custom oscillators and filters and whatnot, so the basic abstract classes should be fairly easy to subclass, but the best documentation for how to do that is, naturally, the code itself.  This document will not list every single detail of what you need to know to do that, but I'll give you hints where applicable.
 
@@ -219,6 +219,9 @@ The `Global` singleton class (found in `offtonic-audioplayer.js`, imported in th
 #### `debug` — *boolean* — default value: `false`
 Set this to `true` if you want to see warnings in the console (anything displayed with `o.info()`, o.warn()`, or `o.error()`).
 
+#### `modulesToAdd` — *`Array` of strings* — default value: `[]`
+A queue of processor modules to add to the `AudioWorklet` in order.  Since `AudioWorklet.prototype.addModule()` is asynchronous and the processor modules require a specific order, this order needs to be preserved somewhere, and that somewhere is here.  Do not alter this field directly.  Use `queueModule()` to add modules to the list then `addAllModules()` to add the modules to the `AudioWorklet` and remove them from the list.
+
 #### `ctx` — *`AudioContext`*
 The `AudioContext` for the `AudioNode`s used by Offtonic Audioplayer.
 
@@ -242,8 +245,17 @@ Adds a class to the class registry so that it can be instantiated when a propert
 #### `getClass(<className>)` — *`Component` subclass constructor*
 Retrieves the class instance from the class registry with the given `<className>`, if it exists.  You shouldn't have to call this method directly, since this is called from `createComponent` already.
 
-#### `addModule(<modulePath>)`
-Adds to the `AudioContext`'s `AudioWorklet` an `AudioWorkletProcessor` subclass located at `<modulePath>`, a (string) URL path relative to the Offtonic Audioplayer's base directory.  If you create any `AudioWorkletProcessor` subclasses, you should add them here.  Adding the module to the audio context's `AudioWorklet` is a required step in the WebAudio API, but the paths can be confusing since relative URLs are actually compared to the HTML file the script is loaded from rather than the location of the module you're currently in.  This function simplifies this complication by considering all URLs to be relative to the base directory and turning them into absolute URLs with the `baseHref` field.
+#### `addModule(<modulePath>)` — *`Promise`*
+Adds to the `AudioContext`'s `AudioWorklet` an `AudioWorkletProcessor` subclass located at `<modulePath>`, a (string) URL path relative to the Offtonic Audioplayer's base directory.  If you create any `AudioWorkletProcessor` subclasses, you should add them here.  Adding the module to the audio context's `AudioWorklet` is a required step in the WebAudio API, but the paths can be confusing since relative URLs are actually compared to the HTML file the script is loaded from rather than the location of the module you're currently in.  This function simplifies this complication by considering all URLs to be relative to the base directory and turning them into absolute URLs with the `baseHref` field.  The operation to add a module is asynchronous, so this method returns a `Promise` that resolves when the module has been added (or rejects on error).  If the order of adding modules is important for your application, you may want to use `queueModule()` and `addAllModules()` instead.
+
+#### `queueModule(<modulePath>)`
+Adds to the `modulesToAdd` queue an `AudioWorkletProcessor` subclass located at `<modulePath>`, a (string) URL path relative to the Offtonic Audioplayer's base directory.  You must later call `addAllModules()` to actually add the processors (as in `addModule()`) and empty the queue.  See the documentation for `addModule()` for details on the `<modulePath>`.
+
+#### `addAllModules()`
+Adds to the `AudioContext`'s `AudioWorklet` all of the `AudioWorkletProcessor` subclasses located at the paths in `modulesToAdd`, in order from the first element to the last.  Since adding a module is asynchronous, this method waits until each module addition is completed before beginning the next, thus ensuring the proper order.
+
+#### `addModulesFromList(<list>)`
+`<list>` should be an `Array` of module paths, as described in the documentation for `addModule()`.  This method will add the first module in the list (if it isn't empty) to the `AudioWorklet`, then when that's done, it will call itself on the list starting from its second element.  You should probably not call this method directly; use `eueueModule()` and `addAllModules()` instead.
 
 #### `createComponent(<properties>, <player>, <registry>)` — *`Component` subclass*
 Creates a `Component` instance based on `<properties>`, which is an object whose keys are property names and whose values are the property values, including the key `className`, whose value should be a class that has been previously registered with `registerClass()` (built-in classes are already registered).  `<player>` is the `Player` instance that should be attached to the component; if it is not provided (`null` or `undefined`), the default player (the global object's `player` field) will be used by default.  Similarly, `<registry>` is the player's `registry` unless another is provided.  If any properties themselves define a new component (by containing `className`), `createComponent()` will be recursively called on them, with the same `<player>` argument.
@@ -252,6 +264,24 @@ Creates a `Component` instance based on `<properties>`, which is an object whose
 #### `warn(...<args>)`
 #### `error(...<args>)`
 If `debug` is set to `true`, calls `console.info(<args>)`, `console.warn(<args>)`, and `console.error(<args>)`, respectively.  Note that `info()` does not (currently) provide a call stack in Chrome, while `warn()` and `error()` do.
+
+
+
+
+
+## OfftonicAudioplayer
+
+The `OfftonicAudioplayer` is a global object (not a class) in the `AudioWorkletGlobalScope`.  You can access it in any processor class file by simply using its name, since it is in the global scope (but it is not in `window`, so you can't access it outside a worklet).  Its purpose is to allow processor classes to access other processor classes in other files without having to use ES6's module system, which Firefox has not implemented for worklets as of this writing.  You can simply use `OfftonicAudioplayer.<className>` to access any class that has been registered.  This object is defined in `AudioComponentProcessor.js`, which means that that module always must be added to the `AudioContext`'s `AudioWorklet` first.
+
+### Object Fields
+
+#### `<className>` — *`class`*
+A class that has been registered.  For example, once `AudioComponentProcessor` has been registered, other classes can extend `OfftonicAudioplayer.AudioComponentProcessor` without needing any `import` statements.
+
+### Object Methods
+
+#### `registerProcessor(<processorName>, <processorConstructor>)`
+Adds the `<processorName>` key to `OfftonicAudioplayer`, with `<processorConstructor>` as the value, and also calls the `AudioWorkletGlobalScope`'s `registerProcessor(<processorName>, <processorConstructor>)`, which registers the processor with the global scope and allows an `AudioWorkletNode` to use a particular processor by name.  You must call the global scope's version of this method to actually use your processor, but if you call `OfftonicAudioplayer`'s version, you will also be able to access the constructor through this global object.
 
 
 
