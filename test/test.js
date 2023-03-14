@@ -44,6 +44,13 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: tuningTestSequence()
+        }
+      },
+      {
+        after: 1500,
+        action: {
+          className: 'PlayAction',
           playable: releaseTestSequence()
         }
       },
@@ -170,6 +177,114 @@ function afterTests() {
   o.player.off();
   if (done) {
     console.log('Done!');
+  }
+}
+
+function tuningTestSequence() {
+  const tuning = o.createComponent({
+    className: 'Tuning',
+    tuningName: 'TEST-TUNING'
+  });
+
+  return {
+    className: 'Sequence',
+    duration: 1000,
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear a C major arpeggio.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('tuningTest start')
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            frequency: 'C4',
+            gain: 0.1,
+            duration: 230,
+            generator: {
+              className: 'TriangleOscillator',
+              pulseWidth: 0.45
+            },
+            envelope: {
+              className: 'ADSREnvelope',
+              release: 50
+            }
+          }
+        }
+      },
+      {
+        time: 250,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            frequency: 'Dx4',
+            gain: 0.1,
+            duration: 230,
+            generator: {
+              className: 'TriangleOscillator',
+              pulseWidth: 0.45
+            },
+            envelope: {
+              className: 'ADSREnvelope',
+              release: 50
+            }
+          }
+        }
+      },
+      {
+        time: 500,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            frequency: 'Abb4',
+            gain: 0.1,
+            duration: 230,
+            generator: {
+              className: 'TriangleOscillator',
+              pulseWidth: 0.45
+            },
+            envelope: {
+              className: 'ADSREnvelope',
+              release: 50
+            }
+          }
+        }
+      },
+      {
+        time: 750,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            frequency: 'C5',
+            gain: 0.1,
+            duration: 490,
+            generator: {
+              className: 'TriangleOscillator',
+              pulseWidth: 0.45
+            },
+            envelope: {
+              className: 'ADSREnvelope',
+              release: 50
+            }
+          }
+        }
+      }
+    ],
+    afterEvents: [
+      {
+        action: () => console.log('tuningTest stop')
+      }
+    ]
   }
 }
 

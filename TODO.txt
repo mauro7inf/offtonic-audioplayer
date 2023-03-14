@@ -8,10 +8,12 @@ Pitch Space Sine
 Shepard
 Shepard Octave
 
-Safari fallback
+iOS fallback, if necessary
 
 Note names
 
 Make orchestra part of registry
 
 Array properties
+
+Tuning object that can dynamically take a note name, like E5, and spit out a frequency

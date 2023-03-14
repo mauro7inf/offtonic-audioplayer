@@ -47,6 +47,11 @@ import CreateAction from './lib/components/actions/CreateAction.js';
 import CleanupAction from './lib/components/actions/CleanupAction.js';
 import PropertyAction from './lib/components/actions/PropertyAction.js';
 
+import Tuning from './lib/components/tunings/Tuning.js';
+import MeantoneTuning from './lib/components/tunings/MeantoneTuning.js';
+
+import Note from './lib/components/Note.js';
+
 class Global {
   constructor() {
     this.debug = false;
@@ -164,6 +169,17 @@ class Global {
     this.PropertyAction = PropertyAction;
     this.registerClass('PropertyAction', PropertyAction);
 
+    this.Tuning = Tuning;
+    this.registerClass('Tuning', Tuning);
+    this.queueModule('lib/processors/tunings/TuningProcessor.js');
+    this.MeantoneTuning = MeantoneTuning;
+    this.registerClass('MeantoneTuning', MeantoneTuning);
+    this.queueModule('lib/processors/tunings/MeantoneTuningProcessor.js');
+
+    this.Note = Note;
+    this.registerClass('Note', Note);
+    this.queueModule('lib/processors/NoteProcessor.js');
+
     this.addAllModules();
   }
 
@@ -197,14 +213,17 @@ class Global {
     this.ctx.audioWorklet.addModule(this.baseHref + list[0]).then(() => this.addModulesFromList(list.slice(1)));
   }
 
-  createComponent(properties, player, registry) {
+  createComponent(properties, player, registry, tuning) {
     if (player === null || player === undefined) {
       player = this.player;
     }
     if (registry === null || registry === undefined) {
       registry = player.registry;
     }
-    return this.Component.create(properties, player, registry);
+    if (tuning === null || tuning === undefined) {
+      tuning = player.tuning;
+    }
+    return this.Component.create(properties, player, registry, tuning);
   }
 
   info(...args) {

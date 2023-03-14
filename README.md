@@ -71,7 +71,7 @@ The value is a method name that gets called when `cleanupProperty()` is called, 
 
 #### `isAudioParam` — *boolean* (optional) — default `false`
 #### `paramName` — *string* (optional) — default value is the value of the `name` property
-Indicates that a property represents an `AudioParam`, a parameter of an `AudioNode` named `paramName` (see the WebAudio API docs).  This means that the value must either be a number or an `AudioComponent` with a `connectTo()` method that connects some `AudioNode` (which provides numbers at the audio rate) to the `AudioParam`.  In addition, if the `node` is an `AudioWorkletNode` and the value of this property is a number, that number will be added to the `options.parameterData` object when creating the node as its initial value.
+Indicates that a property represents an `AudioParam`, a parameter of an `AudioNode` named `paramName` (see the WebAudio API docs).  This means that the value must either be a number or an `AudioComponent` with a `connectTo()` method that connects some `AudioNode` (which provides numbers at the audio rate) to the `AudioParam`.  In addition, if the `node` is an `AudioWorkletNode` and the value of this property is a number, that number will be added to the `options.parameterData` object when creating the node as its initial value.  If the value is a string, it will be turned into a `Note` audio component that turns the string into a number via the component's `tuning`.
 
 #### `isProcessorOption` — *boolean* (optional) — default `false`
 #### `processorOptionName` — *string* (optional) — default value is the value of the `name` property
@@ -81,7 +81,7 @@ Indicates that a property value should be passed to the constructor of the `Audi
 Indicates which input on the audio component's `node` field this property should connect to.  The property must be an audio component, since `AudioNode` inputs must be other `AudioNode`s.  If `inputIndex` is not provided, it's assumed that the property is not connecting to an input on the `node` field.
 
 #### `isAudioComponent` — *boolean* (optional) — default `false`
-Indicates that the property must be an `AudioComponent` instance rather than, say, a number.  If the value for the property is a number, it will be turned into a `ConstantGenerator` audio component that outputs the number.
+Indicates that the property must be an `AudioComponent` instance rather than, say, a number.  If the value for the property is a number, it will be turned into a `ConstantGenerator` audio component that outputs the number, and if it is a string, it will be turned into a `Note` audio component that turns the string into a number via the component's `tuning`.
 
 
 
@@ -257,8 +257,8 @@ Adds to the `AudioContext`'s `AudioWorklet` all of the `AudioWorkletProcessor` s
 #### `addModulesFromList(<list>)`
 `<list>` should be an `Array` of module paths, as described in the documentation for `addModule()`.  This method will add the first module in the list (if it isn't empty) to the `AudioWorklet`, then when that's done, it will call itself on the list starting from its second element.  You should probably not call this method directly; use `eueueModule()` and `addAllModules()` instead.
 
-#### `createComponent(<properties>, <player>, <registry>)` — *`Component` subclass*
-Creates a `Component` instance based on `<properties>`, which is an object whose keys are property names and whose values are the property values, including the key `className`, whose value should be a class that has been previously registered with `registerClass()` (built-in classes are already registered).  `<player>` is the `Player` instance that should be attached to the component; if it is not provided (`null` or `undefined`), the default player (the global object's `player` field) will be used by default.  Similarly, `<registry>` is the player's `registry` unless another is provided.  If any properties themselves define a new component (by containing `className`), `createComponent()` will be recursively called on them, with the same `<player>` argument.
+#### `createComponent(<properties>, <player>, <registry>, <tuning>)` — *`Component` subclass*
+Creates a `Component` instance based on `<properties>`, which is an object whose keys are property names and whose values are the property values, including the key `className`, whose value should be a class that has been previously registered with `registerClass()` (built-in classes are already registered).  `<player>` is the `Player` instance that should be attached to the component; if it is not provided (`null` or `undefined`), the default player (the global object's `player` field) will be used by default.  Similarly, `<registry>` is the player's `registry` unless another is provided, and `<tuning>` is the player's `tuning` unless another is provided.  If any properties themselves define a new component (by containing `className`), `createComponent()` will be recursively called on them, with the same `<player>` argument.
 
 #### `info(...<args>)`
 #### `warn(...<args>)`
@@ -278,10 +278,22 @@ The `OfftonicAudioplayer` is a global object (not a class) in the `AudioWorkletG
 #### `<className>` — *`class`*
 A class that has been registered.  For example, once `AudioComponentProcessor` has been registered, other classes can extend `OfftonicAudioplayer.AudioComponentProcessor` without needing any `import` statements.
 
+#### `tunings` — *`object`*
+An object whose keys are the registered names of `Tuning`s and whose corresponding values are their `TuningProcessor`s.  This allows tuning calculations to happen in the worklet scope.  (Defined in `TuningProcessor.js`.)
+
 ### Object Methods
 
 #### `registerProcessor(<processorName>, <processorConstructor>)`
 Adds the `<processorName>` key to `OfftonicAudioplayer`, with `<processorConstructor>` as the value, and also calls the `AudioWorkletGlobalScope`'s `registerProcessor(<processorName>, <processorConstructor>)`, which registers the processor with the global scope and allows an `AudioWorkletNode` to use a particular processor by name.  You must call the global scope's version of this method to actually use your processor, but if you call `OfftonicAudioplayer`'s version, you will also be able to access the constructor through this global object.
+
+#### `getTuning(<tuningName>)` — *`TuningProcessor`*
+Retrieves the `TuningProcessor` stored in the `tunings` object with key `<tuningName>`.  (Defined in `TuningProcessor.js`.)
+
+#### `addTuning(<tuningName>, <tuningProcessor>)` — *boolean*
+Adds the `<tuningName>` key to the `tunings` object, with `<tuningProcessor>` as the value.  This allows other processors to find the named tuning and query it.  Returns `false` if a different `TuningProcessor` already exists with that name (and doesn't add `<tuningProcessor>`); `true` otherwise.  (Defined in `TuningProcessor.js`.)
+
+#### `removeTuning(<tuningName>)`
+Deletes the key of `<tuningName>` from the `tunings` object to clean up tunings that no longer need to be kept around.  (Defined in `TuningProcessor.js`.)
 
 
 
@@ -401,13 +413,16 @@ The `Registry` instance associated with the `Player`.  All new `Component`s crea
 #### `timer` — *`Timer`* — `Component` created from `{name: 'Default Timer', className: 'Timer'}`
 The default `Timer`, which counts the time since the `Player` was turned `on()`.  Its name is `'Default Timer'` and it's the default timer on most `AudioComponent`s that use one.
 
+#### `tuning` — *`MeantoneTuning`* — `Component` created frp, `name: '12TET', className: 'MeantoneTuning', tuningName: '12TET'}`
+The default `Tuning`, which is the usual 12-tone equal temperament (actually 24-tone, but anyway).  It is the default tuning for note names.
+
 #### `isOn` — *boolean* — default value: `false`
 Whether the `Player` is on.
 
 ### Instance Methods
 
 #### `on()`
-Calls `setupNode()` and creates and starts the `timer`.  Call this at the start of a session with this `Player`.
+Calls `setupNode()`, creates and starts the `timer`, and creates and starts the `tuning`.  Call this at the start of a session with this `Player`.  This will also call `resume()` on the `AudioContext`, which might otherwise remain inactive.
 
 #### `off()`
 Stops all notes, calls `cleanupNode()`, and cleans up the `timer`.  Call this at the end of a session with this `Player` to make sure that there aren't errant `AudioNode`s hanging around and leaking CPU time and memory.
@@ -460,8 +475,8 @@ Any subclass inheriting from `Component` has this field automatically populated 
 #### `generatePropertyDescriptors()`
 Copies the superclass's `propertyDescriptors` into a new object, adds this class's `newPropertyDescriptors` to the object (if present), then saves it in this class's `generatedPropertyDescriptors` for future retrieval through `propertyDescriptors`.  You shouldn't ever have to touch this method.
 
-#### `create(<properties>, <player>, <registry>)` — `Component` subclass instance
-`o.createComponent()` just calls this method, so you should probably call that instead since it's easier.  Creates a new object with `<properties>` (after resolving all instruments named in it) as its properties, `<player>` as its player, and `<registry>` as its registry by calling the constructor specified in `<properties>.className` if present (if not, calls the current class's constructor), then `.withPlayer(<player>).withRegistry(<registry>).withProperties(<properties>)` on the constructed object.
+#### `create(<properties>, <player>, <registry>, <tuning>)` — `Component` subclass instance
+`o.createComponent()` just calls this method, so you should probably call that instead since it's easier.  Creates a new object with `<properties>` (after resolving all instruments named in it) as its properties, `<player>` as its player, `<registry>` as its registry, and `<tuning>` as its tuning by calling the constructor specified in `<properties>.className` if present (if not, calls the current class's constructor), then `.withPlayer(<player>).withRegistry(<registry>).withTuning(<tuning>).withProperties(<properties>)` on the constructed object.
 
 ### Constructor
 
@@ -475,11 +490,14 @@ Default `AudioContext` from `o`, for convenience.
 #### `isComponent` — *boolean* — `true`
 So you can easily check if a given object is a `Component` and therefore responds to `Component`'s methods.
 
-#### `player` — *Player*
+#### `player` — *`Player`*
 The `Player` instance passed to `create()` when creating this `Component`.  It's only really applicable for `Playable` instances, but since `Component` property definitions can be chained, all `Component`s created with a particular `create()` call are given the `Player`.
 
-#### `registry` — *Registry*
+#### `registry` — *`Registry`*
 The `Registry` instance passed to `create()` when creating this `Component`.  When any sub-component needs to resolve a reference, it will look inside this `registry`.
+
+#### `tuning` — *`Tuning`*
+The `tuning` instance passed to `create()` when creating this `Component`.  Any sub-component will inherit this.
 
 ### Instance Methods
 
@@ -488,6 +506,18 @@ Sets `player` to `<player>` (by calling `setPlayer(<player>)`) and returns the o
 
 #### `setPlayer(<player>)`
 Sets `player` to `<player>`.  Override if you want more interesting behavior, but remember that this gets called at object creation *before* the properties are set.
+
+#### `withRegistry(<registry>)` — *`this`*
+Sets `registry` to `<registry>` (by calling `setRegistry(<registry>)`) and returns the object itself.
+
+#### `setRegistry(<registry>)`
+Sets `registry` to `<registry>`.  This gets called at object creation *before* the properties are set.
+
+#### `withTuning(<tuning>)` — *`this`*
+Sets `tuning` to `<tuning>` (by calling `setTuning(<tuning>)`) and returns the object itself.
+
+#### `setTuning(<tuning>)`
+Sets `tuning` to `<tuning>`.  This gets called at object creation *before* the properties are set.
 
 #### `withProperties(<properties>)` — *`this`*
 Sets the properties to the values in `<properties>` (by calling `setProperties(<properties>, true)`) and returns the object itself.
@@ -511,7 +541,7 @@ If `<reference>` is a non-`null` object with a `ref` field, returns the componen
 Returns the value of `this.<propName>`, which is the default way to store property values.  When implementing a custom getter, you may want to consider calling `genericGetter()` during the process.
 
 #### `setProperty(<propName>, <propDefinition>)`
-Instantiates `<propDefinition>` if necessary (meaning that `<propDefinition>.className` is present), then sets it as a value for the property named `<propName>` (if it exists).  If `<propDefinition>` is a number and the descriptor has `isAudioComponent` set to `true`, a `ConstantGenerator` is instantiated and becomes the value instead of the number.  If a `setter` is provided in the descriptor, that value gets passed to that setter; if not, the previous value is cleaned up (with `cleanupProperty()`) and `genericSetter()` is called.  If you are implementing a custom setter, you should make sure to handle cleaning up the previous value of the property if applicable.
+Instantiates `<propDefinition>` if necessary (meaning that `<propDefinition>.className` is present), then sets it as a value for the property named `<propName>` (if it exists).  If `<propDefinition>` is a number and the descriptor has `isAudioComponent` set to `true`, a `ConstantGenerator` is instantiated and becomes the value instead of the number.  If instead `<propDefinition>` is a string and the descriptor has `isAudioComponent` or `isAudioParam` set to `true`, a `Note` is instantiated with the current object's `tuning`'s name as its `tuningName` and with a `note` of `<propDefinition>`.  If a `setter` is provided in the descriptor, that value gets passed to that setter; if not, the previous value is cleaned up (with `cleanupProperty()`) and `genericSetter()` is called.  If you are implementing a custom setter, you should make sure to handle cleaning up the previous value of the property if applicable.
 
 #### `genericSetter(<propName>, <propValue>)`
 Simply sets `this.<propName>` to `<propValue>`, which is the default way to store property values.  When implementing a custom setter, you may want to consider calling `genericSetter()` during the process.
@@ -1100,6 +1130,92 @@ Sets the `properties` on the `component` at the specified `path`.  If the path d
 
 
 
+## Tuning < Playable < AudioComponent < Component
+
+An `AudioComponent` whose processor parses a note name into a frequency (or a number in general).  You might pass in, for example, `'Eb5'`, and the `Tuning`'s processor may be able to interpret that as around 622.25, or whatever number.  The `Tuning` processor itself only provides the framework; you should generally use one of its subclasses.  `Tuning` is a `Playable` and its processor actually outputs (silence) directly to the `Player`, since otherwise the worklet would have 0 outputs and wouldn't be part of the audio graph; therefore, you must call `play()` on this to make it work, and `stop()` and `cleanup()` to clean up.  All of the note parsing logic lives in the `TuningProcessor` subclass used by subclasses of `Tuning`.
+
+### Properties
+
+#### `tuningName` — *string* — `defaultValue`: `null` — `isProcessorOption`: `true`
+The name of this `Tuning`.  This is important, because any `Note` that uses this `Tuning` will need to refer to it by its name.  The `Player` instance's default `Tuning` is named `12TET`.  This name is actually stored in the `OfftonicAudioplayer` object (inside its `tunings` field) in the `AudioWorkletGlobalScope` so that `NoteProcessor`s can query the tunings for note values in `AudioWorklet`-land.
+
+### Class Fields
+
+#### `processorName` — *string* — `'TuningProcessor'`
+
+### Instance Methods
+
+#### `getTuningName()` — *string*
+Returns the value of the `tuningName` property as a convenience.  This method is used to create components, so maybe don't override it.
+
+
+
+## TuningProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Provides a (not very useful) `parseNote()` method for subclasses to override and handles registering the tuning under its `tuningName`.  Subclasses should actually implement note-parsing logic.  The processor is registered in the constructor, whereupon `NoteProcessor`s may access it through the `OfftonicAudioplayer` object in the `AudioWorkletGlobalScope` (by calling `OfftonicAudioplayer.getTuning(<tuningName>)`).  The processor is unregistered when it receives a `done` message.  The functions of `OfftonicAudioplayer` that deal with tunings are defined in this file.
+
+### Processor Options
+
+#### `tuningName` — *string*
+The name by which this `TuningProcessor` is registered.
+
+### Instance Methods
+
+#### `_process(<outputs>)` — *boolean*
+Listens for when `done` is set to `true`, at which point it deregisters the `TuningProcessor`.  If this is overridden, `super._process(<outputs>)` should probably be called last.
+
+#### `parseNote(<note>, <frame>)` — *number*
+Returns `0`.  Subclasses should override this.  The intention is that `<note>` is the name of a note, in whatever note-naming syntax happens to be appropriate, and `<frame>` is the frame of the processor, in case that matters.
+
+
+
+## MeantoneTuning < Tuning < Playable < AudioComponent < Component
+
+The standard Western tuning.  Give it an `octave` and a `fifth`, in cents, and its processor can parse any standard note name.
+
+### Properties
+
+#### `octave` — *number* — `defaultValue`: `1200` — `isAudioParam`: `true`
+The size, in cents, of the octave.  The standard octave is 1200¢, so this is the default value, but there are musical reasons to change this (usually not by very much).
+
+#### `fifth` — *number* — `defaultValue`: `700` — `isAudioParam`: `true`
+The size, in cents, of the perfect fifth.  In 12-tone equal temperament, where 12 notes in an octave are equally spaced, the fifth is 700¢, so this is the default value, but other tunings use other values.  For example, 31-tone equal temperament (which is very close to quarter-comma meantone) has a fifth of 1200¢·18/31 ≈ 696.774.  A discussion of the musical effects of this value is outside the scope of this documentation.
+
+### Class Fields
+
+#### `processorName` — *string* — `'MeantoneTuningProcessor'`
+
+
+
+## MeantoneTuningProcessor < TuningProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+A processor for parsing the names of meantone notes into frequencies.  To use it, access it through its `tuningName` by calling `OfftonicAudioplayer.getTuning(<tuningName>).parseNote()`.  See the `parseNote()` method reference for the syntax.
+
+### AudioParams
+
+#### `octave`
+#### `fifth`
+The size of the octave and fifth, in cents, used in the tuning.  These can change dynamically, which is why they're `AudioParam`s.
+
+### Class Fields
+
+#### `noteRegex` — *string*
+Regex to parse the note name.  It contains two capture groups; group 1 is the name of the note (Eb, Fx, etc.) and group 2 is the octave number (4, –3, etc.).  Subclasses should probably reimplement this if they intend to change the note name parsing behavior.
+
+#### `nameMap` — *object*
+This is a map where the keys are characters in a note name (`'G'`, `'#'`, etc.) and the values are objects where the keys are `octaves` and `fifths` and the values are how many octaves or fifths up that character is.  All note letter names are measured up from C, so `'D'`, for example, maps to `{octaves: -1, fifths: 2}` since to get a D from C you go up two fifths and down an octave.
+
+#### `standardC4` — *number*
+The frequency of a *standard* C4, Middle C, in Hz, which is exactly 440/2^0.75.  C4 doesn't have to correspond to this value in practice, but this number is used as a point of reference.
+
+### Instance Methods
+
+#### `parseNote(<note>, <frame>)` — *number*
+This method is called by other classes (such as `NoteProcessor`s) via this tuning's `tuningName` (see the `TuningProcessor` documentation).  Parses a note name (at a given frame of the buffer) and returns its frequency.  The `<frame>` is important if the tuning is changing dynamically.  `<note>` should be of the form [letter(s)][accidentals][octave], where [letter(s)] is one (or more) uppercase `A`, `B`, `C`, `D`, `E`, `F`, or `G`, [accidentals] is any combination of `b`, `#`, `x`, `d`, and `t`, and [octave] is the octave number, which must be digits only, possibly preceded by a `-`.  Examples: `'Bbb7'`, `'Ct#-1`, `Gb#15`.  `d` is a half-flat and lowers the pitch by exactly half of a flat, and `t` is a half-sharp and raises the pitch by exactly half of a sharp (which is the same as half of a flat).  Accidentals can be combined at will.  Actually, you can combine letter names too, though that's possibly a bit weird; the note `'EE4'` is equivalent to `'G#4'` because under the hood `E` raises C by a major third, and `'EE'` would just be doing that twice.  But you *can* do it if you really want, since the note name is parsed character by character (so long as it follows the [letter(s)][accidentals][octave] pattern).  Note that octave numbers are applied independently of the letters/accidentals, which is standard, so B#3 is actually higher than Cb4.  This might seem weird to you, but again, it's standard behavior for octave numbers.
+
+
+
+
 
 ## ConstantGenerator < AudioComponent < Component
 
@@ -1678,6 +1794,43 @@ Current output value, which gets incremented every step during `generate()`.
 
 #### `generate()`
 Increments `time` by the current `tempo` divided by 60 times `sampleRate`, then returns it.
+
+
+
+## Note < Generator < AudioCopmonent < Component
+
+An `AudioComponent` that generates the frequency of a note given its name.  `Note`s are created automatically when a property has `isAudioParam` or `isAudioComponent` set to `true` and its value is a string.
+
+### Properties
+
+#### `note` — *string* — `defaultValue`: `'C4'` — `isProcessorOption`: `true`
+The note name.  Which strings are allowed depends on the tuning in question.  For a `MeantoneTuning` like `'12TET'`, see the documentation for `MeantoneTuningProcessor`.
+
+#### `tuningName` — *string* — `defaultValue`: `'12TET'` — `isProcessorOption`: `true`
+The tuning name.  A `Tuning` with this `tuningName` should be currently playing; it indicates the source of the frequency that will be output by the `NoteProcessor`.
+
+### Class Fields
+
+#### `processorName` — *string* — `'NoteProcessor'`
+
+
+
+## NoteProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Calls `parseNote()` on the specified `TuningProcessor` every frame to retrieve a frequency value, which it outputs to whatever it's connected to in the audio graph.
+
+### Processor Options
+
+#### `tuningName` — *string*
+The name of the `TuningProcessor`, which will be accessed by calling `OfftonicAudioplayer.getTuning(<tuningName>)`.  `parseNote()` will be called on the tuning.
+
+#### `note` — *string*
+The name of the note to parse, like `'C4'`, `'Eb6'`, `'B-1'`, etc.  Which notes are able to be parsed depends on the tuning's specifics.
+
+### Instance Methods
+
+#### `generate()`
+Calls `OfftonicAudioplayer.getTuning(<tuningName>)` to get the relevant `TuningProcessor` then returns the value of `parseNote()` called on it.
 
 
 
