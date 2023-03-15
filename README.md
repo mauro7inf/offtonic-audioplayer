@@ -40,11 +40,13 @@ A property value can frequently be a properties object defining another `Compone
 
 In this document, I'm using "field" to refer to the simple JS language construct of sticking a thing in a thing, and "property" is reserved for these fundamental aspects set through the API.  In JS lingo generally, what I'm calling a field is often called a property, but I'm not doing that.  Why?  Because I'm using "property" for the fundamental aspects and I don't want to confuse people further, so I'm using "field" for the JS property and "property" for the Offtonic Audioplayer property.  Got it?
 
-Properties are set at component instantiation by calling either `(new <ComponentType>()).withPlayer(<player>).withProperties(<props>)` or `o.createComponent(<props>, *<player>*)`, with `<props>` being an object containing values for some or all of the properties, and are modified later by calling `component.setProperties(<props>)`.  The only difference is that `withProperties(<props>)` will use default values for missing properties in the `<props>` object, while `setProperties(<props>)` will ignore missing properties.  You should *always* call `withProperties(<props>)` to ensure that the component gets initialized correctly.  (Note that `<props>.className` has a special meaning, so `className` should never be a property name or bad things will happen!)  If you create a component from the global object `o`, the `player` is optional and will default to the default player.  More about the `Player` instance later.
+Properties are set at component instantiation by calling either `(new <ComponentType>()).withPlayer(<player>).withRegistry(<registry>).withTuning(<tuning>, <hasOwnTuning>).withProperties(<props>)` or `o.createComponent(<props>, <player>, <registry>, <tuning>)`, with `<props>` being an object containing values for some or all of the properties, and are modified later by calling `component.setProperties(<props>)`.  The only difference is that `withProperties(<props>)` will use default values for missing properties in the `<props>` object, while `setProperties(<props>)` will ignore missing properties.  You should *always* call `withProperties(<props>)` to ensure that the component gets initialized correctly.  (Note that `<props>.className` has a special meaning, so `className` should never be a property name or bad things will happen!)  If you create a component from the global object `o`, the `player` is optional and will default to the default player.  More about the `Player`, `Registry`, and `Tuning` instances later.
 
 Each property is set via a setter method named in the property definition.  These setter methods get called in the order the properties were defined, starting with the highest superclass, `Component`.
 
 To define a property, stick an object in the `static newPropertyDescriptors` object of the component class you're creating with the fields below.  You can override a property in a subclass by redefining it in the subclass's `newPropertyDescriptors` array, which could be useful if you want to change a default.  When the class is first instantiated, the static field `propertyDescriptors` will hold all of the component's properties.
+
+`Component`s always have a `Player` instance, a `Registry` instance, and a `Tuning` instance, and in most cases, the `Player` and `Registry` at least are the default instances.  The `Player` also sets up a default `Tuning`.  You can specify a different `Tuning` as a pseudo-property: simply include it as the `tuning` field in the `<props>` object defined above.
 
 
 
@@ -459,6 +461,11 @@ A `Component` is a piece of the sound-producing apparatus of Offtonic Audioplaye
 
 #### `name` — *string* — `defaultValue`: `null` — `setter`: `'setName'` — `cleaner`: `'cleanupName'`
 
+### Pseudoproperties
+
+#### `tuning` — *`Tuning` definition (or a `Tuning` instance, or a reference to a `Tuning` instance)*
+Despite specifying it like a property, `tuning` is not a property, since it must be set before the actual properties are set (in case those properties need to access the tuning).  If this property is a `Tuning` definition (rather than an actual `Tuning` or reference), this `Component` will own the resulting `Tuning` instance's lifecycle, calling `play()` on it at instantiation and calling `stop()` on it at cleanup.
+
 ### Class Fields
 
 #### `o` — *`Global`*
@@ -476,7 +483,7 @@ Any subclass inheriting from `Component` has this field automatically populated 
 Copies the superclass's `propertyDescriptors` into a new object, adds this class's `newPropertyDescriptors` to the object (if present), then saves it in this class's `generatedPropertyDescriptors` for future retrieval through `propertyDescriptors`.  You shouldn't ever have to touch this method.
 
 #### `create(<properties>, <player>, <registry>, <tuning>)` — `Component` subclass instance
-`o.createComponent()` just calls this method, so you should probably call that instead since it's easier.  Creates a new object with `<properties>` (after resolving all instruments named in it) as its properties, `<player>` as its player, `<registry>` as its registry, and `<tuning>` as its tuning by calling the constructor specified in `<properties>.className` if present (if not, calls the current class's constructor), then `.withPlayer(<player>).withRegistry(<registry>).withTuning(<tuning>).withProperties(<properties>)` on the constructed object.
+`o.createComponent()` just calls this method, so you should probably call that instead since it's easier.  Creates a new object with `<properties>` (after resolving all instruments named in it) as its properties, `<player>` as its player, `<registry>` as its registry, and `<tuning>` as its tuning by calling the constructor specified in `<properties>.className` if present (if not, calls the current class's constructor), then `.withPlayer(<player>).withRegistry(<registry>).withTuning(<tuning>, <hasOwnTuning>).withProperties(<properties>)` on the constructed object.
 
 ### Constructor
 
@@ -499,6 +506,9 @@ The `Registry` instance passed to `create()` when creating this `Component`.  Wh
 #### `tuning` — *`Tuning`*
 The `tuning` instance passed to `create()` when creating this `Component`.  Any sub-component will inherit this.
 
+#### `hasOwnTuning` — *boolean* — `false`
+Whether the `Component` is managing the `tuning`'s lifecycle.  If so, it will call `play()` on the tuning at instantiation and `stop()` at cleanup.
+
 ### Instance Methods
 
 #### `withPlayer(<player>)` — *`this`*
@@ -513,11 +523,11 @@ Sets `registry` to `<registry>` (by calling `setRegistry(<registry>)`) and retur
 #### `setRegistry(<registry>)`
 Sets `registry` to `<registry>`.  This gets called at object creation *before* the properties are set.
 
-#### `withTuning(<tuning>)` — *`this`*
-Sets `tuning` to `<tuning>` (by calling `setTuning(<tuning>)`) and returns the object itself.
+#### `withTuning(<tuning>, <hasOwnTuning>)` — *`this`*
+Sets `tuning` to `<tuning>` and `hasOwnTuning` to `<hasOwnTuning>)` (by calling `setTuning(<tuning>)`) and returns the object itself.
 
-#### `setTuning(<tuning>)`
-Sets `tuning` to `<tuning>`.  This gets called at object creation *before* the properties are set.
+#### `setTuning(<tuning>, <hasOwnTuning>)`
+Sets `tuning` to `<tuning>` and `hasOwnTuning` to `<hasOwnTuning>)`.  This gets called at object creation *before* the properties are set.
 
 #### `withProperties(<properties>)` — *`this`*
 Sets the properties to the values in `<properties>` (by calling `setProperties(<properties>, true)`) and returns the object itself.

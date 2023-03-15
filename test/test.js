@@ -44,11 +44,19 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: dynamicTuningTestSequence()
+        }
+
+      },
+      {
+        after: 6000,
+        action: {
+          className: 'PlayAction',
           playable: tuningTestSequence()
         }
       },
       {
-        after: 1500,
+        after: 4500,
         action: {
           className: 'PlayAction',
           playable: releaseTestSequence()
@@ -180,18 +188,182 @@ function afterTests() {
   }
 }
 
+function dynamicTuningTestSequence() {
+  return {
+    className: 'Sequence',
+    duration: 5500,
+    tuning: {
+      className: 'MeantoneTuning',
+      tuningName: 'dynamicTuningTestTuning',
+      octave: 1200,
+      fifth: {
+        className: 'LinearGenerator',
+          startValue: 1200.0*4/7,
+          endValue: 720,
+          startTime: 500,
+          endTime: 4500
+      }
+    },
+    instruments: [
+      {
+        name: 'dynamicTuningInstrument',
+        className: 'Tone',
+        duration: 5000,
+        generator: {
+          className: 'TriangleOscillator',
+          pulseWidth: 0.4
+        },
+        envelope: {
+          className: 'ADSREnvelope',
+          release: 50
+        },
+        gain: 0.15
+      }
+    ],
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear a chord with changing tuning.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('dynamicTuningTest start')
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'dynamicTuningInstrument',
+            frequency: 'C4'
+          }
+        }
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'dynamicTuningInstrument',
+            frequency: 'E4'
+          }
+        }
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'dynamicTuningInstrument',
+            frequency: 'G4'
+          }
+        }
+      }
+    ],
+    afterEvents: [
+      {
+        action: () => console.log('dynamicTuningTest stop')
+      }
+    ]
+  };
+}
+
 function tuningTestSequence() {
-  const tuning = o.createComponent({
-    className: 'Tuning',
-    tuningName: 'TEST-TUNING'
-  });
+  function arpNoteEvent(note) {
+    return {
+      after: 100,
+      action: {
+        className: 'PlayAction',
+        playable: {
+          instrument: 'arpInstrument',
+          frequency: note,
+          duration: 90
+        }
+      }
+    };
+  }
+
+  function chordNoteEvents(notes) {
+    let events = [];
+    for (let i = 0; i < notes.length; i++) {
+      let note = notes[i];
+      let event = {
+        after: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'chordInstrument',
+            frequency: note,
+            duration: 300
+          }
+        }
+      }
+      if (i === 0) {
+        event.after = 400;
+      }
+      events.push(event);
+    }
+    return events;
+  }
+
+  function longChordNoteEvents(notes) {
+    let events = [];
+    for (let i = 0; i < notes.length; i++) {
+      let note = notes[i];
+      let event = {
+        after: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'chordInstrument',
+            frequency: note,
+            duration: 1300
+          }
+        }
+      }
+      if (i === 0) {
+        event.after = 400;
+      }
+      events.push(event);
+    }
+    return events;
+  }
 
   return {
     className: 'Sequence',
-    duration: 1000,
+    duration: 4000,
+    instruments: [
+      {
+        name: 'arpInstrument',
+        className: 'Tone',
+        generator: {
+          className: 'SawtoothOscillator',
+          pulseWidth: 0.4
+        },
+        envelope: {
+          className: 'ADSREnvelope',
+          release: 20
+        },
+        gain: 0.1
+      },
+      {
+        name: 'chordInstrument',
+        className: 'Tone',
+        generator: {
+          className: 'SawtoothOscillator',
+          pulseWidth: 0.37
+        },
+        envelope: {
+          className: 'ADSREnvelope',
+          release: 40
+        },
+        gain: 0.15
+      }
+    ],
     beforeEvents: [
       {
-        action: () => console.log('You should hear a C major arpeggio.')
+        action: () => console.log('You should hear a bunch of random-ish and four chords.')
       }
     ],
     events: [
@@ -199,93 +371,22 @@ function tuningTestSequence() {
         time: 0,
         action: () => console.log('tuningTest start')
       },
-      {
-        time: 0,
-        action: {
-          className: 'PlayAction',
-          playable: {
-            className: 'Tone',
-            frequency: 'C4',
-            gain: 0.1,
-            duration: 230,
-            generator: {
-              className: 'TriangleOscillator',
-              pulseWidth: 0.45
-            },
-            envelope: {
-              className: 'ADSREnvelope',
-              release: 50
-            }
-          }
-        }
-      },
-      {
-        time: 250,
-        action: {
-          className: 'PlayAction',
-          playable: {
-            className: 'Tone',
-            frequency: 'Dx4',
-            gain: 0.1,
-            duration: 230,
-            generator: {
-              className: 'TriangleOscillator',
-              pulseWidth: 0.45
-            },
-            envelope: {
-              className: 'ADSREnvelope',
-              release: 50
-            }
-          }
-        }
-      },
-      {
-        time: 500,
-        action: {
-          className: 'PlayAction',
-          playable: {
-            className: 'Tone',
-            frequency: 'Abb4',
-            gain: 0.1,
-            duration: 230,
-            generator: {
-              className: 'TriangleOscillator',
-              pulseWidth: 0.45
-            },
-            envelope: {
-              className: 'ADSREnvelope',
-              release: 50
-            }
-          }
-        }
-      },
-      {
-        time: 750,
-        action: {
-          className: 'PlayAction',
-          playable: {
-            className: 'Tone',
-            frequency: 'C5',
-            gain: 0.1,
-            duration: 490,
-            generator: {
-              className: 'TriangleOscillator',
-              pulseWidth: 0.45
-            },
-            envelope: {
-              className: 'ADSREnvelope',
-              release: 50
-            }
-          }
-        }
-      }
+      arpNoteEvent('C2'), arpNoteEvent('G3'), arpNoteEvent('Ed4'), arpNoteEvent('Bd5'),
+      arpNoteEvent('F1'), arpNoteEvent('A6'), arpNoteEvent('Dt8'), arpNoteEvent('Gx#-1'),
+      arpNoteEvent('B3'), arpNoteEvent('Bd3'), arpNoteEvent('Bdd3'), arpNoteEvent('Bddd3'),
+      arpNoteEvent('E5'), arpNoteEvent('EE5'), arpNoteEvent('EEE5'), arpNoteEvent('Cbbbbbbbbbbbb5'),
+      arpNoteEvent('G2'),
+      ...chordNoteEvents(['C4', 'E4', 'G4', 'C5']),
+      ...chordNoteEvents(['F3', 'C4', 'F4', 'A4', 'C5', 'D5', 'F5']),
+      ...chordNoteEvents(['G2', 'D3', 'G3', 'B3', 'D4', 'F4', 'A4', 'B4', 'D5', 'G5']),
+      ...longChordNoteEvents(['C1', 'C2', 'C3', 'C4', 'C5', 'C6'])
     ],
     afterEvents: [
       {
         action: () => console.log('tuningTest stop')
       }
     ]
-  }
+  };
 }
 
 function releaseTestSequence() {
