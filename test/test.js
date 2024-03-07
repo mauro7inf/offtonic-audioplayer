@@ -46,7 +46,6 @@ function start() {
           className: 'PlayAction',
           playable: dynamicTuningTestSequence()
         }
-
       },
       {
         after: 6000,
@@ -197,11 +196,29 @@ function dynamicTuningTestSequence() {
       tuningName: 'dynamicTuningTestTuning',
       octave: 1200,
       fifth: {
-        className: 'LinearGenerator',
-          startValue: 1200.0*4/7,
-          endValue: 720,
-          startTime: 500,
-          endTime: 4500
+        className: 'GeneratorSequence',
+        pieces: [
+          {
+            time: 0,
+            generator: {
+              className: 'LinearGenerator',
+              startValue: 1200.0*4/7,
+              endValue: 700,
+              startTime: 500,
+              endTime: 2000
+            },
+          },
+          {
+            after: 2000,
+            generator: {
+              className: 'LinearGenerator',
+              startValue: 700,
+              endValue: 720,
+              startTime: 500,
+              endTime: 2500
+            }
+          }
+        ]
       }
     },
     instruments: [
@@ -363,7 +380,7 @@ function tuningTestSequence() {
     ],
     beforeEvents: [
       {
-        action: () => console.log('You should hear a bunch of random-ish and four chords.')
+        action: () => console.log('You should hear a bunch of random-ish notes and four chords.')
       }
     ],
     events: [
@@ -1343,22 +1360,23 @@ function toneTestSequence() {
 }
 
 function sineOscillatorTestSequence() {
-  const gainAdjustedPlayer = new o.Player();
+  let gainAdjustedPlayer = new o.Player();
+  gainAdjustedPlayer.on();
   const sineOscillator1 = o.createComponent({
     className: 'SineOscillator',
     frequency: {
       className: 'ConstantGenerator',
       value: 450/Math.pow(2, 7/4)
     }
-  });
+  }, gainAdjustedPlayer, gainAdjustedPlayer.regsistry, gainAdjustedPlayer.tuning);
   const sineOscillator2 = o.createComponent({
     className: 'SineOscillator',
     frequency: 550/Math.pow(2, 7/4)
-  });
+  }, gainAdjustedPlayer, gainAdjustedPlayer.regsistry, gainAdjustedPlayer.tuning);
   const sineOscillator3 = o.createComponent({
     className: 'SineOscillator',
     frequency: 675/Math.pow(2, 7/4)
-  });
+  }, gainAdjustedPlayer, gainAdjustedPlayer.regsistry, gainAdjustedPlayer.tuning);
   return {
     className: 'Sequence',
     duration: 550,
@@ -1367,7 +1385,6 @@ function sineOscillatorTestSequence() {
         action: () => {
           console.log('You should hear a three-note chord that starts and stops with clicks rather than smoothly.');
           gainAdjustedPlayer.setGain(0.1);
-          gainAdjustedPlayer.on();
         }
       }
     ],

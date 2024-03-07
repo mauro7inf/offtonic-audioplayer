@@ -13,6 +13,8 @@ import Multiplier from './lib/components/arithmetic/Multiplier.js';
 
 import Generator from './lib/components/generators/Generator.js';
 
+import GeneratorSequence from './lib/components/generators/GeneratorSequence.js';
+
 import ConstantGenerator from './lib/components/generators/ConstantGenerator.js';
 import LinearGenerator from './lib/components/generators/LinearGenerator.js';
 
@@ -90,6 +92,10 @@ class Global {
     this.Generator = Generator;
     this.queueModule('lib/processors/generators/GeneratorProcessor.js');
     this.registerClass('Generator', Generator);
+
+    this.GeneratorSequence = GeneratorSequence;
+    this.queueModule('lib/processors/generators/GeneratorSequenceProcessor.js');
+    this.registerClass('GeneratorSequence', GeneratorSequence);
 
     this.ConstantGenerator = ConstantGenerator;
     this.registerClass('ConstantGenerator', ConstantGenerator);
@@ -210,7 +216,9 @@ class Global {
     if (list.length === 0) {
       return;
     }
-    this.ctx.audioWorklet.addModule(this.baseHref + list[0]).then(() => this.addModulesFromList(list.slice(1)));
+    this.ctx.audioWorklet.addModule(this.baseHref + list[0]).then(() => {
+      this.addModulesFromList(list.slice(1));
+    });
   }
 
   createComponent(properties, player, registry, tuning) {
