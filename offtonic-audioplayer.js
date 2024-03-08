@@ -17,6 +17,7 @@ import GeneratorSequence from './lib/components/generators/GeneratorSequence.js'
 
 import ConstantGenerator from './lib/components/generators/ConstantGenerator.js';
 import LinearGenerator from './lib/components/generators/LinearGenerator.js';
+import ExponentialGenerator from './lib/components/generators/ExponentialGenerator.js';
 
 import WhiteNoiseGenerator from './lib/components/generators/WhiteNoiseGenerator.js';
 import RedNoiseGenerator from './lib/components/generators/RedNoiseGenerator.js';
@@ -68,7 +69,6 @@ class Global {
     let url = new URL(import.meta.url);
     let href = url.href;
     this.baseHref = href.substring(0, href.indexOf('offtonic-audioplayer.js'));
-    //this.addModule('lib/allProcessors.js'); // for Firefox compatibility, all processors go in one big file
 
     this.Player = Player;
     this.Player.o = this;
@@ -102,6 +102,9 @@ class Global {
     this.LinearGenerator = LinearGenerator;
     this.queueModule('lib/processors/generators/LinearGeneratorProcessor.js');
     this.registerClass('LinearGenerator', LinearGenerator);
+    this.ExponentialGenerator = ExponentialGenerator;
+    this.queueModule('lib/processors/generators/ExponentialGeneratorProcessor.js');
+    this.registerClass('ExponentialGenerator', ExponentialGenerator);
 
     this.WhiteNoiseGenerator = WhiteNoiseGenerator;
     this.queueModule('lib/processors/generators/WhiteNoiseGeneratorProcessor.js');

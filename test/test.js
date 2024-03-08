@@ -44,6 +44,13 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: exponentialGeneratorSequence()
+        }
+      },
+      {
+        after: 6500,
+        action: {
+          className: 'PlayAction',
           playable: dynamicTuningTestSequence()
         }
       },
@@ -184,6 +191,49 @@ function afterTests() {
   o.player.off();
   if (done) {
     console.log('Done!');
+  }
+}
+
+function exponentialGeneratorSequence() {
+  return {
+    className: 'Sequence',
+    duration: 6000,
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear a smoothly-rising tone.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('exponentialGeneratorTest start')
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 6000,
+            generator: {
+              className: 'SawtoothOscillator'
+            },
+            frequency: {
+              className: 'ExponentialGenerator',
+              startTime: 0,
+              endTime: 6000,
+              startValue: 256,
+              endValue: 512
+            }
+          }
+        }
+      }
+    ],
+    afterEvents: [
+      {
+        action: () => console.log('exponentialGeneratorTest stop')
+      }
+    ]
   }
 }
 

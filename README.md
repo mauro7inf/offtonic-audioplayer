@@ -1479,7 +1479,62 @@ When the processor is constructed, we don't actually have any data from its `Aud
 ### Instance Methods
 
 #### `generate()` — *number*
-If `timesSet` is `false`, adds the current `timer` time to `startTime` and `endTime` and sets `timesSet` to `true`.  If the current time according to the `timer` is before `startTime`, returns `startValue`; if after `endTime`, returns `endValue`; otherwise, returns a linear interpolation between them.
+If `timesSet` is `false`, adds the current `timer` time to `startTime` and `endTime` and sets `timesSet` to `true`.  If the current time according to the `timer` is before `startTime`, returns `startValue`; if after `endTime`, returns `endValue`; otherwise, returns an interpolation between them by calling `interpolate()`.
+
+#### `interpolate(<time>)` — *number*
+Returns a linear interpolation such that at `<time>` equal to `startTime` the value is `startValue` and at `<time>` equal to `endTime` the value is `endValue`, which is equivalent to the formula `startValue` + (`endValue` – `startValue`) · timeFraction, where timeFraction is computed by calling `timeFraction()`.  This can be overridden in subclasses that keep the same general behavior but interpolate using a different method.
+
+#### `timeFraction(<time>)` — *number*
+Returns the fraction of the way through the time of the generator, equal to (`<time>` – `startTime`)/(`endTime` – `startTime`).
+
+
+
+
+## ExponentialGenerator < LinearGenerator < Generator < AudioComponent < Component
+
+Generates an exponential (or geometric) change in value, which can be useful when varying a frequency by applying a constant change in pitch.
+
+### Properties
+
+#### `startValue` — *number* — `defaultValue`: `1` — `isProcessorOption`: `true`
+#### `endValue` — *number* — `defaultValue`: `2` — `isProcessorOption`: `true`
+The start and end values, inherited from `LinearGenerator` but with their default values changed since `0` is not a valid value for an exponential.
+
+#### `baseline` — *number* — `defaultValue`: `0` — `isProcessorOption`: `true`
+The quantity that changes exponentially is the distance from this `baseline`.  For example, if the `baseline` is 100, the `startValue` is 101, and the `endValue` is 104, what's really happening here is that the value starts at 1 above the `baseline` and grows to 4 above the `baseline`, meaning that at the midpoint in time, it's at 102, which is 2 above the `baseline`.  The values can also lie below the `baseline`, so if the `baseline` is still 100 but the start and end values are 91 and 99, respectively, those values are 9 below the `baseline` and 1 below the `baseline`, meaning that halfway through the time, the value will be 3 below the `baseline`, or 97.  It is not valid for the value to cross the `baseline`, meaning that the exponential changes sign (or goes to 0), because exponentials are always positive (we're dealing only with real numbers here).
+
+### Class Fields
+
+#### `processorName` — *string* — `ExponentialGeneratorProcessor`
+
+
+
+
+## ExponentialGeneratorProcessor < LinearGeneratorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Generates an exponential (or geometric) change in value, which can be useful when varying a frequency by applying a constant change in pitch.
+
+### Processor Options
+
+#### `baseline` — *number*
+See the property in `ExponentialGenerator`.  The quantity that changes exponentially is the distance to the `baseline`.
+
+### Instance Fields
+
+#### `sign` — *number* — `1` or `–1`
+`1` if `startValue` ≥ `baseline`, `–1` if `startValue` < `baseline`.  Assuming that the `endValue` has the same relationship with `baseline` (and neither is equal to it), the `sign` represents the direction of the change from the `baseline`.
+
+#### `logStartDelta` — *number*
+#### `logEndDelta` — *number*
+The logs of the differences between the `startValue` and `endValue`, respectively, and the `baseline`, used to simplify the computation.
+
+### Instance Methods
+
+#### `setupConstants()`
+Called during construction to calculate the `sign`, `logStartDelta`, and `logEndDelta` values.
+
+#### `interpolate(<time>)`
+Interpolates the value exponentially.  If startDelta = `startValue` – `baseline` and endDelta = `endValue` – `baseline`, then the current value is `baseline` + startDelta · (endDelta/startDelta)^timeFraction, where timeFraction is computed using `timeFraction()`.  To avoid this arbitrary-base exponential, we do this computation using logs instead: logDelta = `startLogDelta` + (`endLogDelta` – `startLogDelta`)·timeFraction, and the current value is `baseline` + `sign`·`Math.exp(`logDelta`)`.  The exponential function, to base e, is a quicker calculation, and we only need to take logs once at the construction of the processor, so this ought to be pretty speedy.
 
 
 
