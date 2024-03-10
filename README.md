@@ -1871,6 +1871,61 @@ The coefficient of the frequency component given by `<phi>`, which is the freque
 
 
 
+## ShepardOctaveGenerator < ShepardGenerator < Generator < AudioComponent < Component
+
+Generates a Shepard-type tone with a frequency distribution whose peak is not in the middle of the C0-C10 gamut (namely, C5).  Instead, you can pass in a `peakFrequency` parameter that determines that peak, meaning that you could have a low Shepard tone or a high Shepard tone.  This sounds contradictory, except that how high or low the tone is is actually independent from the pitch.  You could have a rising pitch with a falling peak, for example, which is a pretty interesting effect.
+
+### Properties
+
+#### `peakFrequency` — *number or `AudioComponent` — `defaultValue`: `440` — `isAudioParam`: `true`
+The peak of the frequency distribution of the Shepard tone.  This should be strictly between C0 and C10, otherwise you run into some nasty singularities.  If k is the fraction of the way from C0 to C10 of the `peakFrequency` (for example, a `peakFrequency` of C4 would be 0.2 of the way), and ø is the fraction of the frequency component, the coefficient for that component will be 0.25 · ((ø^k · (1 – ø)^(1 – k))/(k^k · (1 – k)^(1 – k)))^5.  The exponent of 5 is just to narrow the distribution so that it's not just a normal Shepard tone.
+
+### Class Fields
+
+#### `processorName` — *string* — `'ShepardOctaveGeneratorProcessor'`
+
+
+
+
+## ShepardOctaveGeneratorProcessor < ShepardGeneratorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Processor for generating Shepard octave tones.  Coefficient calculations are done via logs for performance.
+
+### AudioParams
+
+#### `peakFrequency`
+The frequency of the peak of the distribution of frequency components in the Shepard tone.
+
+### Class Fields
+
+#### `logC0` — ln(440) – 4.75·ln(2)
+#### `logC10` — ln(440) + 5.25·ln(2)
+Natural logs of the frequencies of C0 and C10, respectively.  C0 and C10 are the bounds of the peak frequency (exclusive at both ends).
+
+### Instance Fields
+
+#### `lastPeak` — *number* — `NaN`
+The most recent value of `peakFrequency`, used to determine if peak calculations need to be repeated.
+
+#### `peakFraction` — *number* — `NaN`
+#### `logPeakFraction` — *number* — `NaN`
+#### `logPeakFractionComplement` — *number* — `NaN`
+The `peakFraction` is the fraction of the way `peakFrequency` is from C0 to C10.  If that fraction is k, then `logPeakFraction` is ln(k) and `logPeakFractionComplement` is log(1 – k).
+
+### Instance Methods
+
+#### `generate()` — *number*
+Calls `updatePeak()` if necessary, then returns `super.generate()`.
+
+#### `updatePeak(<peakFrequency>)`
+Calculates the `peakFraction`, `logPeakFraction`, and `logPeakFractionComplement`, and sets the `lastPeak`.
+
+#### `calculateCoefficient(<phi>)` — *number*
+Calculates the coefficient of the frequency component with fraction `<phi>` = ø using the formula 0.25 · ((ø^k · (1 – ø)^(1 – k))/(k^k · (1 – k)^(1 – k)))^5, where k is the `peakFraction`.  The 0.25 scaling factor out front is to make sure the tone isn't too loud, and the power of 5 is to make sure that the peak is sufficiently narrow that you can easily tell whether it's high or low.
+
+
+
+
 ## Envelope < Generator < AudioComponent < Component
 
 An `Envelope` is actually just a gain that is varied over the lifetime of a `Tone`.  One typical envelope is the `ADSREnvelope`, which starts by ramping the gain up from 0 to some maximum over some period of time, then down to 1 (over some time) for the rest of the duration of the tone, and, when the tone is released, it ramps the gain back down to 0 over some time.  This ramping of the gain from and to 0 removes the very high-frequency components inherent in an instantaneous jump from 0 to 1, which cause an audible pop.  `Envelope`s also provide articulation at the front of the note and can provide vibrato or other effects as well.  This `Envelope` class is intended to be abstract; its processor doesn't actually do anything useful (it just outputs `1`).

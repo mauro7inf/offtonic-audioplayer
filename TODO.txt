@@ -5,11 +5,11 @@ Fourier
 Fourier Sawtooth
 Inharmonic
 Pitch Space Sine
-Shepard
-Shepard Octave
 
 iOS fallback, if necessary
 
 Make orchestra part of registry
 
 Array properties
+
+startValue, endValue, baseline dynamic for linear/exponential generators?

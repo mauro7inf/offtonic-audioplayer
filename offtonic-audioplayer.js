@@ -23,6 +23,7 @@ import WhiteNoiseGenerator from './lib/components/generators/WhiteNoiseGenerator
 import RedNoiseGenerator from './lib/components/generators/RedNoiseGenerator.js';
 
 import ShepardGenerator from './lib/components/generators/ShepardGenerator.js';
+import ShepardOctaveGenerator from './lib/components/generators/ShepardOctaveGenerator.js';
 
 import Oscillator from './lib/components/generators/Oscillator.js';
 import SineOscillator from './lib/components/generators/SineOscillator.js';
@@ -118,6 +119,9 @@ class Global {
     this.ShepardGenerator = ShepardGenerator;
     this.queueModule('lib/processors/generators/ShepardGeneratorProcessor.js');
     this.registerClass('ShepardGenerator', ShepardGenerator);
+    this.ShepardOctaveGenerator = ShepardOctaveGenerator;
+    this.queueModule('lib/processors/generators/ShepardOctaveGeneratorProcessor.js');
+    this.registerClass('ShepardOctaveGenerator', ShepardOctaveGenerator);
 
     this.Oscillator = Oscillator;
     this.queueModule('lib/processors/generators/OscillatorProcessor.js');

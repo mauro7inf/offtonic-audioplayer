@@ -44,6 +44,13 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: shepardOctaveSequence()
+        }
+      },
+      {
+        after: 9000,
+        action: {
+          className: 'PlayAction',
           playable: shepardSequence()
         }
       },
@@ -201,6 +208,79 @@ function afterTests() {
   }
 }
 
+function shepardOctaveSequence() {
+  return {
+    className: 'Sequence',
+    duration: 8500,
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear two modulating Shepard-type tones.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('shepardOctaveTest start')
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 4000,
+            frequency: 'C4',
+            gain: 0.15,
+            generator: {
+              className: 'ShepardOctaveGenerator',
+              peakFrequency: {
+                className: 'ExponentialGenerator',
+                startValue: 440/Math.pow(2, 3.75),
+                startTime: 250,
+                endValue: 440*Math.pow(2, 4.25),
+                endTime: 3750
+              }
+            }
+          }
+        }
+      },
+      {
+        time: 4500,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 4000,
+            frequency: {
+              className: 'ExponentialGenerator',
+              startValue: 440/Math.pow(2, 0.75),
+              startTime: 250,
+              endValue: 440*Math.pow(2, 1.25),
+              endTime: 3750
+            },
+            gain: 0.15,
+            generator: {
+              className: 'ShepardOctaveGenerator',
+              peakFrequency: {
+                className: 'ExponentialGenerator',
+                startValue: 440*Math.pow(2, 4.25),
+                startTime: 250,
+                endValue: 440/Math.pow(2, 3.75),
+                endTime: 3750
+              }
+            }
+          }
+        }
+      }
+    ],
+    afterEvents: [
+      {
+        action: () => console.log('shepardOctaveTest stop')
+      }
+    ]
+  }
+}
+
 function shepardSequence() {
   return {
     className: 'Sequence',
@@ -280,7 +360,7 @@ function shepardSequence() {
             frequency: 'C4',
             generator: {
               className: 'ShepardGenerator',
-              ratio: Math.pow(2, 0.25)
+              ratio: 6/5
             }
           }
         }
