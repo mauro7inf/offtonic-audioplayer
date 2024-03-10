@@ -22,6 +22,8 @@ import ExponentialGenerator from './lib/components/generators/ExponentialGenerat
 import WhiteNoiseGenerator from './lib/components/generators/WhiteNoiseGenerator.js';
 import RedNoiseGenerator from './lib/components/generators/RedNoiseGenerator.js';
 
+import ShepardGenerator from './lib/components/generators/ShepardGenerator.js';
+
 import Oscillator from './lib/components/generators/Oscillator.js';
 import SineOscillator from './lib/components/generators/SineOscillator.js';
 import TriangleOscillator from './lib/components/generators/TriangleOscillator.js';
@@ -60,7 +62,7 @@ class Global {
     this.debug = false;
     this.modulesToAdd = [];
     // global context stuff
-    this.ctx = window.AudioContext ? new AudioContext() : new webkitAudioContext();
+    this.ctx = new AudioContext();
     this.classRegistry = classRegistry;
     this.classRegistry.o = this;
     this.orchestra = orchestra;
@@ -112,6 +114,10 @@ class Global {
     this.RedNoiseGenerator = RedNoiseGenerator;
     this.queueModule('lib/processors/generators/RedNoiseGeneratorProcessor.js');
     this.registerClass('RedNoiseGenerator', RedNoiseGenerator);
+
+    this.ShepardGenerator = ShepardGenerator;
+    this.queueModule('lib/processors/generators/ShepardGeneratorProcessor.js');
+    this.registerClass('ShepardGenerator', ShepardGenerator);
 
     this.Oscillator = Oscillator;
     this.queueModule('lib/processors/generators/OscillatorProcessor.js');

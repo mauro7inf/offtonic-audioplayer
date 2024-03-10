@@ -1767,7 +1767,7 @@ The initial value of the output.  In LFO applications, it's good to keep track o
 
 
 
-## RedNoiseGeneratorProcessor > GeneratorProcessor > AudioComponentProcessor > AudioWorkletProcessor
+## RedNoiseGeneratorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
 
 Generates red noise (also known as Brownian noise, named after Brownian motion), which is a kind of noise that is biased towards low frequencies.  It takes a `frequency`, but this isn't a real frequency; it's just the reciprocal of a characteristic time constant.
 
@@ -1790,6 +1790,83 @@ The value returned by `generate()`, used in the next frame to calculate the new 
 
 #### `generate()` — *number*
 If x is the previous `value` and w is the `frequency`, returns r·x + s·(random number between –1 and 1), where r = e^(–∆t/T) = e^(–w/`sampleRate`) (with ∆t being seconds per frame and T being the time constant, 1/`frequency`) and s = sqrt(1 – r^(2)).  This keeps the `value` mostly hovering between –1 and 1, with occasional extremes.
+
+
+
+
+## ShepardGenerator < Generator < AudioComponent < Component
+
+Generates Shepard tones.  A Shepard tone is basically present in all octaves at once, with a tapering effect at the top octaves and bottom octaves where, as the tone rises, new frequency components fade in at the bottom while old frequency components fade out at the top.  You can make an endlessly-rising scale by simply repeating the tones on the second octave as if they were the first.  The frequency components are sine waves and range from C0 to C10, with a tapering function of sin(πø), where ø is 1/10 times the number of octaves a frequency component is above C0.  By default, the ratio between successive frequency components is 2 (an octave), but you can set that to whatever you want (dynamically).
+
+### Properties
+
+#### `frequency` — *number or `AudioComponent`* — `defaultValue`: `440` — `isAudioParam`: `true`
+The primary frequency.  Note that the sound is exactly the same if you multiply or divide by the `ratio`, so if the `ratio` is 2, then a `frequency` of C4 or C8 or C–11 will result in exactly the same sound.  (Note that C–11 isn't even in the range of frequencies produced!)
+
+#### `ratio` — *number or `AudioComponent`* — `defaultValue`: `2` — `isAudioParam`: `true`
+The ratio between frequency components.  For a traditional Shepard tone, this is an octave, or `2`, but there's no reason why it can't be something else.  For example, if the `ratio` is 3/2, you'll hear a tall stack of perfect fifths that includes the given `frequency` (at least if it's in range).  Note that computing Shepard tones is fairly computationally intensive, so try not to make the `ratio` too low or you might cause stuttering.
+
+### Class Fields
+
+#### `processorName` — *string* — `'ShepardGeneratorProcessor'`
+
+
+
+
+## ShepardGeneratorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Processor for generating Shepard tones.  Most of the calculations are done with logs to lessen the computational load.
+
+### AudioParams
+
+#### `frequency`
+#### `ratio`
+The Shepard tone will have a lowest frequency component of `frequency` divided by `ratio` as many times as necessary such that the *next* division will result in a frequency lower than C0.  The next frequency component will be the last one times the `ratio` up to C10.  So, for example, a `frequency` of D3 with a `ratio` of 2 will have its lowest frequency at D0 (because D–1 is too small), the next at 2 · D0 = D1, the next at D2, etc., up to D9 (because D10 is too big).
+
+### Class Fields
+
+#### `logC0` — ln(440) – 4.75·ln(2)
+#### `logC10` — ln(440) + 5.25·ln(2)
+Natural logs of the frequencies of C0 and C10, respectively.  C0 and C10 are the bounds of the frequency components (inclusive at C0, exclusive at C10), so these are used in the calculation.
+
+### Instance Fields
+
+#### `lastFrequency` — *number* — `NaN`
+#### `lastRatio` — *number* — `NaN`
+The values of `frequency` and `ratio` in the previous frame.  If they haven't changed, the `updateFrequencies()` step of computing the `baseFrequency` and other associated quantities is skipped.  Both fields start at `NaN` to ensure that comparisons to them always fail properly.
+
+#### `baseFrequency` — *number* — `NaN`
+Computed by `updateFrequencies()`, this is the lowest frequency component in the tone.  Starts at `NaN` to ensure that comparisons fail properly.
+
+#### `logRatio` — *number* — `NaN`
+#### `logBaseFrequency` — *number* — `NaN`
+Computed by `updateFrequencies()`; these are the natural logs of `ratio` and `baseFrequency`, respectively, for use in calculations for reducing computational complexity.  Both start at `NaN`.
+
+#### `totalWaves` — *number* — `0`
+Number of frequency components, calculated by `updateFrequencies()`.
+
+#### `nudgePhases` — `-1`, `0`, or `1`
+Whether phases need to be moved over to prevent clicks.  As the frequency changes, the `baseFrequency` may jump a bit less than an octave (for example, if the `ratio` is 2) even though the `frequency` changed only by a tiny amount.  If this happens, all of the phases of the frequency components will suddenly jump, causing clicks.  For example, suppose you have a B `frequency`, with frequency components B0, B1, B2, etc., and suppose that B slowly moves up to C.  The B0 will go all the way down a major seventh to C0, B1 down to C1, B2 down to C2, etc.  It would be smoother for B0 to go up to C1, B1 up to C2, B2 up to C3, etc., and for a *new* frequency component to arise at C0 (which is basically the point of Shepard tones in the first place).  In this situation, `nudgePhases` is set to `1` in `updateFrequencies()`, and in `updatePhases()` a new phase is inserted at the front of the `phases` array.  For the opposite situation, like a C going to a B and the `baseFrequency` jumping up nearly an octave rather than down, `nudgePhases` is set to `-1` and the first phase in the `phases` array is removed instead in `updatePhases()`.  After the nudge, `nudgePhases` is always set back to `0`.
+
+#### `phases` — *array of numbers* — `[]`
+The current phases of each of the frequency components.  There are `totalWaves` phases in this array, which is updated at `updatePhases()`, with element `0` corresponding to `baseFrequency`.  If `totalWaves` is calculated to be greater than the current number of elements, more phases are added with random values from 0 to 2π, and if `totalWaves` is calculated to be smaller, elements are removed from the end until the size matches.
+
+### Instance Methods
+
+#### `generate()`
+Calls `updateFrequencies()` if the `frequency` or `ratio` have changed in this frame from the stored values from last frame, then calls `updatePhases()`, and finally returns `calculateWave()`.
+
+#### `updateFrequencies(<frequency>, <ratio>)`
+Only called when either `frequency` or `ratio` (or both) have changed.  Calculates `baseFrequency`, `totalWaves`, and `nudgePhases`, as well as the helper quantities: `lastFrequency`, `lastRatio`, `logRatio`, and `logBaseFrequency`.  `nudgePhases` is set to `1` or `-1` only if the difference between the last `baseFrequency` and the current one is greater than half the interval `ratio` (so, the frequency ratio is greater than sqrt(`ratio`), but we're using logs for these computations).
+
+#### `updatePhases()`
+Nudges the `phases` array if `nudgePhases` is `1` or `-1` and sets it to `0`.  Pads the `phases` array with random numbers in [0, 2π) if it has fewer elements than `totalWaves` or pops phases off the end if it has more.  Updates each phase in the array by adding 2πf/`sampleRate`, where f is the frequency of that particular frequency component.
+
+#### `calculateWave()` — *number*
+Returns the sum of C(ø)·sin(phase), where phase is each element of `phases`, and ø is the frequency of the corresponding frequency component, expressed as a fraction of the way from C0 to C10.  A frequency of C0 has ø = 0, C5 has ø = 1/2, and C10 has ø = 1.  C(ø) is a coefficient computed by `calculateCoefficient()`.
+
+#### `calculateCoefficient(<phi>)` — *number*
+The coefficient of the frequency component given by `<phi>`, which is the frequency of a frequency component expressed as a fraction of the way from C0 to C10.  To achieve the tapering effect at high and low frequencies, this coefficient is 0.25·sin(πø), which is 0 at ø = 0 and ø = 1 and maximum at ø = 1/2.  The 0.25 is a scaling factor to ensure that the tone is not too loud, and it's essentially an arbitrary number.  You can always just set the gain yourself.  This method is meant to be overridden by implementations of the Shepard tone that change the coefficient.
 
 
 

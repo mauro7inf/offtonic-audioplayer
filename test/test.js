@@ -44,6 +44,13 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: shepardSequence()
+        }
+      },
+      {
+        after: 16500,
+        action: {
+          className: 'PlayAction',
           playable: exponentialGeneratorSequence()
         }
       },
@@ -191,6 +198,162 @@ function afterTests() {
   o.player.off();
   if (done) {
     console.log('Done!');
+  }
+}
+
+function shepardSequence() {
+  return {
+    className: 'Sequence',
+    duration: 16000,
+    instruments: [
+      {
+        name: 'ShepardSequenceInstrument',
+        className: 'Tone',
+        duration: 750,
+        envelope: {
+          className: 'ADSREnvelope',
+          attack: 10,
+          attackGain: 3,
+          release: 100
+        },
+        gain: 0.15
+      }
+    ],
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear four Shepard tones, a rising tone, a falling tone, and a narrowing tone.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('shepardTest start')
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'ShepardSequenceInstrument',
+            frequency: 'C4',
+            generator: {
+              className: 'ShepardGenerator',
+              ratio: 2
+            }
+          }
+        }
+      },
+      {
+        time: 1000,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'ShepardSequenceInstrument',
+            frequency: 'F#4',
+            generator: {
+              className: 'ShepardGenerator',
+              ratio: 2
+            }
+          }
+        }
+      },
+      {
+        time: 2000,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'ShepardSequenceInstrument',
+            frequency: 'C6',
+            generator: {
+              className: 'ShepardGenerator',
+              ratio: 2
+            }
+          }
+        }
+      },
+      {
+        time: 3000,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'ShepardSequenceInstrument',
+            frequency: 'C4',
+            generator: {
+              className: 'ShepardGenerator',
+              ratio: Math.pow(2, 0.25)
+            }
+          }
+        }
+      },
+      {
+        time: 4000,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'ShepardSequenceInstrument',
+            duration: 3750,
+            frequency: {
+              className: 'ExponentialGenerator',
+              startValue: 440*Math.pow(2, -3/4),
+              startTime: 0,
+              endValue: 440*Math.pow(2, 5/4),
+              endTime: 3500
+            },
+            generator: {
+              className: 'ShepardGenerator',
+              ratio: 2
+            }
+          }
+        }
+      },
+      {
+        time: 8000,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'ShepardSequenceInstrument',
+            duration: 3750,
+            frequency: {
+              className: 'ExponentialGenerator',
+              startValue: 440*Math.pow(2, -3/4),
+              startTime: 0,
+              endValue: 440*Math.pow(2, -11/4),
+              endTime: 3500
+            },
+            generator: {
+              className: 'ShepardGenerator',
+              ratio: 2
+            }
+          }
+        }
+      },
+      {
+        time: 12000,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            instrument: 'ShepardSequenceInstrument',
+            duration: 3750,
+            frequency: 'C4',
+            generator: {
+              className: 'ShepardGenerator',
+              ratio: {
+                className: 'ExponentialGenerator',
+                startValue: 4,
+                startTime: 0,
+                endValue: Math.pow(2, 1/6),
+                endTime: 3500
+              }
+            }
+          }
+        }
+      }
+    ],
+    afterEvents: [
+      {
+        action: () => console.log('shepardTest stop')
+      }
+    ]
   }
 }
 
