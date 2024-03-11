@@ -30,6 +30,7 @@ import SineOscillator from './lib/components/generators/SineOscillator.js';
 import TriangleOscillator from './lib/components/generators/TriangleOscillator.js';
 import SquareOscillator from './lib/components/generators/SquareOscillator.js';
 import SawtoothOscillator from './lib/components/generators/SawtoothOscillator.js';
+import ExponentialSineOscillator from './lib/components/generators/ExponentialSineOscillator.js';
 
 import Envelope from './lib/components/envelopes/Envelope.js';
 import ADSREnvelope from './lib/components/envelopes/ADSREnvelope.js';
@@ -138,6 +139,9 @@ class Global {
     this.SawtoothOscillator = SawtoothOscillator;
     this.queueModule('lib/processors/generators/SawtoothOscillatorProcessor.js');
     this.registerClass('SawtoothOscillator', SawtoothOscillator);
+    this.ExponentialSineOscillator = ExponentialSineOscillator;
+    this.queueModule('lib/processors/generators/ExponentialSineOscillatorProcessor.js');
+    this.registerClass('ExponentialSineOscillator', ExponentialSineOscillator);
 
     this.Envelope = Envelope;
     this.queueModule('lib/processors/envelopes/EnvelopeProcessor.js');

@@ -44,6 +44,13 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: exponentialSineSequence()
+        }
+      },
+      {
+        after: 9000,
+        action: {
+          className: 'PlayAction',
           playable: shepardOctaveSequence()
         }
       },
@@ -205,6 +212,67 @@ function afterTests() {
   o.player.off();
   if (done) {
     console.log('Done!');
+  }
+}
+
+function exponentialSineSequence() {
+  return {
+    className: 'Sequence',
+    duration: 8500,
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear two tones going low-high-low-high-low, the first fairly evenly and the second spending more time at the top.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('exponentialSineTest start')
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 4000,
+            gain: 0.1,
+            generator: {
+              className: 'SquareOscillator',
+              pulseWidth: 0.45
+            },
+            frequency: {
+              className: 'ExponentialSineOscillator',
+              frequency: 0.5,
+              minValue: 'G3',
+              maxValue: 'G4'
+            }
+          }
+        }
+      },
+      {
+        time: 4500,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 4000,
+            gain: 0.1,
+            generator: {
+              className: 'SquareOscillator',
+              pulseWidth: 0.45
+            },
+            frequency: {
+              className: 'ExponentialSineOscillator',
+              frequency: 0.5,
+              baseline: 'Gt4',
+              minValue: 'G3',
+              maxValue: 'G4'
+            }
+          }
+        }
+      }
+    ]
   }
 }
 

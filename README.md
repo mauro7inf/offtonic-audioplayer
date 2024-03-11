@@ -736,6 +736,10 @@ See the WebAudio API docs for the fields in a `ParameterDescriptor` object.  The
 #### `parameterDescriptors` — *array of `ParameterDescriptor`-like objects* — `[]`
 See the WebAudio API docs for the fields in a `ParameterDescriptor` object.  This field, actually a static getter, is part of `AudioWorkletProcessor` and is fundamental to how it gets set up.  The parameters described get built into `AudioParam` objects to which you can connect `AudioNode`s and set values and such.  The getter checks if `generatedParameterDescriptors` is an own property of this class, and if not, it calls `generateParameterDescriptors()`, which saves the result, and this getter returns it.  You should not need to override this.  Note that it is an array, not an object like `Component.propertyDescriptors`.  This is a requirement of the WebAudio API.
 
+#### `C0` — 440·2^(–4.75)
+#### `logC0` — ln(440) – 4.75·ln(2)
+Useful constants to not have to re-calculate.  C0 serves as a floor for Shepard tones and an arbitrary reference pitch for pitch space calculations.
+
 ### Class Methods
 
 #### `generateParameterDescriptors()`
@@ -1725,6 +1729,47 @@ If the `phase` is less than 2πk, where k is the `pulseWidth`, linearly interpol
 
 
 
+## ExponentialSineOscillator < Oscillator < Generator < AudioComponent < Component
+
+Generates a sine curve in pitch space (or, more precisely, generates the exponential of a sine curve).  This can be useful as a low-frequency oscillator for modulating a frequency, for example.  The baseline for the exponential can be specified as well.  The formula for this wave is complicated, but it's essentially the baseline ± exp(center + amplitude·sin(2π·frequency·t + ø)), where the center in the formula is relative to the baseline (so if the actual center is 100 and the baseline is 15, the center in this formula will be 85).
+
+### Properties
+
+#### `frequency` — *number or `AudioComponent`* — `defaultValue`: `0.5` — `isAudioParam`: `true`
+#### `initialPhase` — *number* — `defaultValue`: 3π/2 — `isProcessorOption`: `true`
+New default values for these parameters.  The `frequency` is in Hz (cycles per second).  When the phase is 0, π/2, π, and 3π/2, respectively, the oscillator's value is at the center, `maxValue`, center, and `minValue`, respectively, so the 3π/2 default value for the `initialPhase` ensures that the wave always starts at the bottom unless otherwise specified.
+
+#### `minValue` — *number or `AudioComponent`* — `defaultValue`: `440/Math.pow(2, 0.75)` — `isAudioParam`: `true`
+#### `maxValue` — *number or `AudioComponent`* — `defaultValue`: `440*Math.pow(2, 0.25)` — `isAudioParam`: `true`
+Minimum and maximum values for the oscillation, with values corresponding to the standard (12TET) frequencies of C4 and C5, respectively.  If you leave the `initialPhase` as default, the wave will start at `minValue`, go up to `maxValue`, and come back down to `minValue` in an exponential sinusoidal pattern, repeating `frequency` times per second.
+
+#### `baseline` — *number or `AudioComponent` — `defaultValue`: `0` — `isAudioParam`: `true`
+The exponential baseline.  The values that change exponentially are the difference, either positive or negative, from the `baseline`.  A good way of thinking about this is in terms of exponentials.  For example, consider an oscillator with a `minValue` of 100 and a `maxValue` of 400.  If the `baseline` is 0, then we can see that 100·2 = 200 and 200·2 = 400, so the center of the two is 200.  On the other hand, if the `baseline` is 420, then the `minValue` is 320 below the `baseline` and the `maxValue` is 20 below, and 20·4 = 80 and 80·4 = 320, so the center is 80 below the `baseline`, or 340.  In both cases, the wave will oscillate from 100 to 400 and back (assuming the default `initialPhase`), but at phases 0 and π the wave will have a value of 200 when the `baseline` is 0 and 340 when the `baseline` is 420.  For pitch space applications, you generally want the `baseline` to be 0.
+
+#### `processorName` — *string* — `'ExponentialSineOscillatorProcessor'`
+
+
+
+
+## ExponentialSineOscillatorProcessor  < OscillatorProcessor < GeneratorProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+Processor for the `ExponentialSineOscillator`, generating a wave of the form B ± exp(C + A·sin(2πft)).
+
+### AudioParams
+
+#### `baseline`
+#### `minValue`
+#### `maxValue`
+The oscillation produced is between `minValue` and `maxValue`, and exponentials are calculated relative to the `baseline`.  See `ExponentialSineOscillator` for details.
+
+### Instance Methods
+
+#### `wave()` — *number*
+
+
+
+
+
 ## WhiteNoiseGenerator < Generator < AudioComponent < Component
 
 Generates white noise, which is a signal of a random value from –1 to 1 every frame.
@@ -1825,9 +1870,8 @@ The Shepard tone will have a lowest frequency component of `frequency` divided b
 
 ### Class Fields
 
-#### `logC0` — ln(440) – 4.75·ln(2)
 #### `logC10` — ln(440) + 5.25·ln(2)
-Natural logs of the frequencies of C0 and C10, respectively.  C0 and C10 are the bounds of the frequency components (inclusive at C0, exclusive at C10), so these are used in the calculation.
+Natural log of the frequency of C10.  C0 and C10 are the bounds of the frequency components (inclusive at C0, exclusive at C10), so logs of these are used in the calculation; `logC0` is defined in `AudioComponentProcessor`.
 
 ### Instance Fields
 
@@ -1895,12 +1939,6 @@ Processor for generating Shepard octave tones.  Coefficient calculations are don
 
 #### `peakFrequency`
 The frequency of the peak of the distribution of frequency components in the Shepard tone.
-
-### Class Fields
-
-#### `logC0` — ln(440) – 4.75·ln(2)
-#### `logC10` — ln(440) + 5.25·ln(2)
-Natural logs of the frequencies of C0 and C10, respectively.  C0 and C10 are the bounds of the peak frequency (exclusive at both ends).
 
 ### Instance Fields
 
