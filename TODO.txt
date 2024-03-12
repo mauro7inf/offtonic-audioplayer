@@ -4,7 +4,6 @@ All the different generators:
 Fourier
 Fourier Sawtooth
 Inharmonic
-Pitch Space Sine
 
 iOS fallback, if necessary
 
@@ -12,4 +11,4 @@ Make orchestra part of registry
 
 Array properties
 
-startValue, endValue, baseline dynamic for linear/exponential generators?
+option to make startValue, endValue, baseline constant for linear/exponential generators to prevent recomputations?

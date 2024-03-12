@@ -1445,10 +1445,10 @@ Generates a linear change in value.  This can be useful when varying a parameter
 Overrides `AudioComponent`'s `timer` property to set a default.
 
 #### `startTime` — *number* — `defaultValue`: `0` — `isProcessorOption`: `true`
-#### `startValue` — *number* — `defaultValue`: `0` — `isProcessorOption`: `true`
+#### `startValue` — *number or `AudioComponent`* — `defaultValue`: `0` — `isAudioParam`: `true`
 #### `endTime` — *number* — `defaultValue`: `1000` — `isProcessorOption`: `true`
-#### `endValue` — *number* — `defaultValue`: `1` — `isProcessorOption`: `true`
-The `LinearGenerator` starts with `startValue`.  At time `startTime` according to the `timer` (see `isAbsolute`), it starts ramping the value linearly to reach `endValue` at `endTime`, which it will keep outputting.
+#### `endValue` — *number or `AudioComponent`* — `defaultValue`: `1` — `isAudioParam`: `true`
+The `LinearGenerator` starts with `startValue`.  At time `startTime` according to the `timer` (see `isAbsolute`), it starts ramping the value linearly to reach `endValue` at `endTime`, which it will keep outputting.  Note that `startValue` and `endValue` can be dynamic.
 
 #### `isAbsolute` — *boolean* — `defaultValue`: `false` — `isProcessorOption`: `true`
 Whether `startTime` and `endTime` are absolute or relative to when the `LinearGenerator` was first turned `on()`.  If `isAbsolute` is `true`, a `startTime` of 500 will mean that the ramp-up will start when the `timer` says 500; if `isAbsolute` is `false`, a `startTime` of 500 will mean that the ramp-up will start 500 `timer` counts after the processor starts.
@@ -1464,15 +1464,19 @@ Whether `startTime` and `endTime` are absolute or relative to when the `LinearGe
 
 Generates a linear change in value.  This can be useful when varying a parameter.
 
+### AudioParams
+
+#### `startValue`
+#### `endValue`
+The start and end values, respectively.
+
 ### Processor Options
 
 #### `isAbsolute` — *boolean*
 Whether `startTime` and `endTime` are absolute numbers on `timer` or are relative to when the processor starts.
 
 #### `startTime` — *number*
-#### `startValue` — *number*
 #### `endTime` — *number*
-#### `endValue` — *number*
 The `LinearGeneratorProcessor` starts with `startValue`.  At time `startTime` according to the `timer` (see `isAbsolute`), it starts ramping the value linearly to reach `endValue` at `endTime`, which it will keep outputting.
 
 ### Instance Fields
@@ -1486,7 +1490,7 @@ When the processor is constructed, we don't actually have any data from its `Aud
 If `timesSet` is `false`, adds the current `timer` time to `startTime` and `endTime` and sets `timesSet` to `true`.  If the current time according to the `timer` is before `startTime`, returns `startValue`; if after `endTime`, returns `endValue`; otherwise, returns an interpolation between them by calling `interpolate()`.
 
 #### `interpolate(<time>)` — *number*
-Returns a linear interpolation such that at `<time>` equal to `startTime` the value is `startValue` and at `<time>` equal to `endTime` the value is `endValue`, which is equivalent to the formula `startValue` + (`endValue` – `startValue`) · timeFraction, where timeFraction is computed by calling `timeFraction()`.  This can be overridden in subclasses that keep the same general behavior but interpolate using a different method.
+Returns a linear interpolation such that at `<time>` equal to `startTime` the value is `startValue` and at `<time>` equal to `endTime` the value is `endValue`, which is equivalent to the formula `startValue` + (`endValue` – `startValue`) · timeFraction, where timeFraction is computed by calling `timeFraction()`.  This can be overridden in subclasses that keep the same general behavior but interpolate using a different method.  Note that `startValue` and `endValue` can change, so the interpolation is always between the *current* `startValue` and `endValue`.
 
 #### `timeFraction(<time>)` — *number*
 Returns the fraction of the way through the time of the generator, equal to (`<time>` – `startTime`)/(`endTime` – `startTime`).
@@ -1500,11 +1504,11 @@ Generates an exponential (or geometric) change in value, which can be useful whe
 
 ### Properties
 
-#### `startValue` — *number* — `defaultValue`: `1` — `isProcessorOption`: `true`
-#### `endValue` — *number* — `defaultValue`: `2` — `isProcessorOption`: `true`
+#### `startValue` — *number or `AudioComponent`* — `defaultValue`: `1` — `isAudioParam`: `true`
+#### `endValue` — *number or `AudioComponent`* — `defaultValue`: `2` — `isAudioParam`: `true`
 The start and end values, inherited from `LinearGenerator` but with their default values changed since `0` is not a valid value for an exponential.
 
-#### `baseline` — *number* — `defaultValue`: `0` — `isProcessorOption`: `true`
+#### `baseline` — *number or `AudioComponent`* — `defaultValue`: `0` — `isAudioParam`: `true`
 The quantity that changes exponentially is the distance from this `baseline`.  For example, if the `baseline` is 100, the `startValue` is 101, and the `endValue` is 104, what's really happening here is that the value starts at 1 above the `baseline` and grows to 4 above the `baseline`, meaning that at the midpoint in time, it's at 102, which is 2 above the `baseline`.  The values can also lie below the `baseline`, so if the `baseline` is still 100 but the start and end values are 91 and 99, respectively, those values are 9 below the `baseline` and 1 below the `baseline`, meaning that halfway through the time, the value will be 3 below the `baseline`, or 97.  It is not valid for the value to cross the `baseline`, meaning that the exponential changes sign (or goes to 0), because exponentials are always positive (we're dealing only with real numbers here).
 
 ### Class Fields
@@ -1518,27 +1522,15 @@ The quantity that changes exponentially is the distance from this `baseline`.  F
 
 Generates an exponential (or geometric) change in value, which can be useful when varying a frequency by applying a constant change in pitch.
 
-### Processor Options
+### AudioParams
 
-#### `baseline` — *number*
+#### `baseline`
 See the property in `ExponentialGenerator`.  The quantity that changes exponentially is the distance to the `baseline`.
-
-### Instance Fields
-
-#### `sign` — *number* — `1` or `–1`
-`1` if `startValue` ≥ `baseline`, `–1` if `startValue` < `baseline`.  Assuming that the `endValue` has the same relationship with `baseline` (and neither is equal to it), the `sign` represents the direction of the change from the `baseline`.
-
-#### `logStartDelta` — *number*
-#### `logEndDelta` — *number*
-The logs of the differences between the `startValue` and `endValue`, respectively, and the `baseline`, used to simplify the computation.
 
 ### Instance Methods
 
-#### `setupConstants()`
-Called during construction to calculate the `sign`, `logStartDelta`, and `logEndDelta` values.
-
 #### `interpolate(<time>)`
-Interpolates the value exponentially.  If startDelta = `startValue` – `baseline` and endDelta = `endValue` – `baseline`, then the current value is `baseline` + startDelta · (endDelta/startDelta)^timeFraction, where timeFraction is computed using `timeFraction()`.  To avoid this arbitrary-base exponential, we do this computation using logs instead: logDelta = `startLogDelta` + (`endLogDelta` – `startLogDelta`)·timeFraction, and the current value is `baseline` + `sign`·`Math.exp(`logDelta`)`.  The exponential function, to base e, is a quicker calculation, and we only need to take logs once at the construction of the processor, so this ought to be pretty speedy.
+Interpolates the value exponentially.  If startDelta = `startValue` – `baseline` and endDelta = `endValue` – `baseline`, then the current value is `baseline` + startDelta · (endDelta/startDelta)^timeFraction, where timeFraction is computed using `timeFraction()`.  To avoid this arbitrary-base exponential, we do this computation using logs instead: logDelta = logStartDelta + (logEndDelta – logStartDelta)·timeFraction, and the current value is `baseline` ± exp(logDelta), where the sign matches the direction of the original deltas.
 
 
 
@@ -1741,7 +1733,7 @@ New default values for these parameters.  The `frequency` is in Hz (cycles per s
 
 #### `minValue` — *number or `AudioComponent`* — `defaultValue`: `440/Math.pow(2, 0.75)` — `isAudioParam`: `true`
 #### `maxValue` — *number or `AudioComponent`* — `defaultValue`: `440*Math.pow(2, 0.25)` — `isAudioParam`: `true`
-Minimum and maximum values for the oscillation, with values corresponding to the standard (12TET) frequencies of C4 and C5, respectively.  If you leave the `initialPhase` as default, the wave will start at `minValue`, go up to `maxValue`, and come back down to `minValue` in an exponential sinusoidal pattern, repeating `frequency` times per second.
+Minimum and maximum values for the oscillation, with values corresponding to the standard (12TET) frequencies of C4 and C5, respectively.  If you leave the `initialPhase` as default, the wave will start at `minValue`, go up to `maxValue`, and come back down to `minValue` in an exponential sinusoidal pattern, repeating `frequency` times per second.  These two values do not need to be in order: `maxValue` could be less than `minValue` and that's OK.  However, a phase of 3π/2 would still correspond to `minValue`, so the wave would sound upside-down.
 
 #### `baseline` — *number or `AudioComponent` — `defaultValue`: `0` — `isAudioParam`: `true`
 The exponential baseline.  The values that change exponentially are the difference, either positive or negative, from the `baseline`.  A good way of thinking about this is in terms of exponentials.  For example, consider an oscillator with a `minValue` of 100 and a `maxValue` of 400.  If the `baseline` is 0, then we can see that 100·2 = 200 and 200·2 = 400, so the center of the two is 200.  On the other hand, if the `baseline` is 420, then the `minValue` is 320 below the `baseline` and the `maxValue` is 20 below, and 20·4 = 80 and 80·4 = 320, so the center is 80 below the `baseline`, or 340.  In both cases, the wave will oscillate from 100 to 400 and back (assuming the default `initialPhase`), but at phases 0 and π the wave will have a value of 200 when the `baseline` is 0 and 340 when the `baseline` is 420.  For pitch space applications, you generally want the `baseline` to be 0.
@@ -1765,7 +1757,7 @@ The oscillation produced is between `minValue` and `maxValue`, and exponentials 
 ### Instance Methods
 
 #### `wave()` — *number*
-
+Calculates B ± exp(C + A·sin(ø)), where B is the `baseline`, C is the natural log of the center of the wave relative to the `baseline`, A is the amplitude in natural log space, and ø is the `phase`.  If the `baseline` is 0, the center is just sqrt(`minValue`·`maxValue`), their geometric mean.  If not, then the center is the geometric mean of |`minValue` – `baseline`| and |`maxValue` – `baseline`|.  The amplitude is then going to be sqrt(|`maxValue` – `baseline`|/|`minValue` – `baseline`|), which is just the right number to ensure that the minimum value really is `minValue` and the maximum really is `maxValue`.
 
 
 
