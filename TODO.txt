@@ -1,9 +1,7 @@
 Standard filters (biquad, Butterworth, etc.)
 
 All the different generators:
-Fourier
 Fourier Sawtooth
-Inharmonic
 
 iOS fallback, if necessary
 

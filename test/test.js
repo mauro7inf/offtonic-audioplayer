@@ -44,6 +44,13 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: fourierTestSequence()
+        }
+      },
+      {
+        after: 4500,
+        action: {
+          className: 'PlayAction',
           playable: exponentialSineSequence()
         }
       },
@@ -215,6 +222,95 @@ function afterTests() {
   }
 }
 
+function fourierTestSequence() {
+  return {
+    className: 'Sequence',
+    duration: 4000,
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear a slowly-rising pulsatingly complex tone.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('exponentialSineTest start')
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 4000,
+            gain: 0.1,
+            frequency: {
+              className: 'ExponentialSineOscillator',
+              frequency: 0.125,
+              minValue: 'Bb3',
+              maxValue: 'C4'
+            },
+            generator: {
+              className: 'FourierGenerator',
+              fourierComponents: [
+                {
+                  a: 1,
+                  n: 1
+                },
+                {
+                  a: 1/2,
+                  n: 3
+                },
+                {
+                  a: 1/3,
+                  n: {
+                    className: 'ExponentialSineOscillator',
+                    frequency: 2,
+                    minValue: 5,
+                    maxValue: 81/16
+                  }
+                },
+                {
+                  a: 1/4,
+                  n: {
+                    className: 'ExponentialSineOscillator',
+                    frequency: 2,
+                    minValue: 7,
+                    maxValue: 36/5
+                  }
+                },
+                {
+                  a: 1/5,
+                  n: {
+                    className: 'ExponentialSineOscillator',
+                    frequency: 2,
+                    minValue: 9,
+                    maxValue: 80/9
+                  }
+                },
+                {
+                  a: 1/6,
+                  n: {
+                    className: 'ExponentialSineOscillator',
+                    frequency: 2,
+                    minValue: 11,
+                    maxValue: 45/4
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    afterEvents: [
+      {
+        action: () => console.log('fourierTest stop')
+      }
+    ]
+  }
+}
+
 function exponentialSineSequence() {
   return {
     className: 'Sequence',
@@ -271,6 +367,11 @@ function exponentialSineSequence() {
             }
           }
         }
+      }
+    ],
+    afterEvents: [
+      {
+        action: () => console.log('exponentialSineTest stop')
       }
     ]
   }

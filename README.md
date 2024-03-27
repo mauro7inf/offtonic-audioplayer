@@ -85,6 +85,9 @@ Indicates which input on the audio component's `node` field this property should
 #### `isAudioComponent` — *boolean* (optional) — default `false`
 Indicates that the property must be an `AudioComponent` instance rather than, say, a number.  If the value for the property is a number, it will be turned into a `ConstantGenerator` audio component that outputs the number, and if it is a string, it will be turned into a `Note` audio component that turns the string into a number via the component's `tuning`.
 
+#### `isComponentArray` — *boolean* (optional) — default `false`
+Indicates that a property is an array of values to be individually created as `Component` instances (if appropriate).  If you pass an array to a property without `isComponentArray` set to `true`, the contents of the array will not be processed in any way, including any objects that would otherwise get created as `Component`s.  Setting this to `true` will instead create any `Component`s that need to be created.  Strings in the array will be interpreted as `Note`s.
+
 
 
 
@@ -554,7 +557,10 @@ If `<reference>` is a non-`null` object with a `ref` field, returns the componen
 Returns the value of `this.<propName>`, which is the default way to store property values.  When implementing a custom getter, you may want to consider calling `genericGetter()` during the process.
 
 #### `setProperty(<propName>, <propDefinition>)`
-Instantiates `<propDefinition>` if necessary (meaning that `<propDefinition>.className` is present), then sets it as a value for the property named `<propName>` (if it exists).  If `<propDefinition>` is a number and the descriptor has `isAudioComponent` set to `true`, a `ConstantGenerator` is instantiated and becomes the value instead of the number.  If instead `<propDefinition>` is a string and the descriptor has `isAudioComponent` or `isAudioParam` set to `true`, a `Note` is instantiated with the current object's `tuning`'s name as its `tuningName` and with a `note` of `<propDefinition>`.  If a `setter` is provided in the descriptor, that value gets passed to that setter; if not, the previous value is cleaned up (with `cleanupProperty()`) and `genericSetter()` is called.  If you are implementing a custom setter, you should make sure to handle cleaning up the previous value of the property if applicable.
+Provided the property exists in the first place, calls `createPropertyValue()` then sets it as a value for the property named `<propName>`.  If a `setter` is provided in the descriptor, that value gets passed to that setter; if not, the previous value is cleaned up (with `cleanupProperty()`) and `genericSetter()` is called.  If you are implementing a custom setter, you should make sure to handle cleaning up the previous value of the property if applicable.
+
+#### `createPropertyValue(<descriptor>, <propDefinition>)` — *anything*
+Instantiates `<propDefinition>` if necessary (meaning that `<propDefinition>.className` is present) and returns the instance.  If `<propDefinition>` is a number and the `<descriptor>` has `isAudioComponent` set to `true`, a `ConstantGenerator` is instantiated and becomes the value instead of the number.  If instead `<propDefinition>` is a string and the descriptor has `isAudioComponent` or `isAudioParam` set to `true`, a `Note` is instantiated with the current object's `tuning`'s name as its `tuningName` and with a `note` of `<propDefinition>`.  If the `<descriptor>` has `isComponentArray` set to `true` and the `<propDefinition>` is an array, the created value will be an array where each element is a created `Component` of the corresponding element in `<propDefinition>` or the value itself (strings are converted to `Note`s, but numbers stay numbers).  Otherwise, the `<propDefinition>` is returned as-is (including if it's a reference).  This method can be used to instantiate objects that are not technically properties by passing in an arbitrary `<descriptor>`; for example, a property may be an array of objects that should be interpreted as `AudioParam`s; a custom setter can then call this method, with a `<descriptor>` object containing `isAudioParam` set to `true`, on the individual array elements to create the proper `Component`s.
 
 #### `genericSetter(<propName>, <propValue>)`
 Simply sets `this.<propName>` to `<propValue>`, which is the default way to store property values.  When implementing a custom setter, you may want to consider calling `genericSetter()` during the process.
@@ -569,7 +575,10 @@ Performs any cleanup tasks necessary, like dismantling `AudioNode`s that should 
 If the property named by `<propName>` has a `cleaner` in its descriptor, this method calls that cleaner to clean up the property; if it does not, it calls `genericCleaner(<propName>)`.
 
 #### `genericCleaner(<propName>)`
-If the property named by `<propName>` is itself a `Component`, calls `cleanup()` on the property, then sets `this.<propName>` to `null`.  If you need more specialized behavior and override this method, you should probably still call it from your override.
+If the property named by `<propName>` is itself a `Component`, calls `cleanup()` on the property (by calling `cleanupComponent()`), then sets `this.<propName>` to `null`.  If you need more specialized behavior and override this method, you should probably still call it from your override.
+
+#### `cleanupComponent(<component>)`
+If the `<component>` is a `Component`, calls `cleanup()` on it.
 
 #### `cleanupName()`
 Removes this `Component` from the `registry` (if `name` isn't `null`) and sets `name` to `null`.
@@ -686,17 +695,21 @@ If a `connector` or `disconnector` is provided for this property, that method is
 #### `disconnectAudioParam(<propName>)`
 Called by `connectProperty()` and `disconnectProperty()` to handle properties with `isAudioParam` set to `true`.  If the value of the property named by `<propName>` is an `AudioComponent`, `value.on()` (if it's not a reference) and `value.connectTo()` are called to connect it to the `AudioParam` object it needs to be connected to, and `value.disconnectFrom()` and `value.off()` (if it's not a reference) are called to disconnect.  If the value is not an `AudioComponent`, it's simply assigned into the `AudioParam`'s `value` field on connection; there is no need to disconnect it afterward.  The `value` is set to `0` when nothing is connected to it, both before connecting the param and after disconnecting.
 
-#### `connectComponentOrRefToAudioParam(<rawValue>, <paramName>, <zeroParamDuringTransition>)`
-#### `disconnectComponentOrRefFromAudioParam(<rawValue>, <paramName>, <zeroParamDuringTransition>)`
-Connects or disconnects an arbitrary `AudioComponent`'s (the `<rawValue>`, which may be an `AudioComponent` or a reference) node to or from an arbitrary `AudioParam`, and `on()`/`off()` are called on it only if the `<rawValue>` is not a reference.  Called by `connectAudioParam()` and `disconnectAudioParam()` with a `<zeroParamDuringTransition>` value of `true`.  If that value is `false` instead, the `value` of the `AudioParam` will not be set to `0` and will just keep its previous value, which can be useful when the `AudioParam` represents some kind of control and you don't want it to change after it was set to whatever it was set to by the last thing that changed it.
+#### `connectComponentOrRefToAudioParamName(<rawValue>, <paramName>, <zeroParamDuringTransition>)`
+#### `disconnectComponentOrRefFromAudioParamName(<rawValue>, <paramName>, <zeroParamDuringTransition>)`
+Connects or disconnects an arbitrary `AudioComponent`'s (the `<rawValue>`, which may be an `AudioComponent` or a reference) node to or from the `AudioParam` on the `AudioComponent`'s `node` with the given `<paramName>`, and `on()`/`off()` are called on it only if the `<rawValue>` is not a reference.  Called by `connectAudioParam()` and `disconnectAudioParam()` with a `<zeroParamDuringTransition>` value of `true`.  If that value is `false` instead, the `value` of the `AudioParam` will not be set to `0` and will just keep its previous value, which can be useful when the `AudioParam` represents some kind of control and you don't want it to change after it was set to whatever it was set to by the last thing that changed it.  Calls `connectComponentOrRefToAudioParam()` or `disconnectComponentOrRefFromAudioParam()`.
+
+#### `connectComponentOrRefToAudioParam(<rawValue>, <param>, <zeroParamDuringTransition>)`
+#### `disconnectComponentOrRefFromAudioParam(<rawValue>, <param>, <zeroParamDuringTransition>)`
+Connects or disconnects an arbitrary `AudioComponent`'s (the `<rawValue>`, which may be an `AudioComponent` or a reference) node to or from an arbitrary `AudioParam` `<param>` (on an arbitrary `AudioNode`), and `on()`/`off()` are called on it only if the `<rawValue>` is not a reference.  Called by `connectAudioParam()` and `disconnectAudioParam()` with a `<zeroParamDuringTransition>` value of `true`.  If that value is `false` instead, the `value` of the `AudioParam` will not be set to `0` and will just keep its previous value, which can be useful when the `AudioParam` represents some kind of control and you don't want it to change after it was set to whatever it was set to by the last thing that changed it.
 
 #### `connectInputIndex(<propName>)`
 #### `disconnectInputIndex(<propName>)`
 Called by `connectProperty()` and `disconnectProperty()` to handle properties with `inputIndex` set to a non-negative number.  The value is assumed to be an `AudioComponent`, and `value.on()` (if it's not a reference) and `value.connectTo()` are called on connection and `value.disconnectFrom()` and `value.off()` (if it's not a reference) are called on disconnection.
 
-#### `connectComponentOrRefToInputIndex(<rawValue>, <inputIndex>)`
-#### `disconnectComponentOrRefFromInputIndex(<rawValue>, <inputIndex>)`
-Called by `connectInputIndex()` and `disconnectInputIndex()`, respectively.  These methods connect or disconnect an arbitrary `AudioComponent`'s (the `<rawValue>`, which may be an `AudioComponent` or a reference) node to or from an arbitrary input index, and `on()`/`off()` are called on it only if the `<rawValue>` is not a reference.
+#### `connectComponentOrRefToInputIndex(<rawValue>, <node>, <inputIndex>)`
+#### `disconnectComponentOrRefFromInputIndex(<rawValue>, <node>, <inputIndex>)`
+Called by `connectInputIndex()` and `disconnectInputIndex()`, respectively.  These methods connect or disconnect an arbitrary `AudioComponent`'s (the `<rawValue>`, which may be an `AudioComponent` or a reference) node to or from an arbitrary input index on an arbitrary `AudioNode`, and `on()`/`off()` are called on it only if the `<rawValue>` is not a reference.
 
 #### `connectFilter()`
 #### `disconnectFilter()`
@@ -1827,6 +1840,93 @@ The value returned by `generate()`, used in the next frame to calculate the new 
 
 #### `generate()` — *number*
 If x is the previous `value` and w is the `frequency`, returns r·x + s·(random number between –1 and 1), where r = e^(–∆t/T) = e^(–w/`sampleRate`) (with ∆t being seconds per frame and T being the time constant, 1/`frequency`) and s = sqrt(1 – r^(2)).  This keeps the `value` mostly hovering between –1 and 1, with occasional extremes.
+
+
+
+
+## FourierGenerator < AudioComponent < Component
+
+Allows additive synthesis using native JS `AudioNode`s (rather than custom `AudioWorkletNode`s).  You pass in a list of Fourier coefficients `a` and multiples `n`, and you get a sum of sines: ∑a·sin(n·2πft), where f is the `frequency`.  `a` and `n` in each Fourier component can be `AudioComponent`s, so the Fourier spectrum can change dynamically, include inharmonic components, etc.  As a consequence of using only the native JS `AudioNode`s, it can't use any of the functionality of the `AudioComponentProcessor`, at least not by default.  The internal structure of the `FourierGenerator` is that the `frequency` is connected to the `frequencyNode`, a `GainNode` (with `gain.value` set to `1`), which connects to each of an array of `FourierComponent`s, each of which then connects to the principal `node`, another `GainNode` (with `gain.value` set to `1`).  It is this final `node` that connects to whatever destination the generator is supposed to connect to.
+
+### Properties
+
+#### `frequency` — *number or `AudioComponent`* — `isAudioComponent`: `true` — `defaultValue`: `440` — `connector`: `'connectFrequency'` — `disconnector`: `'disconnectFrequency'`
+The base frequency of the Fourier spectrum, of which all of the components are multiples.  This is usually set by the parent `Tone`, with the added caveat that if it is a number, it will be converted to a `ConstantGenerator`.
+
+#### `fourierComponents` — *array of `FourierComponent`s or shorthand objects* — `defaultValue`: `[{a: 1, n: 1}]` — `setter`: `'setFourierComponents'` — `cleaner`: `'cleanFourierComponents'` — `connector`: `'connectFourierComponents'` — `disconnector`: `'disconnectFourierComponents'`
+The array of Fourier components.  When specifying each component, you can either specify a `FourierComponent` itself (or, really, anything that you can connect the `frequency` to) or a shorthand object of the form `{a: <coeff>, n: <multiple>}`.  Such an object will be converted into a `FourierComponent` using the definition `{className: 'FourierComponent', coeff: <coeff>, multiple: <multiple>}`.  A `FourierComponent`, for the purposes of `FourierGenerator`, is an `AudioComponent` that takes a `frequency` as an input and produces a signal as an output; it does not have to be an actual `FourierComponent`.
+
+### Class Fields
+
+#### `isNativeNode` — `true`
+
+### Instance Fields
+
+#### `frequencyNode` — `GainNode` — `null`
+The `frequency` `AudioComponent` is connected to this node, which has a `gain` value of `1`, making it essentially just a pass-through node.  It exists for the sole purpose of keeping the `fourierComponents` connected only internally: the `frequencyNode` connects to each of the `fourierComponents`, which in turn each connect to the `node`, which is a `GainNode` with a `gain` of `1` as well.
+
+### Instance Methods
+
+#### `createNode`
+Creates the `node` and `frequencyNode`, both `gainNode`s with `gain` `1`.
+
+#### `connectFrequency()`
+#### `disconnectFrequency()`
+Custom connector and disconnector for `frequency` since it needs to connect to `frequencyNode` rather than to `node`.
+
+#### `setFourierComponents(<componentDefinitions>)`
+Creates the `FourierComponent`s specified in the `<componentDefinitions>` array (including converting shorthand objects as defined above into fully-fledged `FourierComponents`s) and puts them into the `fourierComponents` property, which is also an array.  Connects them if necessary as well.
+
+#### `cleanFourierComponents()`
+Custom cleaner to call `cleanupComponent()` on each element of the `fourierComponents` array.
+
+#### `connectFourierComponents()`
+#### `disconnectFourierComponents()`
+Custom connector and disconnector; they call `connectFourierComponent()` or `disconnectFourierComponent()`, respectively, on each element of `fourierComponents`.
+
+#### `connectFourierComponent(<component>)`
+#### `disconnectFourierComponent(<component>)`
+Turns the `<component>` `on()` or `off()` if it isn't a reference, then connects `frequencyNode` to it and connects it to `node`, or disconnects it from `node` and disconnects `frequencyNode` from it, respectively.
+
+
+
+
+## FourierComponent < AudioComponent < Component
+
+A simple set of native JS `AudioNode`s to simply generate a scaled sine wave at a multiple of the given frequency, such as would be useful when building a spectrum using additive synthesis.  A `FourierComponent` consists of three `AudioNode`s: a `GainNode` called the `multipleNode` that multiplies the given frequency by the `multiple`, `oscillator`, an `OscillatorNode` to produce a sine wave at the frequency given by the `multipleNode`, and the final `node`, another `GainNode`, that scales the sine wave by `coeff`.  If the `coeff` is a and the `multiple` is n, the resultant signal is a·sin(n·2πft).
+
+### Properties
+
+#### `coeff` — `defaultValue`: `1` — `isAudioParam`: `true` — `paramName`: `null` — `connector`: `'connectCoeff'` — `disconnector`: `'disconnectCoeff'`
+#### `multiple` — `defaultValue`: `1` — `isAudioParam`: `true` — `paramName`: `null` — `connector`: `'connectMultiple'` — `disconnector`: `'disconnectMultiple'`
+The coefficient and frequency muliple (a and n, respectively) in the formula a·sin(n·2πft).  The `multiple` is the `gain` `AudioParam` of the `multipleNode`, while the `coeff` is the `gain` `AudioParam` of the `node`, which is why both properties have `isAudioParam`: `true`, but to prevent weird bugs from popping up later, `paramName` is explicitly `null` since these properties should be connected only carefully.
+
+### Class Fields
+
+#### `isNativeNode` — `true`
+
+### Instance Fields
+
+#### `multipleNode` — `GainNode`
+#### `oscillator` — `OscillatorNode`
+These two, together with the `node` (which is also a `GainNode`), form the pipeline of the `FourierComponent`.  The frequency `AudioComponent`, generally a `FourierGenerator`'s `frequencyNode`, connects to the input of the `multipleNode`, while the `multiple` connects to its `gain`.  The `multipleNode` connects to the `oscillator`'s `frequency`, and the `oscillator`'s `type` is `'sine'`.  The `oscillator` connects to the `node`'s input, while `coeff` connects to its `gain`.  The `node` then connects to the destination, generally the `FourierGenerator`'s `node`.  This whole thing *could* have been done using `AudioComponent`s instead of native nodes, but that level of control is likely not needed in the `FourierGenerator`'s application, so there's no need to take the performance hit.
+
+### Instance Methods
+
+#### `createNode()`
+Creates all of the relevant nodes (`multipleNode`, `oscillator`, `node`) and connects them to each other, also calling `start()` on the `oscillator`.
+
+#### `cleanupNode()`
+Disconnects the relevant nodes, calls `stop()` on the `oscillator`, and sets their fields to `null`.
+
+#### `getFirstNode()` — `multipleNode`
+Called by `FourierGenerator` when connecting its `frequencyNode` to the `FourierComponent`.
+
+#### `connectCoeff()`
+#### `disconnectCoeff()`
+#### `connectMultiple()`
+#### `disconnectMultiple()`
+Custom connectors/disconnectors to attach the `coeff` and `multiple` properties to the right places.
 
 
 
