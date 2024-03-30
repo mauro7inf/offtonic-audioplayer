@@ -21,6 +21,7 @@ import ExponentialGenerator from './lib/components/generators/ExponentialGenerat
 
 import FourierGenerator from './lib/components/generators/FourierGenerator.js';
 import FourierComponent from './lib/components/generators/FourierComponent.js';
+import FourierSawtooth from './lib/components/generators/FourierSawtooth.js';
 
 import WhiteNoiseGenerator from './lib/components/generators/WhiteNoiseGenerator.js';
 import RedNoiseGenerator from './lib/components/generators/RedNoiseGenerator.js';
@@ -117,6 +118,8 @@ class Global {
     this.registerClass('FourierGenerator', FourierGenerator);
     this.FourierComponent = FourierComponent;
     this.registerClass('FourierComponent', FourierComponent);
+    this.fourierSawtooth = FourierSawtooth;
+    this.registerClass('FourierSawtooth', FourierSawtooth);
 
     this.WhiteNoiseGenerator = WhiteNoiseGenerator;
     this.queueModule('lib/processors/generators/WhiteNoiseGeneratorProcessor.js');

@@ -1,8 +1,5 @@
 Standard filters (biquad, Butterworth, etc.)
 
-All the different generators:
-Fourier Sawtooth
-
 iOS fallback, if necessary
 
 Make orchestra part of registry

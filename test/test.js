@@ -44,6 +44,13 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: fourierSawtoothSequence()
+        }
+      },
+      {
+        after: 10500,
+        action: {
+          className: 'PlayAction',
           playable: fourierTestSequence()
         }
       },
@@ -222,6 +229,207 @@ function afterTests() {
   }
 }
 
+function fourierSawtoothSequence() {
+  function fullNoteAction(n, duration) {
+    return {
+      className: 'PlayAction',
+      playable: {
+        className: 'Tone',
+        duration: duration,
+        gain: 0.1,
+        frequency: 'E3',
+        envelope: {
+          className: 'ADSREnvelope',
+          attackGain: 1
+        },
+        generator: {
+          className: 'FourierSawtooth',
+          highestMultiple: n
+        }
+      }
+    };
+  }
+
+  function oddNoteAction(n, duration) {
+    return {
+      className: 'PlayAction',
+      playable: {
+        className: 'Tone',
+        duration: duration,
+        gain: 0.1,
+        frequency: 'Ft3',
+        envelope: {
+          className: 'ADSREnvelope',
+          attackGain: 1
+        },
+        generator: {
+          className: 'FourierSawtooth',
+          highestMultiple: n,
+          includeEven: false
+        }
+      }
+    };
+  }
+
+  function evenNoteAction(n, duration) {
+    return {
+      className: 'PlayAction',
+      playable: {
+        className: 'Tone',
+        duration: duration,
+        gain: 0.1,
+        frequency: 'G3',
+        envelope: {
+          className: 'ADSREnvelope',
+          attackGain: 1
+        },
+        generator: {
+          className: 'FourierSawtooth',
+          highestMultiple: n,
+          includeOdd: false
+        }
+      }
+    };
+  }
+
+  return {
+    className: 'Sequence',
+    duration: 10000,
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear three bunches of tones, each bunch growing in complexity.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('fourierSawtoothTest start')
+      },
+      {
+        time: 0,
+        action: fullNoteAction(1, 250)
+      },
+      {
+        time: 250,
+        action: fullNoteAction(2, 250)
+      },
+      {
+        time: 500,
+        action: fullNoteAction(3, 250)
+      },
+      {
+        time: 750,
+        action: fullNoteAction(4, 250)
+      },
+      {
+        time: 1000,
+        action: fullNoteAction(5, 250)
+      },
+      {
+        time: 1250,
+        action: fullNoteAction(6, 250)
+      },
+      {
+        time: 1500,
+        action: fullNoteAction(7, 250)
+      },
+      {
+        time: 1750,
+        action: fullNoteAction(8, 250)
+      },
+      {
+        time: 2000,
+        action: fullNoteAction(9, 250)
+      },
+      {
+        time: 2250,
+        action: fullNoteAction(20, 1000)
+      },
+      {
+        time: 3500,
+        action: oddNoteAction(1, 250)
+      },
+      {
+        time: 3750,
+        action: oddNoteAction(3, 250)
+      },
+      {
+        time: 4000,
+        action: oddNoteAction(5, 250)
+      },
+      {
+        time: 4250,
+        action: oddNoteAction(7, 250)
+      },
+      {
+        time: 4500,
+        action: oddNoteAction(9, 250)
+      },
+      {
+        time: 4750,
+        action: oddNoteAction(11, 250)
+      },
+      {
+        time: 5000,
+        action: oddNoteAction(13, 250)
+      },
+      {
+        time: 5250,
+        action: oddNoteAction(17, 250)
+      },
+      {
+        time: 5500,
+        action: oddNoteAction(19, 1000)
+      },
+      {
+        time: 6750,
+        action: evenNoteAction(2, 250)
+      },
+      {
+        time: 7000,
+        action: evenNoteAction(4, 250)
+      },
+      {
+        time: 7250,
+        action: evenNoteAction(6, 250)
+      },
+      {
+        time: 7500,
+        action: evenNoteAction(8, 250)
+      },
+      {
+        time: 7750,
+        action: evenNoteAction(10, 250)
+      },
+      {
+        time: 8000,
+        action: evenNoteAction(12, 250)
+      },
+      {
+        time: 8250,
+        action: evenNoteAction(14, 250)
+      },
+      {
+        time: 8500,
+        action: evenNoteAction(16, 250)
+      },
+      {
+        time: 8750,
+        action: evenNoteAction(18, 250)
+      },
+      {
+        time: 9000,
+        action: evenNoteAction(20, 1000)
+      }
+    ],
+    afterEvents: [
+      {
+        action: () => console.log('fourierSawtoothTest stop')
+      }
+    ]
+  }
+}
+
 function fourierTestSequence() {
   return {
     className: 'Sequence',
@@ -234,7 +442,7 @@ function fourierTestSequence() {
     events: [
       {
         time: 0,
-        action: () => console.log('exponentialSineTest start')
+        action: () => console.log('fourierTest start')
       },
       {
         time: 0,

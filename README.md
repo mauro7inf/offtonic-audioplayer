@@ -674,7 +674,7 @@ Calls `connect()` or `disconnect()` on `getNodeToDestination()` to connect or di
 #### `getFirstNode()` — *`AudioNode`* — default value: `node`
 #### `getNodeToFilter()` — *`AudioNode`* — default value: `node`
 #### `getNodeFromFilter()` — *`AudioNode`* — default value: `null`
-#### `getNodeToDestination()` — *`AudioNode`* — default value: `filter.getNodeToDestination()` if `filter` is not `null`, or `node` if it is
+#### `getNodeToDestination()` — *`AudioNode`* — default value: `filter.getNodeToDestination()` if `filter` is not `null`, or `getNodeToFilter()` if it is
 The basic structure of the `AudioComponent`.  If we wanted to connect node A to an `AudioComponent` and then connect the `AudioComponent` to node B, we would have A connected to `getFirstNode()`, which is the start of a chain ending in `getNodeToFilter()`, which connects to `filter` if present, which connects to a (possibly empty) chain beginning with `getNodeFromFilter()` and ending with `getNodeToDestination()` (which may have already occurred in the chain), which connects to B.  Override these if your `AudioComponent` has a different structure.
 
 #### `cleanup()`
@@ -1927,6 +1927,53 @@ Called by `FourierGenerator` when connecting its `frequencyNode` to the `Fourier
 #### `connectMultiple()`
 #### `disconnectMultiple()`
 Custom connectors/disconnectors to attach the `coeff` and `multiple` properties to the right places.
+
+
+
+
+## FourierSawtooth < AudioComponent < Component
+
+A wrapper around a `FourierGenerator` that generates the first however many Fourier components of a sawtooth.  An ideal sawtooth wave can be analyzed as ∑(1/n)·sin(n·2πft) for n from 1 to ∞ (ignoring phase, that is), so a `FourierSawtooth` takes a maximum n and outputs a partial sum of that series up to that maximum.
+
+### Properties
+
+#### `frequency` — *`AudioComponent`* — `isAudioComponent`: `true` — `defaultValue`: `440` — `setter`: `'setFrequency'`
+The base frequency of the wave.  Note that it needs to be an `AudioComponent` (it will be converted to a `ConstantGenerator` if it's a number) since it's an input to the `FourierGenerator`.
+
+#### `highestMultiple` — *number* — `defaultValue`: `5`
+The maximum n for the sum ∑(1/n)·sin(n·2πft).  This is *not* an `AudioComponent`, and furthermore it should not change.
+
+#### `includeEven` — *boolean* — `defaultValue`: `true`
+#### `includeOdd` — *boolean* — `defaultValue`: `true`
+Whether to include the even and odd terms of the sum, respectively.  Excluding the even terms creates a different kind of sound that's darker than the very bright sawtooth, while excluding the odd terms just... makes the sawtooth an octave higher, so maybe it's not a good idea.  Note that if the `highestMultiple` is `5` and `includeEven` is `false`, the included terms will be for n = 1, 3, and 5, because 5 is the highest multiple allowed.  If both even and odd terms are excluded, there will be no sound.
+
+### Class Fields
+
+#### `isNativeNode` — `true`
+Technically speaking, it isn't`, but actually, `FourierSawtooth` does not have a `node`.  Be careful if you need to subclass this.
+
+### Instance Fields
+
+#### `fourierGenerator` — *`FourierGenerator`* — `null`
+The thing that makes the sound, which is not an `AudioNode`.
+
+### Instance Methods
+
+#### `on()`
+#### `off()`
+Overridden from `AudioComponent` to create/destroy the `fourierGenerator`, connect/disconnect properties, and pass the `on()`/`off()` command to said `fourierGenerator`.
+
+#### `createNode()`
+Creates the `fourierGenerator` with the parameters specified in `highestMultiple`, `includeEven`, and `includeOdd`, and using the `frequency` as the `FourierGenerator`'s `frequency` property.
+
+#### `cleanupNode()`
+Passes the command to the `fourierGenerator` and sets it to `null`.
+
+#### `getNodeToFilter()` — `AudioNode`
+Overridden from `AudioComponent` to return `fourierGenerator.getNodeToFilter()` if there is a `fourierGenerator`; `null` if not.
+
+#### `setFrequency(<frequency>)`
+Passes the `<frequency>` to the `fourierGenerator`.
 
 
 
