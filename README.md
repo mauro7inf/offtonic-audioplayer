@@ -583,6 +583,9 @@ If the `<component>` is a `Component`, calls `cleanup()` on it.
 #### `cleanupName()`
 Removes this `Component` from the `registry` (if `name` isn't `null`) and sets `name` to `null`.
 
+#### `createComponent(<properties>)` — *`Component`*
+Convenience method; calls `o.createComponent()` using the `player`, `registry`, and `tuning` of the current `Component`.
+
 #### `identify()`
 Logs the current object to the console.  Useful for debugging.
 

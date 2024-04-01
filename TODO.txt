@@ -1,5 +1,7 @@
 Standard filters (biquad, Butterworth, etc.)
 
+A component that accepts numbers in a method and outputs them in a ConstantGenerator
+
 iOS fallback, if necessary
 
 Make orchestra part of registry
