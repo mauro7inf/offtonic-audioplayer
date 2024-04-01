@@ -1,10 +1,10 @@
 Standard filters (biquad, Butterworth, etc.)
 
+Turn Adder into array adder instead of term1 and term2 adder
+
 A component that accepts numbers in a method and outputs them in a ConstantGenerator
 
 iOS fallback, if necessary
-
-Make orchestra part of registry
 
 Array properties
 

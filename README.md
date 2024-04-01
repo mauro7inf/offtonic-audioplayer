@@ -95,7 +95,7 @@ Indicates that a property is an array of values to be individually created as `C
 
 Having to keep entering the same properties can be annoying.  But there's a solution: instruments.  An instrument is an object with a collection of properties that gets stored in the `orchestra` with a `name`.  When a `Component` definition has an `instrument` field, the instrument (or instruments) named in the field populate the properties with their own if the definition doesn't already contain them.  It's best to explain this with an example:
 
-	o.orchestra.add({
+	player.orchestra.add({
 		name: 'test1',
 		className: 'Tone',
 		gain: 0.2,
@@ -103,25 +103,25 @@ Having to keep entering the same properties can be annoying.  But there's a solu
 			instrument: ['test2', 'test3']
 		}
 	});
-	o.orchestra.add({
+	player.orchestra.add({
 		name: 'test2',
 		release: 250
 	});
-	o.orchestra.add({
+	player.orchestra.add({
 		name: 'test3',
 		className: 'ADSREnvelope',
 		attackGain: 3,
 		release: 20
 	});
 
-	const tone1 = o.createComponent({
+	const tone1 = player.createComponent({
 		instrument: 'test1',
 		frequency: 256
 	});
 
-Here are three instruments added to the `orchestra` (which lives in the global object `o`).  The first one has a `name` of `test1`, and it contains several fields defining properties, including a `className`, and also including a property with its own `Component` definition inside, `envelope`, which has an `instrument` property of `[test2, test3]`.  Instruments are not resolved until `Component` creation, so it's OK that we haven't added `test2` and `test3` to our `orchestra` yet.  The second one has a `name` of `test2` and just one property, a `release` set to `250`, while the third one, with a `name` of `test3`, has a few properties, including a `release` of `20`.  To actually use an instrument in your definition, simply include the `instrument` key, where the value is either a string with the `name` of the instrument you want to use or an array of such `name`s.
+Here are three instruments added to the `orchestra` (which lives in the `Registry`, which lives in the `Player`).  The first one has a `name` of `test1`, and it contains several fields defining properties, including a `className`, and also including a property with its own `Component` definition inside, `envelope`, which has an `instrument` property of `[test2, test3]`.  Instruments are not resolved until `Component` creation, so it's OK that we haven't added `test2` and `test3` to our `orchestra` yet.  The second one has a `name` of `test2` and just one property, a `release` set to `250`, while the third one, with a `name` of `test3`, has a few properties, including a `release` of `20`.  To actually use an instrument in your definition, simply include the `instrument` key, where the value is either a string with the `name` of the instrument you want to use or an array of such `name`s.
 
-Finally, we have a definition of a `Component` passed to `o.createComponent()` that features an `instrument`.  Let's see how it gets applied.  First, all of the properties of `test1` get added to (a copy of) the property definition:
+Finally, we have a definition of a `Component` passed to `player.createComponent()` that features an `instrument`.  Let's see how it gets applied.  First, all of the properties of `test1` get added to (a copy of) the property definition:
 
 	{
 		frequency: 256,
@@ -233,9 +233,6 @@ The `AudioContext` for the `AudioNode`s used by Offtonic Audioplayer.
 #### `classRegistry` — *`ClassRegistry`*
 An object mapping `className` property values to class constructors.  You should not have to access this directly.
 
-#### `orchestra` — *`Orchestra`*
-An object mapping `instrument` property values to sets of properties.  You should not have to access this directly.
-
 #### `baseHref` — *string*
 URL of the base directory of Offtonic Audioplayer.  Useful if you need to provide absolute paths to something.
 
@@ -326,9 +323,38 @@ Retrieves the value registered under `<className>`.
 
 
 
+## Registry
+
+A library/namespace for `Component` references, useful when multiple `Component`s share the same actual `Component` instance for some property.  This is *not* a singleton, since it could be useful to define separate namespaces (for example, in the case of multiple audio applications on the same page whose names may intersect).  The `Player` instance creates its own `Registry`, which is assigned by default to any new `Component`s associated with that `Player`.
+
+### Instance Fields
+
+#### `components` — *object where the keys are names and the values are `Component` instances* — default value `{}`
+The object that holds the component library.
+
+#### `orchestra` — *`Orchestra`*
+An `Orchestra` instance.
+
+### Instance Methods
+
+#### `add(<component>)` — *boolean*
+Adds `<component>` to `components`, provided that it has key `name`, and returns `true`.  If it doesn't, or the name already exists, returns `false`.
+
+#### `get(<name>)` — *`Component`*
+Retrieves the `Component` with the given `<name>`, or `null` if it can't find it.
+
+#### `remove(<name>)`
+Removes the `Component` with the given `<name>` from the registry (if it's there).
+
+#### `contains(<name>)` — *boolean*
+Returns `true` if `<name>` is in `components` and `false` otherwise.
+
+
+
+
 ## Orchestra
 
-The `Orchestra` singleton works similar to the `ClassRegistry`, but it stores instruments instead: its `instruments` field is an object whose keys are instrument `name`s and whose values are the instrument definitions (see the above section on Instruments).  When a `Component` is about to be instantiated and its definition has an `instrument` field, it first has to resolve that instrument through the `Orchestra`.  The `Orchestra` singleton is available at `o.orchestra`.
+The `Orchestra` works similar to the `Registry` (and is contained inside it), but it stores instruments instead: its `instruments` field is an object whose keys are instrument `name`s and whose values are the instrument definitions (see the above section on Instruments).  When a `Component` is about to be instantiated and its definition has an `instrument` field, it first has to resolve that instrument through the `Orchestra`.  The `Orchestra` is available at `player.orchestra` or `this.orchestra` for any `Component`.
 
 ### Instance Fields
 
@@ -348,32 +374,6 @@ Returns the instrument with `name` `<name>`, if it exists.  If it does not, retu
 
 #### `remove(<name>)`
 Removes the instrument named `<name>` from `instruments`, if it exists.
-
-
-
-
-## Registry
-
-A library/namespace for `Component` references, useful when multiple `Component`s share the same actual `Component` instance for some property.  This is *not* a singleton, since it could be useful to define separate namespaces (for example, in the case of multiple audio applications on the same page whose names may intersect).  The `Player` instance creates its own `Registry`, which is assigned by default to any new `Component`s associated with that `Player`.
-
-### Instance Fields
-
-#### `components` — *object where the keys are names and the values are `Component` instances* — default value `{}`
-The object that holds the component library.
-
-### Instance Methods
-
-#### `add(<component>)` — *boolean*
-Adds `<component>` to `components`, provided that it has key `name`, and returns `true`.  If it doesn't, or the name already exists, returns `false`.
-
-#### `get(<name>)` — *`Component`*
-Retrieves the `Component` with the given `<name>`, or `null` if it can't find it.
-
-#### `remove(<name>)`
-Removes the `Component` with the given `<name>` from the registry (if it's there).
-
-#### `contains(<name>)` — *boolean*
-Returns `true` if `<name>` is in `components` and `false` otherwise.
 
 
 
@@ -417,6 +417,9 @@ Set of playable components that are playing right now.  When the `Player` plays 
 
 #### `registry` — *`Registry`*
 The `Registry` instance associated with the `Player`.  All new `Component`s created with this `Player` are assigned this `registry` by default.
+
+#### `orchestra` — *`Orchestra`*
+The `Orchestra` instance associated with the `Registry` instance associated with the `Player`.
 
 #### `timer` — *`Timer`* — `Component` created from `{name: 'Default Timer', className: 'Timer'}`
 The default `Timer`, which counts the time since the `Player` was turned `on()`.  Its name is `'Default Timer'` and it's the default timer on most `AudioComponent`s that use one.
@@ -466,6 +469,7 @@ A `Component` is a piece of the sound-producing apparatus of Offtonic Audioplaye
 ### Properties
 
 #### `name` — *string* — `defaultValue`: `null` — `setter`: `'setName'` — `cleaner`: `'cleanupName'`
+A name, if provided, to use to store this instance in the `Registry`.
 
 ### Pseudoproperties
 
@@ -509,6 +513,9 @@ The `Player` instance passed to `create()` when creating this `Component`.  It's
 #### `registry` — *`Registry`*
 The `Registry` instance passed to `create()` when creating this `Component`.  When any sub-component needs to resolve a reference, it will look inside this `registry`.
 
+#### `orchestra` — *`Orchestra`*
+The `Orchestra` instance associated with the `registry`.
+
 #### `tuning` — *`Tuning`*
 The `tuning` instance passed to `create()` when creating this `Component`.  Any sub-component will inherit this.
 
@@ -527,7 +534,7 @@ Sets `player` to `<player>`.  Override if you want more interesting behavior, bu
 Sets `registry` to `<registry>` (by calling `setRegistry(<registry>)`) and returns the object itself.
 
 #### `setRegistry(<registry>)`
-Sets `registry` to `<registry>`.  This gets called at object creation *before* the properties are set.
+Sets `registry` to `<registry>`, and sets `orchestra` to `<registry>.orchestra`.  This gets called at object creation *before* the properties are set.
 
 #### `withTuning(<tuning>, <hasOwnTuning>)` — *`this`*
 Sets `tuning` to `<tuning>` and `hasOwnTuning` to `<hasOwnTuning>)` (by calling `setTuning(<tuning>)`) and returns the object itself.
@@ -923,7 +930,7 @@ Activates a sequence of events on an audio-rate timer.  You can use this to play
 ### Properties
 
 #### `instruments` — *array of instruments* — `defaultValue`: `[]` — `setter`: `'setIntruments'` — `cleaner`: `'cleanupInstruments'`
-A list of instruments (see the Instruments section above) to add to the global `orchestra` when the `Sequence` is created.  The instruments are removed from the `orchestra` on cleanup.
+A list of instruments (see the Instruments section above) to add to the `orchestra` when the `Sequence` is created.  The instruments are removed from the `orchestra` on cleanup.
 
 #### `events` — *array of `Event`s* — `defaultValue`: `[]` — `getter`: `'getEvents'` — `setter`: `'setEvents'`
 The `Event`s.  The events in the array are registered in order, and since events can be timed based on the previous registered event (by populating the `after` field rather than the `time` field in the event), it's probably a good idea to put the events in the order in which you want them to be executed.

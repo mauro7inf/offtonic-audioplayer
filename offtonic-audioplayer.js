@@ -1,7 +1,7 @@
 import classRegistry from './lib/registries/ClassRegistry.js';
-import orchestra from './lib/registries/Orchestra.js';
 
 import Player from './lib/Player.js';
+import Orchestra from './lib/registries/Orchestra.js';
 import Registry from './lib/registries/Registry.js';
 
 import Component from './lib/components/Component.js';
@@ -71,8 +71,9 @@ class Global {
     this.ctx = new AudioContext();
     this.classRegistry = classRegistry;
     this.classRegistry.o = this;
-    this.orchestra = orchestra;
+    this.Orchestra = Orchestra;
     this.Registry = Registry;
+    this.Registry.o = this;
 
     let url = new URL(import.meta.url);
     let href = url.href;
