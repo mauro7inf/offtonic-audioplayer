@@ -42,6 +42,7 @@ import ADSREnvelope from './lib/components/envelopes/ADSREnvelope.js';
 import Filter from './lib/components/filters/Filter.js';
 import LinearFilter from './lib/components/filters/LinearFilter.js';
 import FirstOrderFilter from './lib/components/filters/FirstOrderFilter.js';
+import BiquadFilter from './lib/components/filters/BiquadFilter.js';
 import CutoffFilter from './lib/components/filters/CutoffFilter.js';
 import StepFilter from './lib/components/filters/StepFilter.js';
 
@@ -171,6 +172,9 @@ class Global {
     this.FirstOrderFilter = FirstOrderFilter;
     this.queueModule('lib/processors/filters/FirstOrderFilterProcessor.js');
     this.registerClass('FirstOrderFilter', FirstOrderFilter);
+    this.BiquadFilter = BiquadFilter;
+    this.queueModule('lib/processors/filters/BiquadFilterProcessor.js');
+    this.registerClass('BiquadFilter', BiquadFilter);
     this.CutoffFilter = CutoffFilter;
     this.queueModule('lib/processors/filters/CutoffFilterProcessor.js');
     this.registerClass('CutoffFilter', CutoffFilter);

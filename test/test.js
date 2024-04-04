@@ -44,6 +44,13 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: biquadSequence()
+        }
+      },
+      {
+        after: 5000,
+        action: {
+          className: 'PlayAction',
           playable: fourierSawtoothSequence()
         }
       },
@@ -226,6 +233,78 @@ function afterTests() {
   o.player.off();
   if (done) {
     console.log('Done!');
+  }
+}
+
+function biquadSequence() {
+  return {
+    className: 'Sequence',
+    duration: 4500,
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear a tone changing four times.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('biquadTest start')
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 4500,
+            gain: 0.1,
+            frequency: 'C2',
+            generator: {
+              className: 'SawtoothOscillator'
+            },
+            filter: {
+              className: 'BiquadFilter',
+              a0: 1,
+              b0: 1,
+              a1: {
+                className: 'LinearGenerator',
+                startTime: 500,
+                startValue: -1,
+                endTime: 1000,
+                endValue: -5/3
+              },
+              b1: {
+                className: 'LinearGenerator',
+                startTime: 1500,
+                startValue: -1/2,
+                endTime: 2000,
+                endValue: 0
+              },
+              a2: {
+                className: 'LinearGenerator',
+                startTime: 2500,
+                startValue: 3/4,
+                endTime: 3000,
+                endValue: 17/18
+              },
+              b2: {
+                className: 'LinearGenerator',
+                startTime: 3500,
+                startValue: -1/4,
+                endTime: 4000,
+                endValue: 1/4
+              }
+            }
+          }
+        }
+      }
+    ],
+    afterEvents: [
+      {
+        time: 0,
+        action: () => console.log('biquadTest stop')
+      }
+    ]
   }
 }
 

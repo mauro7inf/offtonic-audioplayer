@@ -2509,7 +2509,7 @@ If `memory` is greater than 0, pops the last value of `lastInputs` and `lastOutp
 
 
 
-## FirstOrderFilter < Filter < AudioComponent < Component
+## FirstOrderFilter < LinearFilter < Filter < AudioComponent < Component
 
 A `Filter` that applies a first-order transfer function.  In layman's terms (well... relatively speaking), if your input is x(n) and your output is y(n), a first-order filter is defined by a0·y(n) + a1·y(n – 1) = b0·x(n) + b1·x(n – 1).  There are other formulations of the same thing, but for our purposes, what this means is that we output a kind of average between the current input and the previous output.
 
@@ -2531,7 +2531,7 @@ How many previous inputs and outputs are necessary to keep around.  For this fil
 
 
 
-## FirstOrderFilterProcessor < FilterProcessor < AudioComponentProcessor < AudioWorkletProcessor
+## FirstOrderFilterProcessor < LinearFilterProcessor < FilterProcessor < AudioComponentProcessor < AudioWorkletProcessor
 
 A processor for a filter that executes a0·y(n) + a1·y(n – 1) = b0·x(n) + b1·x(n – 1) (see above).  It does this by keeping the last inputs and outputs (which start at `0` when the processor first starts to run) and doing the arithmetic.
 
@@ -2548,6 +2548,45 @@ If x(n) is the input signal and y(n) is the output, `a0`·y(n) + `a1`·y(n – 1
 #### `getFeedbackCoefficients(<frame>)` — *array of numbers*
 #### `getFeedforwardCoefficients(<frame>)` — *array of numbers*
 Returns the values of `AudioParam`s [`a0`, `a1`] and [`b0`, `b1`], respectively.
+
+
+
+
+## BiquadFilter < FirstOrderFilter < LinearFilter < Filter < AudioComponent < Component
+
+A `Filter` that applies a second-order (biquadratic) transfer function.  In layman's terms (well... relatively speaking), if your input is x(n) and your output is y(n), a second-order filter is defined by a0·y(n) + a1·y(n – 1) + a2·y(n – 2) = b0·x(n) + b1·x(n – 1) + b2·x(x – 2).  There are other formulations of the same thing, but for our purposes, what this means is that we can make useful low-pass and high-pass filters.
+
+### Properties
+
+#### `a2` — *number or `AudioParam`* — `defaultValue`: `0` — `isAudioParam`: `true`
+#### `b2` — *number or `AudioParam`* — `defaultValue`: `0` — `isAudioParam`: `true`
+If x(n) is the input signal and y(n) is the output, `a0`·y(n) + `a1`·y(n – 1) + `a2`·y(n – 2) = `b0`·x(n) + `b1`·x(n – 1) + `b2`·x(n – 2).
+
+#### `memory` — *nonnegative integer* — `value`: `2` — `isProcessorOption`: `true`
+How many previous inputs and outputs are necessary to keep around.  For this filter, it's `2`.
+
+### Class Fields
+
+#### `processorName` — *string* — `'BiquadFiterProcessor'`
+
+
+
+
+## BiquadFilterProcessor < FirstOrderFilterProcessor < LinearFilterProcessor < FilterProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+A processor for a filter that executes a0·y(n) + a1·y(n – 1) + a2·y(n – 2) = b0·x(n) + b1·x(n – 1) + b2·x(n – 2) (see above).  It does this by keeping the last inputs and outputs (which start at `0` when the processor first starts to run) and doing the arithmetic.
+
+### AudioParams
+
+#### `a2`
+#### `b2`
+If x(n) is the input signal and y(n) is the output, `a0`·y(n) + `a1`·y(n – 1) + `a2`·y(n – 2) = `b0`·x(n) + `b1`·x(n – 1) + `b2`·x(n – 2).
+
+### Instance Methods
+
+#### `getFeedbackCoefficients(<frame>)` — *array of numbers*
+#### `getFeedforwardCoefficients(<frame>)` — *array of numbers*
+Returns the values of `AudioParam`s [`a0`, `a1`, `a2`] and [`b0`, `b1`, `b2`], respectively.
 
 
 
