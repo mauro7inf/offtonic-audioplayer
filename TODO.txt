@@ -9,3 +9,5 @@ iOS fallback, if necessary
 Array properties
 
 option to make startValue, endValue, baseline constant for linear/exponential generators to prevent recomputations?
+
+A way to specify path references instead of named (so, for example, '../frequency' to get the frequency property of the parent Component)

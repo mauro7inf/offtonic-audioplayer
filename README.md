@@ -259,8 +259,8 @@ Adds to the `AudioContext`'s `AudioWorklet` all of the `AudioWorkletProcessor` s
 #### `addModulesFromList(<list>)`
 `<list>` should be an `Array` of module paths, as described in the documentation for `addModule()`.  This method will add the first module in the list (if it isn't empty) to the `AudioWorklet`, then when that's done, it will call itself on the list starting from its second element.  You should probably not call this method directly; use `eueueModule()` and `addAllModules()` instead.
 
-#### `createComponent(<properties>, <player>, <registry>, <tuning>)` — *`Component` subclass*
-Creates a `Component` instance based on `<properties>`, which is an object whose keys are property names and whose values are the property values, including the key `className`, whose value should be a class that has been previously registered with `registerClass()` (built-in classes are already registered).  `<player>` is the `Player` instance that should be attached to the component; if it is not provided (`null` or `undefined`), the default player (the global object's `player` field) will be used by default.  Similarly, `<registry>` is the player's `registry` unless another is provided, and `<tuning>` is the player's `tuning` unless another is provided.  If any properties themselves define a new component (by containing `className`), `createComponent()` will be recursively called on them, with the same `<player>` argument.
+#### `createComponent(<properties>, <parent>, <player>, <registry>, <tuning>)` — *`Component` subclass*
+Creates a `Component` instance based on `<properties>`, which is an object whose keys are property names and whose values are the property values, including the key `className`, whose value should be a class that has been previously registered with `registerClass()` (built-in classes are already registered).  `<player>` is the `Player` instance that should be attached to the component; if it is not provided (`null` or `undefined`), the default player (the global object's `player` field) will be used by default.  `<parent>` is the parent object of the `Component`; if it is not provided, the `Player` will also be the `<parent>`.  Similarly, `<registry>` is the player's `registry` unless another is provided, and `<tuning>` is the player's `tuning` unless another is provided.  If any properties themselves define a new component (by containing `className`), `createComponent()` will be recursively called on them, with the same `<player>` argument.
 
 #### `info(...<args>)`
 #### `warn(...<args>)`
@@ -459,6 +459,9 @@ Stops the sound in `<playable>`.  First it attempts to find the `<playable>` in 
 #### `stopAll()`
 Stops all playable notes by calling `disconnectFrom()` and `off()` on them, then empties the `playing` array.
 
+#### `createComponent(<properties>)` — *`Component`*
+Calls `o.createComponent()` with the given `<properties>`, setting this `Player` as `parent` and `player`, this `player`'s `registry` as `registry`, and this `Player`'s `tuning` as `tuning`.
+
 
 
 
@@ -492,8 +495,8 @@ Any subclass inheriting from `Component` has this field automatically populated 
 #### `generatePropertyDescriptors()`
 Copies the superclass's `propertyDescriptors` into a new object, adds this class's `newPropertyDescriptors` to the object (if present), then saves it in this class's `generatedPropertyDescriptors` for future retrieval through `propertyDescriptors`.  You shouldn't ever have to touch this method.
 
-#### `create(<properties>, <player>, <registry>, <tuning>)` — `Component` subclass instance
-`o.createComponent()` just calls this method, so you should probably call that instead since it's easier.  Creates a new object with `<properties>` (after resolving all instruments named in it) as its properties, `<player>` as its player, `<registry>` as its registry, and `<tuning>` as its tuning by calling the constructor specified in `<properties>.className` if present (if not, calls the current class's constructor), then `.withPlayer(<player>).withRegistry(<registry>).withTuning(<tuning>, <hasOwnTuning>).withProperties(<properties>)` on the constructed object.
+#### `create(<properties>, <parent>, <player>, <registry>, <tuning>)` — `Component` subclass instance
+`o.createComponent()`, the `Player`'s `createComponent()`, and the `Component`'s `create()` just call this method, so you should probably call them instead since it's easier.  Creates a new object with `<properties>` (after resolving all instruments named in it) as its properties, `<parent>` as its parent, `<player>` as its player, `<registry>` as its registry, and `<tuning>` as its tuning by calling the constructor specified in `<properties>.className` if present (if not, calls the current class's constructor), then `.withParent(<parent>).withPlayer(<player>).withRegistry(<registry>).withTuning(<tuning>, <hasOwnTuning>).withProperties(<properties>)` on the constructed object.
 
 ### Constructor
 
@@ -506,6 +509,9 @@ Default `AudioContext` from `o`, for convenience.
 
 #### `isComponent` — *boolean* — `true`
 So you can easily check if a given object is a `Component` and therefore responds to `Component`'s methods.
+
+#### `parent` — *`Component` or `Player`*
+The parent `Component` of this `Component`, or, in other words, the `Component` that owns this one's lifecycle.  If the `parent` is the `Player`, you will need to manage this `Component`'s lifecycle yourself.
 
 #### `player` — *`Player`*
 The `Player` instance passed to `create()` when creating this `Component`.  It's only really applicable for `Playable` instances, but since `Component` property definitions can be chained, all `Component`s created with a particular `create()` call are given the `Player`.
@@ -524,6 +530,12 @@ Whether the `Component` is managing the `tuning`'s lifecycle.  If so, it will ca
 
 ### Instance Methods
 
+#### `withParent(<parent>)` — *`this`*
+Sets `parent` to `<parent>` (by calling `setParent(<parent>)`) and returns the object itself.
+
+#### `setParent(<parent>)`
+Sets `parent` to `<parent>`.  This gets called at object creation *before* the properties are set.
+
 #### `withPlayer(<player>)` — *`this`*
 Sets `player` to `<player>` (by calling `setPlayer(<player>)`) and returns the object itself.
 
@@ -540,7 +552,7 @@ Sets `registry` to `<registry>`, and sets `orchestra` to `<registry>.orchestra`.
 Sets `tuning` to `<tuning>` and `hasOwnTuning` to `<hasOwnTuning>)` (by calling `setTuning(<tuning>)`) and returns the object itself.
 
 #### `setTuning(<tuning>, <hasOwnTuning>)`
-Sets `tuning` to `<tuning>` and `hasOwnTuning` to `<hasOwnTuning>)`.  This gets called at object creation *before* the properties are set.
+Sets `tuning` to `<tuning>` and `hasOwnTuning` to `<hasOwnTuning>)`.  If `hasOwnTuning` is true, also called `setParent(this)` on the `tuning`, since that was not able to be done at tuning creation since the object did not yet exist.  This gets called at object creation *before* the properties are set.
 
 #### `withProperties(<properties>)` — *`this`*
 Sets the properties to the values in `<properties>` (by calling `setProperties(<properties>, true)`) and returns the object itself.
@@ -591,7 +603,7 @@ If the `<component>` is a `Component`, calls `cleanup()` on it.
 Removes this `Component` from the `registry` (if `name` isn't `null`) and sets `name` to `null`.
 
 #### `createComponent(<properties>)` — *`Component`*
-Convenience method; calls `o.createComponent()` using the `player`, `registry`, and `tuning` of the current `Component`.
+Convenience method; calls `o.createComponent()` using the `player`, `registry`, and `tuning` of the current `Component`, and sets the `parent` to the current `Component`.
 
 #### `identify()`
 Logs the current object to the console.  Useful for debugging.

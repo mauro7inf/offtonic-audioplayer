@@ -254,9 +254,12 @@ class Global {
     });
   }
 
-  createComponent(properties, player, registry, tuning) {
+  createComponent(properties, parent, player, registry, tuning) {
     if (player === null || player === undefined) {
       player = this.player;
+    }
+    if (parent === null || parent === undefined) {
+      parent = this.player; // the player should be the top-level parent, not the Global
     }
     if (registry === null || registry === undefined) {
       registry = player.registry;
@@ -264,7 +267,7 @@ class Global {
     if (tuning === null || tuning === undefined) {
       tuning = player.tuning;
     }
-    return this.Component.create(properties, player, registry, tuning);
+    return this.Component.create(properties, parent, player, registry, tuning);
   }
 
   info(...args) {
