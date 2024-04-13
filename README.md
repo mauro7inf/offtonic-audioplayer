@@ -654,6 +654,9 @@ Allows for quick checking that a given object is an `AudioComponent`.  Note that
 #### `node` — *AudioNode* — default `null`
 The node that does all of this `AudioComponent`'s business.  By default, `AudioComponent` assumes that `node` is an `AudioWorkletNode`, but it doesn't have to be.  This is the `AudioNode` to which you connect your properties, and this is the `AudioNode` that you connect to somewhere else like a `Player` or an `AudioParam` or what have you.  The node is generally created when the `AudioComponent` is turned on and destroyed when it's turned off, so when it's not playing, `node` is `null`.  Therefore, always check for `null` when doing something with the node.
 
+#### `outputIndex` — *number* — `0`
+The output index of the `node` that connects to its destination.  It is `0` by default, but subclasses can override this value.
+
 ### Instance Methods
 
 #### `on()`
@@ -683,8 +686,10 @@ Calls `connect()` or `disconnect()` on `getNodeToDestination()` to connect or di
 
 #### `getFirstNode()` — *`AudioNode`* — default value: `node`
 #### `getNodeToFilter()` — *`AudioNode`* — default value: `node`
+#### `getOutputIndexToFilter` — *number* — default value: `outputIndex`
 #### `getNodeFromFilter()` — *`AudioNode`* — default value: `null`
 #### `getNodeToDestination()` — *`AudioNode`* — default value: `filter.getNodeToDestination()` if `filter` is not `null`, or `getNodeToFilter()` if it is
+#### `getOutputIndexToDestination()` — *number* — default value: `filter.getOutputIndexToDestination()` if `filter` is not `null`, or `outputIndex` if it is
 The basic structure of the `AudioComponent`.  If we wanted to connect node A to an `AudioComponent` and then connect the `AudioComponent` to node B, we would have A connected to `getFirstNode()`, which is the start of a chain ending in `getNodeToFilter()`, which connects to `filter` if present, which connects to a (possibly empty) chain beginning with `getNodeFromFilter()` and ending with `getNodeToDestination()` (which may have already occurred in the chain), which connects to B.  Override these if your `AudioComponent` has a different structure.
 
 #### `cleanup()`
@@ -817,6 +822,33 @@ Called during `process()`.  First, it calls `handleQueuedDurationEvents()`.  It 
 
 #### `handleQueuedDurationEvents()`
 Goes through the `queuedDurationEvents` array and calls `handleTimedEvent()` on each element in the array.
+
+
+
+
+## NodeOutput < AudioComponent < Component
+
+A bare-bones `AudioComponent` consisting of an *existing* `AudioNode` object and an output index (`0` by default).  This can be useful if you have set up an `AudioNode` somewhere independently and want it to connect to some property on an `AudioComponent`.  The `AudioComponent` functions that deal with creating nodes are disabled here, since this class should not manage their lifecycles.  `NodeOutput` should not be modified once created, since it does not keep track of connections to other `AudioComponent`s.  You can create a single `AudioNode` with multiple outputs to correspond to the different properties on some `AudioComponent`, then create a `NodeOutput` for each output to connect to the properties themselves.
+
+### Properties
+
+#### `node` — *`AudioNode`* — `defaultValue`: `null`
+The `AudioNode` itself.  Note that `node` is already the instance property of `AudioComponent` that stores the `AudioNode` for the `AudioComponent`.
+
+#### `outputIndex` — *number* — `defaultValue`: `0`
+The output index of the `AudioNode` to connect to the `NodeOutput`'s destination.
+
+### Class Fields
+
+#### `isNativeNode` — `true`
+
+### Instance Methods
+
+#### `on()`
+#### `off()`
+#### `createNode()`
+#### `cleanupNode()`
+No-ops.  Since `NodeOutput` does not control its `node`, these `AudioComponent` methods have been disabled.
 
 
 
