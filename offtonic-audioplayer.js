@@ -40,6 +40,7 @@ import Envelope from './lib/components/envelopes/Envelope.js';
 import ADSREnvelope from './lib/components/envelopes/ADSREnvelope.js';
 
 import Filter from './lib/components/filters/Filter.js';
+import ParallelFilter from './lib/components/filters/ParallelFilter.js';
 import LinearFilter from './lib/components/filters/LinearFilter.js';
 import FirstOrderFilter from './lib/components/filters/FirstOrderFilter.js';
 import BiquadFilter from './lib/components/filters/BiquadFilter.js';
@@ -166,6 +167,8 @@ class Global {
     this.Filter = Filter;
     this.queueModule('lib/processors/filters/FilterProcessor.js');
     this.registerClass('Filter', Filter);
+    this.ParallelFilter = ParallelFilter;
+    this.registerClass('ParallelFilter', ParallelFilter);
     this.LinearFilter = LinearFilter;
     this.queueModule('lib/processors/filters/LinearFilterProcessor.js');
     this.registerClass('LinearFilter', LinearFilter);

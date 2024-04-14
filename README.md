@@ -716,7 +716,11 @@ Calls `connectProperty()` or `disconnectProperty()` on all of this `AudioCompone
 
 #### `connectProperty(<propName>)`
 #### `disconnectProperty(<propName>)`
-If a `connector` or `disconnector` is provided for this property, that method is called.  If not, if the property descriptor has `isAudioParam` set to `true`, `connectAudioParam()` or `disconnectAudioParam()` is called; if the property descriptor has a non-negative `inputIndex`, then `connectInputIndex()` or `disconnectInputIndex()` are called.  These two methods have no default behavior, so if you want to create special handlers for other property types, just override these methods and call `super.connectProperty(<propName>)` or `super.disconnectProperty<propName>)` before adding new cases.
+If a `connector` or `disconnector` is provided for this property, that method is called.  If not, `genericConnector()` or `genericDisconnector()` is called.
+
+#### `genericConnector(<propName>)`
+#### `genericDisconnector(<propName>)`
+If the property descriptor has `isAudioParam` set to `true`, `connectAudioParam()` or `disconnectAudioParam()` is called; if the property descriptor has a non-negative `inputIndex`, then `connectInputIndex()` or `disconnectInputIndex()` are called.  These two methods have no default behavior, so if you want to create special handlers for other property types, just override these methods and call `super.genericConnector(<propName>)` or `super.genericDisconnector(<propName>)` before adding new cases.
 
 #### `connectAudioParam(<propName>)`
 #### `disconnectAudioParam(<propName>)`
@@ -2480,6 +2484,11 @@ A `Filter` only has one input.  If you want to deal with more inputs, you'll pro
 
 #### `processorName` — *string* — `'FilterProcessor'`
 
+### Instance Fields
+
+#### `isFilter` — *boolean* — `true`
+Identifies this `Component` as a `Filter`.
+
 
 
 
@@ -2500,6 +2509,42 @@ Returns `!this.isDone()`.  Before that, it goes through each frame and channel o
 
 #### `filter(<input>, <frame>, <channel>)` — *number*
 Returns `<input>`.  Override this if you want more interesting behavior.  The other arguments are necessary (well, not *necessary* necessary; they could have been stored as instance fields) because some filters store past values, and if `filter()` is being called on multiple input channels, their past values need to be kept separately.
+
+
+
+
+## ParallelFilter < Filter < AudioComponent < Component
+
+A `Filter` that simply adds two other `Filter`s in parallel.  To add more `Filter`s in parallel, simply make one of the `Filter`s itself a `ParallelFilter`.  The `ParallelFilter` actually has two `AudioNode`s, a `firstNode` that's a `GainNode` to receive input and a `node` that has a vanilla `FilterProcessor` to channel the output.  The `firstNode` connects to the first nodes of both parallel `Filter`s, which then both connect to the input of the `node` in a fan-out-fan-in fashion.
+
+### Properties
+
+#### `filter1` — *`Filter`* — `defaultValue`: `{className: 'Filter'}` — `isAudioComponent`: `true` — `inputIndex`: `0` — `connector`: `'connectFiler1'` — `disconnector`: `'disconnectFilter1'`
+#### `filter2` — *`Filter`* — `defaultValue`: `null` — `isAudioComponent`: `true` — `inputIndex`: `0` — `connector`: `'connectFiler2'` — `disconnector`: `'disconnectFilter2'`
+The two `Filter`s to add in parallel.  By default, `filter2` is null while `filter1` is the trivial `Filter`, so the default output is exactly the same as the input.
+
+### Instance Fields
+
+#### `firstNode` — *`GainNode`*
+A `GainNode` with gain 1 to simply receive input and forward it to the two parallel `Filter`s.
+
+### Instance Methods
+
+#### `createNode()`
+Creates the `firstNode` as well as calling the superclass's method.
+
+#### `getFirstNode()` — *`AudioNode`*
+Returns the `firstNode`, overriding the behavior of the superclass.
+
+#### `connectParallelFilter(<propName>)`
+#### `disconnectParallelFilter(<propName>)`
+Calls the `genericConnector()` or `genericDisconnector()` to deal with the main `node`, and connects/disconnects the `firstNode` to/from the property.
+
+#### `connectFilter1`()
+#### `disconnectFilter1()`
+#### `connectFilter2()`
+#### `disconnectFilter2()`
+Calls `connectParallelFilter()` or `disconnectParallelFilter()`.
 
 
 

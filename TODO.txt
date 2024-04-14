@@ -1,6 +1,6 @@
 Standard filters (Butterworth, etc.)
 
-Turn Adder into array adder instead of term1 and term2 adder
+Turn Adder into array adder instead of term1 and term2 adder (other TODOs in Adder.js)
 
 A component that accepts numbers in a method and outputs them in a ConstantGenerator
 
@@ -11,3 +11,5 @@ Array properties
 option to make startValue, endValue, baseline constant for linear/exponential generators to prevent recomputations?
 
 A way to specify path references instead of named (so, for example, '../frequency' to get the frequency property of the parent Component)
+
+Make parent, player, registry, tuning into an options object instead of separate arguments?

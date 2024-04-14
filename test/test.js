@@ -44,6 +44,13 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: parallelFilterSequence()
+        }
+      },
+      {
+        after: 1500,
+        action: {
+          className: 'PlayAction',
           playable: biquadSequence()
         }
       },
@@ -233,6 +240,67 @@ function afterTests() {
   o.player.off();
   if (done) {
     console.log('Done!');
+  }
+}
+
+function parallelFilterSequence() {
+  return {
+    className: 'Sequence',
+    duration: 1250,
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear six rising tones.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('parallelFilterTest start')
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 1000,
+            gain: 0.1,
+            frequency: {
+              className: 'ExponentialGenerator',
+              startValue: 'F2',
+              startTime: 100,
+              endValue: 'G3',
+              endTime: 900,
+              filter: {
+                className: 'ParallelFilter',
+                filter1: {
+                  className: 'StepFilter',
+                  lowCutoff: 'F2',
+                  highCutoff: 'G3',
+                  steps: 5
+                },
+                filter2: {
+                  className: 'StepFilter',
+                  lowCutoff: 'F2',
+                  highCutoff: 'G3',
+                  steps: 2
+                }
+              }
+            },
+            generator: {
+              className: 'SquareOscillator',
+              pulseWidth: 0.4
+            }
+          }
+        }
+      }
+    ],
+    afterEvents: [
+      {
+        time: 0,
+        action: () => console.log('parallelFilterTest stop')
+      }
+    ]
   }
 }
 
