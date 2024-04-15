@@ -6,6 +6,7 @@ import Registry from './lib/registries/Registry.js';
 
 import Component from './lib/components/Component.js';
 import AudioComponent from './lib/components/AudioComponent.js';
+import NodeOutput from './lib/components/NodeOutput.js';
 import Playable from './lib/components/Playable.js';
 
 import Adder from './lib/components/arithmetic/Adder.js';
@@ -46,6 +47,8 @@ import FirstOrderFilter from './lib/components/filters/FirstOrderFilter.js';
 import BiquadFilter from './lib/components/filters/BiquadFilter.js';
 import CutoffFilter from './lib/components/filters/CutoffFilter.js';
 import StepFilter from './lib/components/filters/StepFilter.js';
+
+import TwoPoleFilter from './lib/components/filters/TwoPoleFilter.js';
 
 import Timer from './lib/components/Timer.js';
 
@@ -91,6 +94,8 @@ class Global {
     this.AudioComponent = AudioComponent;
     this.queueModule('lib/processors/AudioComponentProcessor.js');
     this.registerClass('AudioComponent', AudioComponent);
+    this.NodeOutput = NodeOutput;
+    this.registerClass('NodeOutput', NodeOutput);
     this.Playable = Playable;
     this.registerClass('Playable', Playable);
 
@@ -185,6 +190,10 @@ class Global {
     this.queueModule('lib/processors/filters/StepFilterProcessor.js');
     this.registerClass('StepFilter', StepFilter);
 
+    this.TwoPoleFilter = TwoPoleFilter;
+    this.queueModule('lib/processors/drivers/TwoPoleFilterDriverProcessor.js');
+    this.registerClass('TwoPoleFilter', TwoPoleFilter);
+
     this.Timer = Timer;
     this.queueModule('lib/processors/TimerProcessor.js');
     this.registerClass('Timer', Timer);
@@ -225,7 +234,7 @@ class Global {
     this.addAllModules();
   }
 
-  registerClass(className, classInstance) {
+  registerClass(className, classInstance) { // TODO also add the class to this, use classInstance.name instead of two parameters
     this.classRegistry.register(className, classInstance);
   }
 

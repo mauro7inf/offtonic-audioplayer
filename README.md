@@ -88,6 +88,9 @@ Indicates that the property must be an `AudioComponent` instance rather than, sa
 #### `isComponentArray` — *boolean* (optional) — default `false`
 Indicates that a property is an array of values to be individually created as `Component` instances (if appropriate).  If you pass an array to a property without `isComponentArray` set to `true`, the contents of the array will not be processed in any way, including any objects that would otherwise get created as `Component`s.  Setting this to `true` will instead create any `Component`s that need to be created.  Strings in the array will be interpreted as `Note`s.
 
+#### `passThrough` — *string* (optional)
+Indicates that a property actually belongs inside an inner `Component` of some sort.  Since this inner `Component` is generally not created at the same time as the outer `Component` itself, you are responsible for setting that property on that inner `Component`'s creation.  However, once it is created, calls to set the property will also set it on the inner `Component`, and calls to clean up the property will also clean it up on the inner `Component` (same for connecting/disconnecting the property in `AudioComponent`).
+
 
 
 
@@ -582,7 +585,7 @@ Provided the property exists in the first place, calls `createPropertyValue()` t
 Instantiates `<propDefinition>` if necessary (meaning that `<propDefinition>.className` is present) and returns the instance.  If `<propDefinition>` is a number and the `<descriptor>` has `isAudioComponent` set to `true`, a `ConstantGenerator` is instantiated and becomes the value instead of the number.  If instead `<propDefinition>` is a string and the descriptor has `isAudioComponent` or `isAudioParam` set to `true`, a `Note` is instantiated with the current object's `tuning`'s name as its `tuningName` and with a `note` of `<propDefinition>`.  If the `<descriptor>` has `isComponentArray` set to `true` and the `<propDefinition>` is an array, the created value will be an array where each element is a created `Component` of the corresponding element in `<propDefinition>` or the value itself (strings are converted to `Note`s, but numbers stay numbers).  Otherwise, the `<propDefinition>` is returned as-is (including if it's a reference).  This method can be used to instantiate objects that are not technically properties by passing in an arbitrary `<descriptor>`; for example, a property may be an array of objects that should be interpreted as `AudioParam`s; a custom setter can then call this method, with a `<descriptor>` object containing `isAudioParam` set to `true`, on the individual array elements to create the proper `Component`s.
 
 #### `genericSetter(<propName>, <propValue>)`
-Simply sets `this.<propName>` to `<propValue>`, which is the default way to store property values.  When implementing a custom setter, you may want to consider calling `genericSetter()` during the process.
+Simply sets `this.<propName>` to `<propValue>`, which is the default way to store property values.  When implementing a custom setter, you may want to consider calling `genericSetter()` during the process.  If the property has a `passThrough` and the pass-through `Component` has been instantiated already, it also calls `setProperty()` on that object.
 
 #### `setName(<name>)`
 Cleans up the existing `name`, sets the new `<name>`, and if that `<name>` isn't `null`, adds this `Component` to the `registry` under `<name>`.
@@ -594,7 +597,7 @@ Performs any cleanup tasks necessary, like dismantling `AudioNode`s that should 
 If the property named by `<propName>` has a `cleaner` in its descriptor, this method calls that cleaner to clean up the property; if it does not, it calls `genericCleaner(<propName>)`.
 
 #### `genericCleaner(<propName>)`
-If the property named by `<propName>` is itself a `Component`, calls `cleanup()` on the property (by calling `cleanupComponent()`), then sets `this.<propName>` to `null`.  If you need more specialized behavior and override this method, you should probably still call it from your override.
+If the property named by `<propName>` is itself a `Component`, calls `cleanup()` on the property (by calling `cleanupComponent()`), then sets `this.<propName>` to `null`.  If you need more specialized behavior and override this method, you should probably still call it from your override.  If the property has a `passThrough` and the pass-through `Component` has been instantiated already, it also calls `cleanupProperty()` on that object.
 
 #### `cleanupComponent(<component>)`
 If the `<component>` is a `Component`, calls `cleanup()` on it.
@@ -672,10 +675,10 @@ The output index of the `node` that connects to its destination.  It is `0` by d
 ### Instance Methods
 
 #### `on()`
-If the `node` field is `null`, creates a node (using `createNode()`) and called `connectProperties()` to set up the node.  Since Chrome requires that processors be connected to something in order for the `outputs` array to be properly constructed, the node is also connected to the `Player` instance's `ground` node.
+If the `node` field is `null`, creates a node (using `createNode()`) and called `connectProperties()` to set up the node.  Since Chrome requires that processors be connected to something in order for the `outputs` array to be properly constructed, each of the `node`'s outputs is also connected to the `Player` instance's `ground` node.
 
 #### `off()`
-Disconnects the node from `ground`; calls `disconnectProperties()` and `cleanupNode()` to tear everything down.
+Disconnects the `node`'s outputs from the `Player` instance's `ground`; calls `disconnectProperties()` and `cleanupNode()` to tear everything down.
 
 #### `createNode()`
 Creates a custom `AudioWorkletNode` with this class's `processorName` as its processor name and sticks it in the `node` field.  It also opens up the node's `port` for messaging.  If you're using a native `AudioNode` instead of a custom `AudioWorkletNode`, or you have multiple different node objects in your class, you need to override `createNode()` to do the thing you need it to do.  This gets called during `on()`.
@@ -716,7 +719,7 @@ Calls `connectProperty()` or `disconnectProperty()` on all of this `AudioCompone
 
 #### `connectProperty(<propName>)`
 #### `disconnectProperty(<propName>)`
-If a `connector` or `disconnector` is provided for this property, that method is called.  If not, `genericConnector()` or `genericDisconnector()` is called.
+If a `connector` or `disconnector` is provided for this property, that method is called.  If a `passThrough` is provided. `connectProperty()` or `disconnectProperty()` is called on the `passThrough` object (if it has been instantiated — calling these methods has no effect on the current `Component` itself if `passThrough` is set on the property).  Otherwise, `genericConnector()` or `genericDisconnector()` is called.
 
 #### `genericConnector(<propName>)`
 #### `genericDisconnector(<propName>)`
@@ -2760,3 +2763,65 @@ The boundaries which will be divided into `steps`.  Values outside this boundary
 
 #### `filter(<input>, <frame>, <channel>)` — *number*
 Identifies the boundaries and the width of a step (if the `value` of `steps` is ≤1, returns the center value, the average of the low and high boundaries).  The slice index is floor((input - low)/sliceWidth), and that slice index is multiplied by width/(`steps` – 1) (and added to low) to get the output.  If the input is equal to the high value, which would mathematically round to the next slice up, we make an exception and round it down, so for example, if the range is from –1 to 1 with the `value` of `steps` being 2, if –1 ≤ input < 0 it will get rounded to –1, while if 0 ≤ input ≤ 1 it will get rounded up to 1.  The bottom slice has an exclusive inequality on the upper end, while the top slice has inclusive inequalities on both ends.
+
+
+
+
+## TwoPoleFilter < Filter < AudioComponent < Component
+
+A biquad `Filter` with two complex poles at radius R from the origin and angle ±ø, no zeros, and a general gain of `b0`.  It's essentially a `BiquadFilter` with inputs `b0`, `b1` = `b2` = 0, `a0` = 1, `a1` = –2Rcos(ø), and `a2` = R^(2).  ø is calculated from the center frequency f_c as ø = 2π·f_c/`sampleRate`.  The effect is that frequencies near f_c are amplified, though note that the peak gain will not actually be right at f_c because the two poles combine their effects.  The `TwoPoleFilter` is implemented as a `BiquadFilter` part with a two-output `AudioNode` connected to it, generating the inputs.
+
+### Properties
+
+#### `b0` — *number or `AudioComponent`* — `defaultValue`: `1` — `passThrough`: `biquad`
+#### `scaling` — *number or `AudioComponent`* — `defaultValue`: `1` — `passThrough`: `biquad`
+#### `offset` — *number or `AudioComponent`* — `defaultValue`: `0` — `passThrough`: `biquad`
+Pass-through properties of the `BiquadFilter` instance within the `TwoPoleFilter`.
+
+#### `radius` — *number or `AudioComponent` — `defaultValue`: `0` — `isAudioParam`: `true`
+#### `frequency` — *number or `AudioComponent` — `defaultValue`: `0` — `isAudioParam`: `true`
+Parameters R and f_c representing the location of the poles in the complex plane.  R should be less than 1, otherwise the filter will not be stable.  The poles are located at z = R·e^(±iø), where ø = 2π·f_c/`sampleRate`.
+
+### Class Fields
+
+#### `numberOfInputs` — `0`
+#### `numberOfOutputs` — `2`
+#### `processorName` — `'TwoPoleFilterDriverProcessor'`
+The inputs and outputs relate to the `node`, while the actual filtering is done by the `biquad`.
+
+### Instance Fields
+
+#### `biquad` — `BiquadFilter`
+The filter that actually does the filtering.  The `node`'s two outputs are connected to properties `a1` and `a2` on the `biquad`.
+
+### Instance Methods
+
+#### `createNode()`
+#### `cleanupNode()`
+Also create and clean up the `biquad`.
+
+#### `getFirstNode()` — `AudioNode`
+#### `getNodeToFilter()` — `AudioNode`
+Redirects both calls to the `biquad`, which ensures that the filter is connected properly.
+
+
+
+
+## TwoPoleFilterDriverProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+A processor that provides the necessary inputs to drive the `TwoPoleFilter`'s `biquad`.  Its two outputs correspond to `a1` and `a2` on the `biquad`.
+
+### AudioParams
+
+#### `radius`
+#### `frequency`
+R and f_c to calculate the coefficients of the `biquad`.
+
+### Instance Methods
+
+#### `_process(<outputs>)` — *boolean*
+Returns `!this.isDone()`.  Before that, fills each frame and channel of the two outputs with values for `a1` and `a2` in the `biquad`.
+
+#### `calculateA1(<frame>)` — *number*
+#### `calculateA2(<frame>)` — *number*
+Returns the calculated values for the `a1` and `a2` coefficients.  `a1` = –2R·cos(ø) and `a2` = R^(2), where R is the value of `radius` at the given `<frame>` and ø is 2π/`sampleRate` times the value of `frequency` at the given `<frame>`.

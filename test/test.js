@@ -44,6 +44,13 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: twoPoleFilterSequence()
+        }
+      },
+      {
+        after: 2500,
+        action: {
+          className: 'PlayAction',
           playable: parallelFilterSequence()
         }
       },
@@ -243,6 +250,61 @@ function afterTests() {
   }
 }
 
+function twoPoleFilterSequence() {
+  return {
+    className: 'Sequence',
+    duration: 2250,
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear noise with a rising spectrum that shakes six times.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('twoPoleFilterTest start')
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 2000,
+            gain: 0.067,
+            frequency: 'C1',
+            generator: {
+              className: 'WhiteNoiseGenerator',
+              filter: {
+                className: 'TwoPoleFilter',
+                radius: {
+                  className: 'SineOscillator',
+                  frequency: 3,
+                  initialPhase: Math.PI/2,
+                  offset: 0.75,
+                  scaling: 0.02
+                },
+                frequency: {
+                  className: 'ExponentialGenerator',
+                  startTime: 100,
+                  endTime: 1900,
+                  startValue: 'C0',
+                  endValue: 'C10'
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    afterEvents: [
+      {
+        action: () => console.log('twoPoleFilterTest stop')
+      }
+    ]
+  }
+}
+
 function parallelFilterSequence() {
   return {
     className: 'Sequence',
@@ -297,7 +359,6 @@ function parallelFilterSequence() {
     ],
     afterEvents: [
       {
-        time: 0,
         action: () => console.log('parallelFilterTest stop')
       }
     ]
@@ -369,7 +430,6 @@ function biquadSequence() {
     ],
     afterEvents: [
       {
-        time: 0,
         action: () => console.log('biquadTest stop')
       }
     ]

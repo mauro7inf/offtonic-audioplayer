@@ -13,3 +13,5 @@ option to make startValue, endValue, baseline constant for linear/exponential ge
 A way to specify path references instead of named (so, for example, '../frequency' to get the frequency property of the parent Component)
 
 Make parent, player, registry, tuning into an options object instead of separate arguments?
+
+AudioComponent::connectProperty should be a no-op if the property is already connected
