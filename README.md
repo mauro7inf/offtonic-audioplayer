@@ -2825,3 +2825,66 @@ Returns `!this.isDone()`.  Before that, fills each frame and channel of the two 
 #### `calculateA1(<frame>)` — *number*
 #### `calculateA2(<frame>)` — *number*
 Returns the calculated values for the `a1` and `a2` coefficients.  `a1` = –2R·cos(ø) and `a2` = R^(2), where R is the value of `radius` at the given `<frame>` and ø is 2π/`sampleRate` times the value of `frequency` at the given `<frame>`.
+
+
+
+
+## TwoZeroFilter < Filter < AudioComponent < Component
+
+A biquad `Filter` with two complex zeros at radius R from the origin and angle ±ø, no poles, and a general gain of `b0`.  It's essentially a `BiquadFilter` with inputs `b0`, `b1` = –2Rcos(ø)·`b0`, `b2` = R^(2)·`b0`, `a0` = 1, and `a1` = `a2` = 0.  ø is calculated from the center frequency f_c as ø = 2π·f_c/`sampleRate`.  The effect is that frequencies near f_c are attenuated, though note that the peak attenuation will not actually be right at f_c because the two zeros combine their effects.  The `TwoZeroFilter` is implemented as a `BiquadFilter` part with a three-output `AudioNode` connected to it, generating the inputs.
+
+### Properties
+
+#### `scaling` — *number or `AudioComponent`* — `defaultValue`: `1` — `passThrough`: `biquad`
+#### `offset` — *number or `AudioComponent`* — `defaultValue`: `0` — `passThrough`: `biquad`
+Pass-through properties of the `BiquadFilter` instance within the `TwoZeroFilter`.
+
+#### `b0` — *number or `AudioComponent`* — `defaultValue`: `1` — `isAudioParam`: `true`
+#### `radius` — *number or `AudioComponent` — `defaultValue`: `0` — `isAudioParam`: `true`
+#### `frequency` — *number or `AudioComponent` — `defaultValue`: `0` — `isAudioParam`: `true`
+Parameters `b0`, R, and f_c representing the general gain and the location of the zeros in the complex plane.  R does not need to be less than 1.  The zeros are located at z = R·e^(±iø), where ø = 2π·f_c/`sampleRate`.
+
+### Class Fields
+
+#### `numberOfInputs` — `0`
+#### `numberOfOutputs` — `3`
+#### `processorName` — `'TwoZeroFilterDriverProcessor'`
+The inputs and outputs relate to the `node`, while the actual filtering is done by the `biquad`.
+
+### Instance Fields
+
+#### `biquad` — `BiquadFilter`
+The filter that actually does the filtering.  The `node`'s three outputs are connected to properties `b0`, `b1`, and `b2` on the `biquad`.
+
+### Instance Methods
+
+#### `createNode()`
+#### `cleanupNode()`
+Also create and clean up the `biquad`.
+
+#### `getFirstNode()` — `AudioNode`
+#### `getNodeToFilter()` — `AudioNode`
+Redirects both calls to the `biquad`, which ensures that the filter is connected properly.
+
+
+
+
+## TwoZeroFilterDriverProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+A processor that provides the necessary inputs to drive the `TwoZeroFilter`'s `biquad`.  Its three outputs correspond to `b0`, `b1`, and `b2` on the `biquad`.
+
+### AudioParams
+
+#### `b0`
+#### `radius`
+#### `frequency`
+`b0`, R, and f_c to calculate the coefficients of the `biquad`.
+
+### Instance Methods
+
+#### `_process(<outputs>)` — *boolean*
+Returns `!this.isDone()`.  Before that, fills each frame and channel of the three outputs with values for `b0`, `b1`, and `b2` in the `biquad`.
+
+#### `calculateB1(<frame>)` — *number*
+#### `calculateB2(<frame>)` — *number*
+Returns the calculated values for the `b1` and `b2` coefficients.  `b1` = –2R·cos(ø)·`b0` and `b2` = R^(2)·`b0`, where R is the value of `radius` at the given `<frame>` and ø is 2π/`sampleRate` times the value of `frequency` at the given `<frame>`.

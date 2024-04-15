@@ -44,11 +44,11 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
-          playable: twoPoleFilterSequence()
+          playable: quadraticFilterSequence()
         }
       },
       {
-        after: 2500,
+        after: 4750,
         action: {
           className: 'PlayAction',
           playable: parallelFilterSequence()
@@ -250,22 +250,54 @@ function afterTests() {
   }
 }
 
-function twoPoleFilterSequence() {
+function quadraticFilterSequence() {
   return {
     className: 'Sequence',
-    duration: 2250,
+    duration: 4500,
     beforeEvents: [
       {
-        action: () => console.log('You should hear noise with a rising spectrum that shakes six times.')
+        action: () => console.log('You should hear noise with a rising spectrum that shakes six times, then noise with a falling spectrum that shakes six times.')
       }
     ],
     events: [
       {
         time: 0,
-        action: () => console.log('twoPoleFilterTest start')
+        action: () => console.log('quadraticFilterTest start')
       },
       {
         time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 2000,
+            gain: 0.05,
+            frequency: 'C1',
+            generator: {
+              className: 'WhiteNoiseGenerator',
+              filter: {
+                className: 'TwoPoleFilter',
+                radius: {
+                  className: 'SineOscillator',
+                  frequency: 3,
+                  initialPhase: Math.PI/2,
+                  offset: 0.85,
+                  scaling: 0.03
+                },
+                frequency: {
+                  className: 'ExponentialGenerator',
+                  startTime: 100,
+                  endTime: 1900,
+                  startValue: 'C0',
+                  endValue: 'C10'
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        time: 2250,
         action: {
           className: 'PlayAction',
           playable: {
@@ -276,13 +308,13 @@ function twoPoleFilterSequence() {
             generator: {
               className: 'WhiteNoiseGenerator',
               filter: {
-                className: 'TwoPoleFilter',
+                className: 'TwoZeroFilter',
                 radius: {
                   className: 'SineOscillator',
                   frequency: 3,
                   initialPhase: Math.PI/2,
-                  offset: 0.75,
-                  scaling: 0.02
+                  offset: 1,
+                  scaling: 0.25
                 },
                 frequency: {
                   className: 'ExponentialGenerator',
@@ -299,7 +331,7 @@ function twoPoleFilterSequence() {
     ],
     afterEvents: [
       {
-        action: () => console.log('twoPoleFilterTest stop')
+        action: () => console.log('quadraticFilterTest stop')
       }
     ]
   }

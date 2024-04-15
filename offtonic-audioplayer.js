@@ -49,6 +49,7 @@ import CutoffFilter from './lib/components/filters/CutoffFilter.js';
 import StepFilter from './lib/components/filters/StepFilter.js';
 
 import TwoPoleFilter from './lib/components/filters/TwoPoleFilter.js';
+import TwoZeroFilter from './lib/components/filters/TwoZeroFilter.js';
 
 import Timer from './lib/components/Timer.js';
 
@@ -160,6 +161,8 @@ class Global {
 
     this.registerClass(TwoPoleFilter);
     this.queueModule('lib/processors/drivers/TwoPoleFilterDriverProcessor.js');
+    this.registerClass(TwoZeroFilter);
+    this.queueModule('lib/processors/drivers/TwoZeroFilterDriverProcessor.js');
 
     this.registerClass(Timer);
     this.queueModule('lib/processors/TimerProcessor.js');
