@@ -90,151 +90,108 @@ class Global {
 
     this.Component = Component;
     this.Component.o = this;
-    this.registerClass('Component', Component);
-    this.AudioComponent = AudioComponent;
+    this.registerClass(Component);
+    
+    this.registerClass(AudioComponent);
     this.queueModule('lib/processors/AudioComponentProcessor.js');
-    this.registerClass('AudioComponent', AudioComponent);
-    this.NodeOutput = NodeOutput;
-    this.registerClass('NodeOutput', NodeOutput);
-    this.Playable = Playable;
-    this.registerClass('Playable', Playable);
+    this.registerClass(NodeOutput);
+    this.registerClass(Playable);
 
-    this.Adder = Adder;
-    this.registerClass('Adder', Adder);
-    this.Multiplier = Multiplier;
+    this.registerClass(Adder);
+    this.registerClass(Multiplier);
     this.queueModule('lib/processors/arithmetic/MultiplierProcessor.js');
-    this.registerClass('Multiplier', Multiplier);
 
-    this.Generator = Generator;
+    this.registerClass(Generator);
     this.queueModule('lib/processors/generators/GeneratorProcessor.js');
-    this.registerClass('Generator', Generator);
 
-    this.GeneratorSequence = GeneratorSequence;
+    this.registerClass(GeneratorSequence);
     this.queueModule('lib/processors/generators/GeneratorSequenceProcessor.js');
-    this.registerClass('GeneratorSequence', GeneratorSequence);
 
-    this.ConstantGenerator = ConstantGenerator;
-    this.registerClass('ConstantGenerator', ConstantGenerator);
-    this.LinearGenerator = LinearGenerator;
+    this.registerClass(ConstantGenerator);
+    this.registerClass(LinearGenerator);
     this.queueModule('lib/processors/generators/LinearGeneratorProcessor.js');
-    this.registerClass('LinearGenerator', LinearGenerator);
-    this.ExponentialGenerator = ExponentialGenerator;
+    this.registerClass(ExponentialGenerator);
     this.queueModule('lib/processors/generators/ExponentialGeneratorProcessor.js');
-    this.registerClass('ExponentialGenerator', ExponentialGenerator);
 
-    this.FourierGenerator = FourierGenerator;
-    this.registerClass('FourierGenerator', FourierGenerator);
-    this.FourierComponent = FourierComponent;
-    this.registerClass('FourierComponent', FourierComponent);
-    this.fourierSawtooth = FourierSawtooth;
-    this.registerClass('FourierSawtooth', FourierSawtooth);
+    this.registerClass(FourierGenerator);
+    this.registerClass(FourierComponent);
+    this.registerClass(FourierSawtooth);
 
-    this.WhiteNoiseGenerator = WhiteNoiseGenerator;
+    this.registerClass(WhiteNoiseGenerator);
     this.queueModule('lib/processors/generators/WhiteNoiseGeneratorProcessor.js');
-    this.registerClass('WhiteNoiseGenerator', WhiteNoiseGenerator);
-    this.RedNoiseGenerator = RedNoiseGenerator;
+    this.registerClass(RedNoiseGenerator);
     this.queueModule('lib/processors/generators/RedNoiseGeneratorProcessor.js');
-    this.registerClass('RedNoiseGenerator', RedNoiseGenerator);
 
-    this.ShepardGenerator = ShepardGenerator;
+    this.registerClass(ShepardGenerator);
     this.queueModule('lib/processors/generators/ShepardGeneratorProcessor.js');
-    this.registerClass('ShepardGenerator', ShepardGenerator);
-    this.ShepardOctaveGenerator = ShepardOctaveGenerator;
+    this.registerClass(ShepardOctaveGenerator);
     this.queueModule('lib/processors/generators/ShepardOctaveGeneratorProcessor.js');
-    this.registerClass('ShepardOctaveGenerator', ShepardOctaveGenerator);
 
-    this.Oscillator = Oscillator;
+    this.registerClass(Oscillator);
     this.queueModule('lib/processors/generators/OscillatorProcessor.js');
-    this.registerClass('Oscillator', Oscillator);
-    this.SineOscillator = SineOscillator;
+    this.registerClass(SineOscillator);
     this.queueModule('lib/processors/generators/SineOscillatorProcessor.js');
-    this.registerClass('SineOscillator', SineOscillator);
-    this.TriangleOscillator = TriangleOscillator;
+    this.registerClass(TriangleOscillator);
     this.queueModule('lib/processors/generators/TriangleOscillatorProcessor.js');
-    this.registerClass('TriangleOscillator', TriangleOscillator);
-    this.SquareOscillator = SquareOscillator;
+    this.registerClass(SquareOscillator);
     this.queueModule('lib/processors/generators/SquareOscillatorProcessor.js');
-    this.registerClass('SquareOscillator', SquareOscillator);
-    this.SawtoothOscillator = SawtoothOscillator;
+    this.registerClass(SawtoothOscillator);
     this.queueModule('lib/processors/generators/SawtoothOscillatorProcessor.js');
-    this.registerClass('SawtoothOscillator', SawtoothOscillator);
-    this.ExponentialSineOscillator = ExponentialSineOscillator;
+    this.registerClass(ExponentialSineOscillator);
     this.queueModule('lib/processors/generators/ExponentialSineOscillatorProcessor.js');
-    this.registerClass('ExponentialSineOscillator', ExponentialSineOscillator);
 
-    this.Envelope = Envelope;
+    this.registerClass(Envelope);
     this.queueModule('lib/processors/envelopes/EnvelopeProcessor.js');
-    this.registerClass('Envelope', Envelope);
-    this.ADSREnvelope = ADSREnvelope;
+    this.registerClass(ADSREnvelope);
     this.queueModule('lib/processors/envelopes/ADSREnvelopeProcessor.js');
-    this.registerClass('ADSREnvelope', ADSREnvelope);
 
-    this.Filter = Filter;
+    this.registerClass(Filter);
     this.queueModule('lib/processors/filters/FilterProcessor.js');
-    this.registerClass('Filter', Filter);
-    this.ParallelFilter = ParallelFilter;
-    this.registerClass('ParallelFilter', ParallelFilter);
-    this.LinearFilter = LinearFilter;
+    this.registerClass(ParallelFilter);
+    this.registerClass(LinearFilter);
     this.queueModule('lib/processors/filters/LinearFilterProcessor.js');
-    this.registerClass('LinearFilter', LinearFilter);
-    this.FirstOrderFilter = FirstOrderFilter;
+    this.registerClass(FirstOrderFilter);
     this.queueModule('lib/processors/filters/FirstOrderFilterProcessor.js');
-    this.registerClass('FirstOrderFilter', FirstOrderFilter);
-    this.BiquadFilter = BiquadFilter;
+    this.registerClass(BiquadFilter);
     this.queueModule('lib/processors/filters/BiquadFilterProcessor.js');
-    this.registerClass('BiquadFilter', BiquadFilter);
-    this.CutoffFilter = CutoffFilter;
+    this.registerClass(CutoffFilter);
     this.queueModule('lib/processors/filters/CutoffFilterProcessor.js');
-    this.registerClass('CutoffFilter', CutoffFilter);
-    this.StepFilter = StepFilter;
+    this.registerClass(StepFilter);
     this.queueModule('lib/processors/filters/StepFilterProcessor.js');
-    this.registerClass('StepFilter', StepFilter);
 
-    this.TwoPoleFilter = TwoPoleFilter;
+    this.registerClass(TwoPoleFilter);
     this.queueModule('lib/processors/drivers/TwoPoleFilterDriverProcessor.js');
-    this.registerClass('TwoPoleFilter', TwoPoleFilter);
 
-    this.Timer = Timer;
+    this.registerClass(Timer);
     this.queueModule('lib/processors/TimerProcessor.js');
-    this.registerClass('Timer', Timer);
 
-    this.Tone = Tone;
     // Tone uses the MultiplierProcessor, which has already been added above
-    this.registerClass('Tone', Tone);
+    this.registerClass(Tone);
 
-    this.Sequence = Sequence;
     // Sequence uses the AudioComponentProcessor, which already has been added above
-    this.registerClass('Sequence', Sequence);
-    this.Action = Action;
-    this.registerClass('Action', Action);
-    this.PlayAction = PlayAction;
-    this.registerClass('PlayAction', PlayAction);
-    this.MethodAction = MethodAction;
-    this.registerClass('MethodAction', MethodAction);
-    this.SequenceAction = SequenceAction;
-    this.registerClass('SequenceAction', SequenceAction);
-    this.CreateAction = CreateAction;
-    this.registerClass('CreateAction', CreateAction);
-    this.CleanupAction = CleanupAction;
-    this.registerClass('CleanupAction', CleanupAction);
-    this.PropertyAction = PropertyAction;
-    this.registerClass('PropertyAction', PropertyAction);
+    this.registerClass(Sequence);
+    this.registerClass(Action);
+    this.registerClass(PlayAction);
+    this.registerClass(MethodAction);
+    this.registerClass(SequenceAction);
+    this.registerClass(CreateAction);
+    this.registerClass(CleanupAction);
+    this.registerClass(PropertyAction);
 
-    this.Tuning = Tuning;
-    this.registerClass('Tuning', Tuning);
+    this.registerClass(Tuning);
     this.queueModule('lib/processors/tunings/TuningProcessor.js');
-    this.MeantoneTuning = MeantoneTuning;
-    this.registerClass('MeantoneTuning', MeantoneTuning);
+    this.registerClass(MeantoneTuning);
     this.queueModule('lib/processors/tunings/MeantoneTuningProcessor.js');
 
-    this.Note = Note;
-    this.registerClass('Note', Note);
+    this.registerClass(Note);
     this.queueModule('lib/processors/NoteProcessor.js');
 
     this.addAllModules();
   }
 
-  registerClass(className, classInstance) { // TODO also add the class to this, use classInstance.name instead of two parameters
+  registerClass(classInstance) {
+    let className = classInstance.name;
+    this[className] = classInstance;
     this.classRegistry.register(className, classInstance);
   }
 

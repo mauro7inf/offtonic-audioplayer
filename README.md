@@ -244,8 +244,8 @@ Default `Player` instance; all `Component`s created with `createComponent()` hav
 
 ### Instance Methods
 
-#### `registerClass(<className>, <classInstance>, <overwrite>)`
-Adds a class to the class registry so that it can be instantiated when a properties object with a `className` is passed to `createComponent()`.  `<className>` is the name of the class, and `<classInstance>` is the class itself (the constructor function), which should be a subclass of `Component` or instantiation will not work.  If you are adding any new `Component` subclasses, you should register them here so that you can specify them in properties.  The `<overwrite>` argument is optional; if it is not `true` and you attempt to register a class with a duplicate `<className>`, the registration will fail and you will get a console error, but if it is `true`, the new value will overwrite the old one.
+#### `registerClass(<classInstance>)`
+Adds a class to the class registry so that it can be instantiated when a properties object with a `className` is passed to `createComponent()`.  `<classInstance>` is the class itself (the constructor function), which should be a subclass of `Component` or instantiation will not work; the name will be the JS-provided `name` field on the class (the name that it was declared with, not the variable used to hold it).  If you are adding any new `Component` subclasses, you should register them here so that you can specify them in properties.  Registered classes are also added as instance properties of `o`, under the same name as the class itself.
 
 #### `getClass(<className>)` — *`Component` subclass constructor*
 Retrieves the class instance from the class registry with the given `<className>`, if it exists.  You shouldn't have to call this method directly, since this is called from `createComponent` already.
