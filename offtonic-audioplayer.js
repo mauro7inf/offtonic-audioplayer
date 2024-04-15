@@ -88,10 +88,9 @@ class Global {
     this.Player.o = this;
     this.player = new this.Player(); // common instance, used by default
 
-    this.Component = Component;
-    this.Component.o = this;
     this.registerClass(Component);
-    
+    this.Component.o = this;
+
     this.registerClass(AudioComponent);
     this.queueModule('lib/processors/AudioComponentProcessor.js');
     this.registerClass(NodeOutput);
