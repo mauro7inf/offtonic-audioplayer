@@ -44,6 +44,13 @@ function start() {
         after: 0,
         action: {
           className: 'PlayAction',
+          playable: shelfFilterSequence()
+        }
+      },
+      {
+        after: 4750,
+        action: {
+          className: 'PlayAction',
           playable: quadraticFilterSequence()
         }
       },
@@ -248,6 +255,81 @@ function afterTests() {
   if (done) {
     console.log('Done!');
   }
+}
+
+function shelfFilterSequence() {
+  return {
+    className: 'Sequence',
+    duration: 4500,
+    beforeEvents: [
+      {
+        action: () => console.log('You should hear noise with a rising spectrum, then noise with a falling spectrum.')
+      }
+    ],
+    events: [
+      {
+        time: 0,
+        action: () => console.log('shelfFilterTest start')
+      },
+      {
+        time: 0,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 2000,
+            gain: 0.4,
+            frequency: 'C3',
+            generator: {
+              className: 'WhiteNoiseGenerator',
+              filter: {
+                className: 'LowShelfFilter',
+                boost: 0.1,
+                frequency: {
+                  className: 'ExponentialGenerator',
+                  startTime: 0,
+                  endTime: 1750,
+                  startValue: 1,
+                  endValue: 22000
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        time: 2250,
+        action: {
+          className: 'PlayAction',
+          playable: {
+            className: 'Tone',
+            duration: 2000,
+            gain: 0.4,
+            frequency: 'C3',
+            generator: {
+              className: 'WhiteNoiseGenerator',
+              filter: {
+                className: 'HighShelfFilter',
+                boost: 0.1,
+                frequency: {
+                  className: 'ExponentialGenerator',
+                  startTime: 0,
+                  endTime: 1750,
+                  startValue: 22000,
+                  endValue: 1
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    afterEvents: [
+      {
+        action: () => console.log('shelfFilterTest stop')
+      }
+    ]
+  };
 }
 
 function quadraticFilterSequence() {

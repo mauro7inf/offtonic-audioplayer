@@ -48,8 +48,11 @@ import BiquadFilter from './lib/components/filters/BiquadFilter.js';
 import CutoffFilter from './lib/components/filters/CutoffFilter.js';
 import StepFilter from './lib/components/filters/StepFilter.js';
 
+import BiquadDriver from './lib/components/filters/BiquadDriver.js';
 import TwoPoleFilter from './lib/components/filters/TwoPoleFilter.js';
 import TwoZeroFilter from './lib/components/filters/TwoZeroFilter.js';
+import HighShelfFilter from './lib/components/filters/HighShelfFilter.js';
+import LowShelfFilter from './lib/components/filters/LowShelfFilter.js';
 
 import Timer from './lib/components/Timer.js';
 
@@ -159,10 +162,15 @@ class Global {
     this.registerClass(StepFilter);
     this.queueModule('lib/processors/filters/StepFilterProcessor.js');
 
+    this.registerClass(BiquadDriver);
     this.registerClass(TwoPoleFilter);
     this.queueModule('lib/processors/drivers/TwoPoleFilterDriverProcessor.js');
     this.registerClass(TwoZeroFilter);
     this.queueModule('lib/processors/drivers/TwoZeroFilterDriverProcessor.js');
+    this.registerClass(HighShelfFilter);
+    this.queueModule('lib/processors/drivers/HighShelfFilterDriverProcessor.js');
+    this.registerClass(LowShelfFilter);
+    this.queueModule('lib/processors/drivers/LowShelfFilterDriverProcessor.js');
 
     this.registerClass(Timer);
     this.queueModule('lib/processors/TimerProcessor.js');

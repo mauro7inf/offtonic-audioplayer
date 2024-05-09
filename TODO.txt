@@ -1,5 +1,9 @@
 Standard filters (Butterworth, etc.)
 
+* Peaking equalizer - https://ccrma.stanford.edu/~jos/filters/Peaking_Equalizers.html
+* Normalized resonator - https://ccrma.stanford.edu/~jos/filters/Constant_Peak_Gain_Resonator.html
+Allpass
+
 Turn Adder into array adder instead of term1 and term2 adder (other TODOs in Adder.js)
 
 A component that accepts numbers in a method and outputs them in a ConstantGenerator

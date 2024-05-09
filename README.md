@@ -758,6 +758,9 @@ Adds the appropriate value to the `<options>` object and returns it, calling `ad
 #### `addProcessorOptionOption(<options>, <propName>)` — *object*
 Adds the value of the `<propName>` property to the `<options>` object under `processorOptions`, with the key being the processor option name (`processorOptionName` if provided in the descriptor, or just `<propName>` if not).  This value can be anything, but since it gets passed via structured clone, it shouldn't contain functions.  The processor can read this value at construction time and handle it however is necessary.  Returns the `<options>` object.
 
+#### `nodeOutputDefinition(<outputIndex>)` — *object*
+Convenience method; returns a properties object for a `NodeOutput` with `node` as the `node` and `<outputIndex>` as the `outputIndex`.
+
 
 
 
@@ -2767,15 +2770,44 @@ Identifies the boundaries and the width of a step (if the `value` of `steps` is 
 
 
 
-## TwoPoleFilter < Filter < AudioComponent < Component
+## BiquadDriver < Filter < AudioComponent < Component
+
+A `Filter` that drives a `BiquadFilter` with the outputs of its `node`.  This particular filter simply passes the signal through the default `BiquadFilter`, but you can subclass this to feed all six coefficients of the `BiquadFilter` with the results of formulas through an appropriate processor.
+
+### Properties
+
+#### `scaling` — *number or `AudioComponent`* — `defaultValue`: `1` — `passThrough`: `biquad`
+#### `offset` — *number or `AudioComponent`* — `defaultValue`: `0` — `passThrough`: `biquad`
+Pass-through properties of the `BiquadFilter` instance within the `BiquadDriver`.
+
+### Instance Fields
+
+#### `biquad` — *`BiquadFilter`*
+The `Filter` that actually filters a signal.  The `node`'s outputs connect to its parameters.
+
+### Instance Methods
+
+#### `coefficientMap()` — *array of numbers, `AudioComponent`s, and `AudioComponent` definitions*
+Returns an object containing values for the keys `'b0'`, `'b1'`, `'b2'`, `'a0'`, `'a1'`, and `'a2'`.  The default values are `1` for `'b0'` and `'a0'` and `0` for the other four, which results in the trivial identity filter that simply outputs its input.  Subclasses should override this method to provide different parameters.  The `biquad` will be constructed using these as the parameters.
+
+#### `createNode()`
+#### `cleanupNode()`
+Also create and clean up the `biquad`.
+
+#### `getFirstNode()` — `AudioNode`
+#### `getNodeToFilter()` — `AudioNode`
+Redirects both calls to the `biquad`, which ensures that the filter is connected properly.
+
+
+
+
+## TwoPoleFilter < BiquadDriver < Filter < AudioComponent < Component
 
 A biquad `Filter` with two complex poles at radius R from the origin and angle ±ø, no zeros, and a general gain of `b0`.  It's essentially a `BiquadFilter` with inputs `b0`, `b1` = `b2` = 0, `a0` = 1, `a1` = –2Rcos(ø), and `a2` = R^(2).  ø is calculated from the center frequency f_c as ø = 2π·f_c/`sampleRate`.  The effect is that frequencies near f_c are amplified, though note that the peak gain will not actually be right at f_c because the two poles combine their effects.  The `TwoPoleFilter` is implemented as a `BiquadFilter` part with a two-output `AudioNode` connected to it, generating the inputs.
 
 ### Properties
 
 #### `b0` — *number or `AudioComponent`* — `defaultValue`: `1` — `passThrough`: `biquad`
-#### `scaling` — *number or `AudioComponent`* — `defaultValue`: `1` — `passThrough`: `biquad`
-#### `offset` — *number or `AudioComponent`* — `defaultValue`: `0` — `passThrough`: `biquad`
 Pass-through properties of the `BiquadFilter` instance within the `TwoPoleFilter`.
 
 #### `radius` — *number or `AudioComponent` — `defaultValue`: `0` — `isAudioParam`: `true`
@@ -2789,20 +2821,10 @@ Parameters R and f_c representing the location of the poles in the complex plane
 #### `processorName` — `'TwoPoleFilterDriverProcessor'`
 The inputs and outputs relate to the `node`, while the actual filtering is done by the `biquad`.
 
-### Instance Fields
-
-#### `biquad` — `BiquadFilter`
-The filter that actually does the filtering.  The `node`'s two outputs are connected to properties `a1` and `a2` on the `biquad`.
-
 ### Instance Methods
 
-#### `createNode()`
-#### `cleanupNode()`
-Also create and clean up the `biquad`.
-
-#### `getFirstNode()` — `AudioNode`
-#### `getNodeToFilter()` — `AudioNode`
-Redirects both calls to the `biquad`, which ensures that the filter is connected properly.
+#### `coefficientMap()` — *array of numbers, `AudioComponent`s, and `AudioComponent` definitions*
+Returns an object with the appropriate coefficients, including `NodeOutput` definitions for `'a1'` and `'a2'`.
 
 
 
@@ -2829,15 +2851,11 @@ Returns the calculated values for the `a1` and `a2` coefficients.  `a1` = –2R�
 
 
 
-## TwoZeroFilter < Filter < AudioComponent < Component
+## TwoZeroFilter < BiquadDriver < Filter < AudioComponent < Component
 
 A biquad `Filter` with two complex zeros at radius R from the origin and angle ±ø, no poles, and a general gain of `b0`.  It's essentially a `BiquadFilter` with inputs `b0`, `b1` = –2Rcos(ø)·`b0`, `b2` = R^(2)·`b0`, `a0` = 1, and `a1` = `a2` = 0.  ø is calculated from the center frequency f_c as ø = 2π·f_c/`sampleRate`.  The effect is that frequencies near f_c are attenuated, though note that the peak attenuation will not actually be right at f_c because the two zeros combine their effects.  The `TwoZeroFilter` is implemented as a `BiquadFilter` part with a three-output `AudioNode` connected to it, generating the inputs.
 
 ### Properties
-
-#### `scaling` — *number or `AudioComponent`* — `defaultValue`: `1` — `passThrough`: `biquad`
-#### `offset` — *number or `AudioComponent`* — `defaultValue`: `0` — `passThrough`: `biquad`
-Pass-through properties of the `BiquadFilter` instance within the `TwoZeroFilter`.
 
 #### `b0` — *number or `AudioComponent`* — `defaultValue`: `1` — `isAudioParam`: `true`
 #### `radius` — *number or `AudioComponent` — `defaultValue`: `0` — `isAudioParam`: `true`
@@ -2851,20 +2869,10 @@ Parameters `b0`, R, and f_c representing the general gain and the location of th
 #### `processorName` — `'TwoZeroFilterDriverProcessor'`
 The inputs and outputs relate to the `node`, while the actual filtering is done by the `biquad`.
 
-### Instance Fields
-
-#### `biquad` — `BiquadFilter`
-The filter that actually does the filtering.  The `node`'s three outputs are connected to properties `b0`, `b1`, and `b2` on the `biquad`.
-
 ### Instance Methods
 
-#### `createNode()`
-#### `cleanupNode()`
-Also create and clean up the `biquad`.
-
-#### `getFirstNode()` — `AudioNode`
-#### `getNodeToFilter()` — `AudioNode`
-Redirects both calls to the `biquad`, which ensures that the filter is connected properly.
+#### `coefficientMap()` — *array of numbers, `AudioComponent`s, and `AudioComponent` definitions*
+Returns an object with the appropriate coefficients, including `NodeOutput` definitions for `'b0'`, `'b1'`, and `'b2'`.
 
 
 
@@ -2888,3 +2896,111 @@ Returns `!this.isDone()`.  Before that, fills each frame and channel of the thre
 #### `calculateB1(<frame>)` — *number*
 #### `calculateB2(<frame>)` — *number*
 Returns the calculated values for the `b1` and `b2` coefficients.  `b1` = –2R·cos(ø)·`b0` and `b2` = R^(2)·`b0`, where R is the value of `radius` at the given `<frame>` and ø is 2π/`sampleRate` times the value of `frequency` at the given `<frame>`.
+
+
+
+
+## LowShelfFilter < BiquadDriver < Filter < AudioComponent < Component
+
+A first-order (one zero, one pole) `Filter` that boosts low frequencies less than the `frequency` of the filter and leaves higher frequencies alone.  It is essentially a `BiquadFilter` with `b0` = 1 + k·b, `b1` = –(1 – k·b), `b2` = 0, `a0` = 1 + k, `a1` = –(1 – k), and `a2` = 0, where b is the `boost` and k = tan(ø/2), where ø is calculated from the cutoff `frequency` f_c as ø = 2π·f_c/`sampleRate`.  You can check that the transfer function yields b at z = 1, which corresponds to a DC signal (frequency 0), and it yields 1 at z = –1, which corresponds to the Nyquist frequency (22,050 Hz).
+
+### Properties
+
+#### `boost` — *number or `AudioComponent`* — `defaultValue`: `1` — `isAudioParam`: `true`
+The gain of the signal at DC.  If this number is greater than 1, the signal is boosted; if less than 1, attenuated.  The gain at the Nyquist frequency is 1 (0 dB).
+
+#### `frequency` — *number or `AudioComponent`* — `defaultValue`: `0` — `isAudioParam`: `true`
+The cutoff frequency for the shelf; frequencies lower than this value will be boosted by `boost`, while frequencies higher will have an unchanged gain of 1.  However, in practice, there's a very gradual change around the cutoff frequency, since this is only a first-order filter.
+
+### Class Fields
+
+#### `numberOfInputs` — `0`
+#### `numberOfOutputs` — `4`
+#### `processorName` — `'LowShelfFilterDriverProcessor'`
+The inputs and outputs relate to the `node`, while the actual filtering is done by the `biquad`.
+
+### Instance Methods
+
+#### `coefficientMap()` — *array of numbers, `AudioComponent`s, and `AudioComponent` definitions*
+Returns an object with the appropriate coefficients, including `NodeOutput` definitions for `'b0'`, `'b1'`, `'a0'`, and `'a1'`.
+
+
+
+
+## LowShelfFilterDriverProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+A processor that provides the necessary inputs to drive the `LowShelfFilter`'s `biquad`.  Its four outputs correspond to `b0`, `b1`, `a0`, and `a1` on the `biquad`.
+
+### AudioParams
+
+#### `boost`
+#### `frequency`
+The parameters `b` and `f_c` used to calculate the coefficients of the `biquad`.
+
+### Instance Methods
+
+#### `_process(<outputs>)` — *boolean*
+Returns `!this.isDone()`.  Before that, fills each frame and channel of the four outputs with values for `b0`, `b1`, `a0`, and `a1` in the `biquad`.
+
+#### `calculateK(<frame>)` — *number*
+Returns the calculated value of k used in calculating the coefficients.  k = tan(ø/2), where ø = 2π·f_c/`sampleRate`, with f_c being the `frequency`.
+
+#### `calculateB0(<b>, <k>)` — *number*
+#### `calculateB1(<b>, <k>)` — *number*
+#### `calculateA0(<b>, <k>)` — *number*
+#### `calculateA1(<b>, <k>)` — *number*
+Returns the calculated values for the `b0`, `b1`, `a0`, and `a1` coefficients using the frame's values for `<b>` and `<k>`.  With b = `<b>` and k = `<k>`, we have `b0` = 1 + k·b, `b1` = –(1 – k·b), `a0` = 1 + k, and `a1` = –(1 – k).
+
+
+
+
+## HighShelfFilter < BiquadDriver < Filter < AudioComponent < Component
+
+A first-order (one zero, one pole) `Filter` that boosts high frequencies greater than the `frequency` of the filter and leaves lower frequencies alone.  It is essentially a `BiquadFilter` with `b0` = b + k, `b1` = –(b – k), `b2` = 0, `a0` = 1 + k, `a1` = –(1 – k), and `a2` = 0, where b is the `boost` and k = tan(ø/2), where ø is calculated from the cutoff `frequency` f_c as ø = 2π·f_c/`sampleRate`.  You can check that the transfer function yields 1 at z = 1, which corresponds to a DC signal (frequency 0), and it yields b at z = –1, which corresponds to the Nyquist frequency (22,050 Hz).
+
+### Properties
+
+#### `boost` — *number or `AudioComponent`* — `defaultValue`: `1` — `isAudioParam`: `true`
+The gain of the signal at the Nyquist frequency.  If this number is greater than 1, the signal is boosted; if less than 1, attenuated.  The gain at DC is 1 (0 dB).
+
+#### `frequency` — *number or `AudioComponent`* — `defaultValue`: `0` — `isAudioParam`: `true`
+The cutoff frequency for the shelf; frequencies higher than this value will be boosted by `boost`, while frequencies lower will have an unchanged gain of 1.  However, in practice, there's a very gradual change around the cutoff frequency, since this is only a first-order filter.
+
+### Class Fields
+
+#### `numberOfInputs` — `0`
+#### `numberOfOutputs` — `4`
+#### `processorName` — `'HighShelfFilterDriverProcessor'`
+The inputs and outputs relate to the `node`, while the actual filtering is done by the `biquad`.
+
+### Instance Methods
+
+#### `coefficientMap()` — *array of numbers, `AudioComponent`s, and `AudioComponent` definitions*
+Returns an object with the appropriate coefficients, including `NodeOutput` definitions for `'b0'`, `'b1'`, `'a0'`, and `'a1'`.
+
+
+
+
+## HighShelfFilterDriverProcessor < AudioComponentProcessor < AudioWorkletProcessor
+
+A processor that provides the necessary inputs to drive the `HighShelfFilter`'s `biquad`.  Its four outputs correspond to `b0`, `b1`, `a0`, and `a1` on the `biquad`.
+
+### AudioParams
+
+#### `boost`
+#### `frequency`
+The parameters `b` and `f_c` used to calculate the coefficients of the `biquad`.
+
+### Instance Methods
+
+#### `_process(<outputs>)` — *boolean*
+Returns `!this.isDone()`.  Before that, fills each frame and channel of the four outputs with values for `b0`, `b1`, `a0`, and `a1` in the `biquad`.
+
+#### `calculateK(<frame>)` — *number*
+Returns the calculated value of k used in calculating the coefficients.  k = tan(ø/2), where ø = 2π·f_c/`sampleRate`, with f_c being the `frequency`.
+
+#### `calculateB0(<b>, <k>)` — *number*
+#### `calculateB1(<b>, <k>)` — *number*
+#### `calculateA0(<b>, <k>)` — *number*
+#### `calculateA1(<b>, <k>)` — *number*
+Returns the calculated values for the `b0`, `b1`, `a0`, and `a1` coefficients using the frame's values for `<b>` and `<k>`.  With b = `<b>` and k = `<k>`, we have `b0` = b + k, `b1` = –(b – k), `a0` = 1 + k, and `a1` = –(1 – k).
